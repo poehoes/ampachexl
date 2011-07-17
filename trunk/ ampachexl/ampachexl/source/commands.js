@@ -2,8 +2,8 @@
 var defaultCookie = function() {
 
 	var newCookie = {
-		//accounts: [],
-		accounts: [{name: "local", url: "http://192.168.1.105/ampache/", username: "ampachexl", password: "ampachexl"}],
+		accounts: [],
+		//accounts: [{name: "local", url: "http://192.168.1.105/ampache/", username: "ampachexl", password: "ampachexl"}],
 		currentAccountIndex: 0,
 		streamDebug: false,
 		version: "unknown",
@@ -13,7 +13,7 @@ var defaultCookie = function() {
 		albumsSort: 0,
 		searchType: 0,
 		dashboardPlayer: true,
-		debug: true,
+		debug: false,
 	};
 	
 	return newCookie;
@@ -117,3 +117,14 @@ var getAmpacheTime = function() {
 };
 
 
+var floatToTime = function(inFloat) {
+
+	var minutes = parseInt(inFloat/60);
+	var seconds = parseInt(inFloat - (minutes*60));
+	
+	if(minutes < 10) minutes = "0"+minutes;
+	if(seconds < 10) seconds = "0"+seconds;
+	
+	return minutes+":"+seconds;
+
+}

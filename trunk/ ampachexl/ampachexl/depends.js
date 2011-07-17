@@ -1,20 +1,26 @@
 enyo.depends(
+	"stylesheets/ampachexl.css",
+	
 	"source/ampachexl.js",
 	
 	"source/leftmenu.js",
+	"source/playback.js",
 	
-	"source/searchselector.js",
+	"source/hosts.js",
+	
 	"source/albumslist.js",
 	"source/playlistslist.js",
 	"source/artistslist.js",
-	"source/videoslist.js",
 	"source/songslist.js",
 	
+	"source/nowplaying.js",
+	
+		"source/videoslist.js",
+		"source/searchselector.js",
+	
 	"source/commands.js",
-	"source/sha256.js",
-	"source/XMLObjectifier.js",
 	
-	"stylesheets/ampachexl.css",
-	
+	"source/libraries/sha256.js",
+	/*"source/libraries/XMLObjectifier.js",*/
 	"source/libraries/Metrix/metrix.js"
 );

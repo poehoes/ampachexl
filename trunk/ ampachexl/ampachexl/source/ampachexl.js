@@ -6,6 +6,14 @@ var debug = true;
 AmpacheXL.prefsCookieString = enyo.getCookie("AmpacheXL-prefs");
 AmpacheXL.prefsCookie;
 
+AmpacheXL.connected = false;
+
+AmpacheXL.nowplaying = [];
+AmpacheXL.allArtists = [];
+AmpacheXL.allAlbums = [];
+AmpacheXL.allPlaylists = [];
+AmpacheXL.allVideos = [];
+
 enyo.kind({
 	name: "AmpacheXL.main",
 	kind: "VFlexBox",
@@ -14,7 +22,7 @@ enyo.kind({
 	viewMode: "tablet",
 	
 	dataRequestView: "",
-	
+	bannerMessageId: "",
 	
 	components: [
 		{kind: "ApplicationEvents", onLoad: "appLoaded", onUnload: "appUnloaded", onError: "appError", onWindowActivated: "windowActivated", onWindowDeactivated: "windowDeactivated", onKeyup: "keypressHandler", onKeydown: "keypressHandler", onKeypress: "keypressHandler", onBack: "backHandler"},
@@ -27,19 +35,25 @@ enyo.kind({
 			
 		{kind: "AppMenu", components: [
 			{caption: "About", onclick: "openAbout"},
-			{caption: "Preferences", onclick: "openPreferences"}
+			{caption: "Disconnect", onclick: "disconnect"},
+			{caption: "Preferences", onclick: "openPreferences"},
 		]},
 		
 		{name: "aboutPopup", kind: "Popup", scrim: true, components: [
 			{content: "AmpacheXL", style: "text-align: center; font-size: larger;"},
 			{content: "<hr />", allowHtml: true},
-			{name: "aboutPopupText", content: "AmpacheXL is a webOS app for Ampache written in the enyo framework and designed for use on a tablet.", style: "text-align: center; font-size: smaller;"},
+			{name: "aboutPopupText", content: "AmpacheXL is an app for Ampache written for use on a webOS tablet.", style: "text-align: center; font-size: smaller;"},
 			{content: "<hr />", allowHtml: true},
 			{content: '<a href="http://code.google.com/p/ampachexl/">App homepage</a>', allowHtml: true, style: "text-align: center; font-size: smaller;"},
 			{content: "<hr />", allowHtml: true},
 			{content: '<a href="http://ampache.org/">Ampache homepage</a>', allowHtml: true, style: "text-align: center; font-size: smaller;"},
 			{content: "<hr />", allowHtml: true},
 			{kind: "Button", caption: "OK", onclick:"closeAboutPopup"}
+		]},
+		
+		{name: "bannerMessagePopup", kind: "Popup", scrim: true, onBeforeOpen: "beforeBannerMessageOpen", components: [
+			{name: "bannerMessagePopupText", style: "text-align: center;"},
+			{kind: "Button", caption: "OK", onclick:"closeBannerMessagePopup"}
 		]},
 		
 		{name: "loadingPopup", kind: "Popup", scrim: true, dismissWithClick: true, dismissWithEscape: true, components: [
@@ -50,25 +64,37 @@ enyo.kind({
 			]},
 		]},
 		
-		{name: "mainPane", kind: "SlidingPane", flex: 1, onSelectView: "mainPaneViewSelected", components: [
-			{name: "leftMenu", className: "leftMenu", components: [
-				{name: "leftMenuKind", kind: "LeftMenuKind", flex: 1, onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner"},
+		{name: "mainPane", kind: "HFlexBox", kind2: "SlidingPane", flex: 1, onSelectView: "mainPaneViewSelected", components: [
+			{name: "leftMenu", className: "leftMenu", width: "300px", layoutKind: "VFlexLayout", components: [
+				
+				{name: "leftMenuKind", kind: "LeftMenuKind", flex: 1, onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
+				
+				{name: "playback", kind: "Playback", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPreviousTrack: "previousTrack", onNextTrack: "nextTrack", onBannerMessage: "bannerMessage"},
+			
 			]},
 			{name: "rightContent", className: "rightContent", kind: "Pane", flex: 1, onSelectView: "rightContentViewSelected", onCreateView: "rightContentViewCreated", transitionKind: "enyo.transitions.LeftRightFlyin", components: [	
-				{name: "searchSelector", kind: "SearchSelector"},
 				
-				{name: "artistsList", kind: "ArtistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner"},
-				{name: "albumsList", kind: "AlbumsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner"},
-				{name: "playlistsList", kind: "PlaylistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner"},
-				{name: "videosList", kind: "VideosList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner"},
+				{name: "hosts", kind: "Hosts", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onAmpacheConnect: "ampacheConnect"},
 				
-				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong"},
+				{name: "nowplaying", kind: "Nowplaying", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts"},
+				
+				{name: "searchSelector", kind: "SearchSelector", onBannerMessage: "bannerMessage"},
+				
+				{name: "artistsList", kind: "ArtistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
+				{name: "albumsList", kind: "AlbumsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
+				{name: "playlistsList", kind: "PlaylistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
+				{name: "videosList", kind: "VideosList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
+				
+				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage"},
+			
 			]},
 		]},
 		
+		/*
 		{name: "playbackFooter", showing: false, className: "playbackFooter", kind: "HFlexBox", components: [
 			{content: "playbackFooter"},
 		]},
+		*/
 	],
 	
 	create: function() {
@@ -78,18 +104,20 @@ enyo.kind({
 		AmpacheXL.Metrix = new Metrix(); 
 		
 		if((AmpacheXL.prefsCookieString)&&(true)) {
+		
 			if(debug) this.log("we have cookie");
 			AmpacheXL.prefsCookie = enyo.json.parse(AmpacheXL.prefsCookieString);
 			
 			if(AmpacheXL.prefsCookie.allowMetrix) setTimeout(enyo.bind(this,"submitMetrix"),500);
 			
 		} else {
+		
 			if(debug) this.log("we don't have cookie");
 			AmpacheXL.prefsCookie = defaultCookie();
 			
-			enyo.setCookie("AmpacheXL-prefs", enyo.json.stringify(AmpacheXL.prefsCookie));
-			
 		}
+		
+		this.savePreferences();
 			
 		enyo.setAllowedOrientation(AmpacheXL.prefsCookie.allowedOrientation);	
 		debug = AmpacheXL.prefsCookie.debug;
@@ -101,7 +129,12 @@ enyo.kind({
 	activate: function() {
 		if(debug) this.log("activate");
 		
-		this.ampacheConnect();
+		//this.ampacheConnect();
+	},
+	savePreferences: function() {
+		if(debug) this.log("savePreferences");
+		
+		enyo.setCookie("AmpacheXL-prefs", enyo.json.stringify(AmpacheXL.prefsCookie));
 	},
 	submitMetrix: function() {
 		if(debug) this.log("submitMetrix");
@@ -120,6 +153,37 @@ enyo.kind({
 		if(debug) this.log("closeAboutPopup");
 		
 		this.$.aboutPopup.close();
+	},
+	disconnect: function() {
+		if(debug) this.log("disconnect");
+		
+		AmpacheXL.connected = false;
+		
+		AmpacheXL.connectResponse.auth = "";
+		AmpacheXL.connectResponse.update = "";
+		AmpacheXL.connectResponse.add = "";
+		AmpacheXL.connectResponse.clean = "";
+		AmpacheXL.connectResponse.songs = "";
+		AmpacheXL.connectResponse.artists = "";
+		AmpacheXL.connectResponse.albums = "";
+		AmpacheXL.connectResponse.playlists = "";
+		AmpacheXL.connectResponse.videos = "";
+				
+		AmpacheXL.connectResponse.tags = "";
+		AmpacheXL.connectResponse.api = "";
+		
+		AmpacheXL.nowplaying.length = 0;
+		AmpacheXL.allArtists.length = 0;
+		AmpacheXL.allAlbums.length = 0;
+		AmpacheXL.allPlaylists.length = 0;
+		AmpacheXL.allVideos.length = 0;
+
+		this.updateCounts();
+		this.$.playback.disconnect();
+		this.$.rightContent.selectViewByName("hosts");
+	},
+	openPreferences: function() {
+		if(debug) this.log("openPreferences");
 	},
 	headerClick: function() {
 		if(debug) this.log("got header click");
@@ -144,12 +208,42 @@ enyo.kind({
 			this.previousRightPane = inPreviousView.name;
 		}
 		
+		this.savePreferences();
+		
+		this.updateCounts();
 		this.$[inView.name].activate();
 	},
 	
+	
+	bannerMessage: function(inSender, inMessage, forcePopup) {
+		if(debug) this.log("bannerMessage: "+inMessage);
+		
+		if(inMessage == "Error: Session Expired") this.disconnect();
+		
+		if((forcePopup)||(!window.PalmSystem)){
+			this.bannerMessageText = inMessage;
+			this.$.bannerMessagePopup.openAtCenter();
+		} else {
+			enyo.windows.removeBannerMessage(this.bannerMessageId);
+			this.bannerMessageId = enyo.windows.addBannerMessage(inMessage, "{}");
+		}
+		
+	},
+	beforeBannerMessageOpen: function() {
+		if(debug) this.log("beforeBannerMessageOpen");
+		
+		this.$.bannerMessagePopupText.setContent(this.bannerMessageText);
+	},
+	closeBannerMessagePopup: function() {
+		if(debug) this.log("closeBannerMessagePopup");
+		
+		this.$.bannerMessagePopup.close();
+		
+	},
 	viewSelected: function(inSender, inItem) {
 		if(debug) this.log("viewSelected: "+inItem);
 		
+		this.updateCounts();
 		this.$.rightContent.selectViewByName(inItem);
 	},
 	dataRequest: function(inSender, inView, inMethod, inParameters) {
@@ -185,7 +279,22 @@ enyo.kind({
 	playSong: function(inSender, inSongObject) {
 		if(debug) this.log("playSong: "+enyo.json.stringify(inSongObject));
 		
-		this.$.leftMenuKind.playSong(inSongObject);
+		this.$.playback.playSong(inSongObject);
+	},
+	previousTrack: function() {
+		if(debug) this.log("previousTrack");
+		
+		this.$.nowplaying.previousTrack();
+	},
+	nextTrack: function() {
+		if(debug) this.log("nextTrack");
+		
+		this.$.nowplaying.nextTrack();
+	},
+	updateCounts: function() {
+		if(debug) this.log("updateCounts");
+		
+		this.$.leftMenuKind.updateCounts();
 	},
 	
 	backHandler: function(inSender, e) {
@@ -216,10 +325,8 @@ enyo.kind({
 		
 	},
 
-	
 	ampacheConnect: function() {
 		if(debug) this.log("ampacheConnect");
-		//testing purposes for now.
 		
 		this.$.ampacheConnectService.setUrl(getAmpacheConnectionUrl(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex]));
 		if(debug) this.log("ampacheConnectService url: "+this.$.ampacheConnectService.getUrl());
@@ -228,6 +335,8 @@ enyo.kind({
 	ampacheConnectResponse: function(inSender, inResponse) {
 		if(debug) this.log("ampacheConnectResponse");
 		//if(debug) this.log("ampacheConnectResponse: "+inResponse);
+		
+		AmpacheXL.connected = true;
 		
 		AmpacheXL.connectResponse = {};
 		
@@ -281,7 +390,11 @@ enyo.kind({
 		
 		if(debug) this.log("connectResponse: "+enyo.json.stringify(AmpacheXL.connectResponse));
 		
-		this.$.leftMenuKind.updateCounts();
+		this.updateCounts();
+		
+		this.updateSpinner("amapchexl", true);
+		this.dataRequest("amapchexl", "artistsList", "artists", "");
+		this.$.rightContent.selectViewByName("artistsList");
 		
 	},
 	ampacheConnectFailure: function(inSender, inResponse) {
@@ -289,14 +402,16 @@ enyo.kind({
 	},
 	
 	dataRequestResponse: function(inSender, inResponse) {
-		if(debug) this.log("dataRequestResponse: "+inResponse);
-		//if(debug) this.log("dataRequestResponse");
+		//if(debug) this.log("dataRequestResponse: "+inResponse);
+		if(debug) this.log("dataRequestResponse");
 		
 		this.$[this.dataRequestView].dataRequestResponse(inResponse);
 		
 	},
 	dataRequestFailure: function(inSender, inResponse) {
 		if(debug) this.log("dataRequestFailure");
+		
+		this.bannerMessare("amapchexl", "Data request failed", true);
 	},
 	
 });
