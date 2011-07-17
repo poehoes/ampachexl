@@ -1,0 +1,10 @@
+{
+	"id": "com.thewbman.ampachexl",
+	"version": "0.1.0",
+	"vendor": "thewbman",
+	"type": "web",
+	"main": "index.html",
+	"title": "Ampache XL",
+	"icon": "icon.png",
+	"uiRevision": "2"
+}
