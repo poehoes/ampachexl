@@ -1,0 +1,19 @@
+.leftMenu,
+.LeftMenuKind{
+	width: 300px;
+	height: 100%;
+	background-color: #b8d8d8;
+}
+
+.rightContent{
+	background-color: #d8b8d8;
+}
+
+.enyo-toolbar {
+	color: white;
+}
+
+.playbackFooter {
+	height: 50px;
+	background-color: #d8d8b8;
+}
