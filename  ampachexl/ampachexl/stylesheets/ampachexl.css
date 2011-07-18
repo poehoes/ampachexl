@@ -2,15 +2,10 @@
 	width: 300px;
 }
 
-.LeftMenuKind{
-	color: white;
-	background-color: #0a0a0a;
-	background-image: url("../images/list-bg.png");
-}
-
+.LeftMenuKind,
 .Playback {
 	color: white;
-	background-color: #0a0a0a;
+	background-color: #0f0f0f;
 	background-image: url("../images/list-bg.png");
 }
 
@@ -88,10 +83,10 @@
 }
 
 .playbackSongArt {
-	height: 160px;
-	width: 160px;
-	/*margin: 5px 70px;*/
-	margin: 5px 69px;
+	height: 200px;
+	width: 200px;
+	/*margin: 5px 50px;*/
+	margin: 5px 49px;
 	border: 1px solid #3a3a3a;
 }
 
@@ -148,4 +143,8 @@
 .menuItem {
 	border-top: 1px solid silver;
 	border-bottom: none;
+}
+
+.deleteHost {
+	margin-left: 10px;
 }

@@ -24,7 +24,9 @@ enyo.kind({
 				{name: "nowplayingItemCount"},
 			]},
 			
-			{name: "searchItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+			//random
+			
+			{name: "searchItem", showing: false, kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
 				{name: "searchItemTitle", content: "Search", flex: 1},
 				{name: "searchItemCount"},
 			]},
@@ -67,7 +69,11 @@ enyo.kind({
 	updateCounts: function() {
 		if(debug) this.log("updateCounts");
 		
-		this.$.headerSubtitle.setContent(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].name);
+		if(AmpacheXL.connected) {
+			this.$.headerSubtitle.setContent(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].name);
+		} else {
+			this.$.headerSubtitle.setContent("");
+		}
 		
 		if(AmpacheXL.nowplaying.length == 0) {
 			this.$.nowplayingItemCount.setContent("");

@@ -178,7 +178,7 @@ enyo.kind({
 		//var progress = parseInt(100 * (AmpacheXL.audioObject.currentTime/AmpacheXL.audioObject.duration));
 		var progress = parseInt(100 * (AmpacheXL.audioObject.currentTime/AmpacheXL.currentSong.time));
 		
-		if(!this.movingSlider) {
+		if((!this.movingSlider)&&(AmpacheXL.connected))  {
 			this.$.songSlider.setPosition(progress);
 			this.$.progressTime.setContent(floatToTime(AmpacheXL.audioObject.currentTime));
 		}
@@ -200,9 +200,9 @@ enyo.kind({
 	errorEvent: function() {
 		if(debug) this.log("errorEvent");
 		
-		console.error(AmpacheXL.audioObject.error);
+		this.error(AmpacheXL.audioObject.error);
 		
-		this.doBannerMessage("Error playing file '"+AmpacheXL.currentSong.title+"'");
+		if(AmpacheXL.connected) this.doBannerMessage("Error playing file '"+AmpacheXL.currentSong.title+"'");
 		
 		this.doNextTrack();
 	},

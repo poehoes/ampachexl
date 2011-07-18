@@ -14,6 +14,8 @@ AmpacheXL.allAlbums = [];
 AmpacheXL.allPlaylists = [];
 AmpacheXL.allVideos = [];
 
+AmpacheXL.currentSong = {};
+
 enyo.kind({
 	name: "AmpacheXL.main",
 	kind: "VFlexBox",
@@ -25,7 +27,7 @@ enyo.kind({
 	bannerMessageId: "",
 	
 	components: [
-		{kind: "ApplicationEvents", onLoad: "appLoaded", onUnload: "appUnloaded", onError: "appError", onWindowActivated: "windowActivated", onWindowDeactivated: "windowDeactivated", onKeyup: "keypressHandler", onKeydown: "keypressHandler", onKeypress: "keypressHandler", onBack: "backHandler"},
+		{kind: "ApplicationEvents", onLoad: "appLoaded", onUnload: "appUnloaded", onError: "appError", onWindowActivated: "windowActivated", onWindowDeactivated: "windowDeactivated", onBack: "backHandler"},
 		
 		//name: "ampacheConnectService", kind: "WebService", handleAs: "txt", onSuccess: "ampacheConnectResponse", onFailure: "ampacheConnectFailure"},
 		{name: "dataRequestService", kind: "WebService", handleAs: "txt", onSuccess: "dataRequestResponse", onFailure: "dataRequestFailure"},
@@ -37,6 +39,7 @@ enyo.kind({
 			{caption: "About", onclick: "openAbout"},
 			{caption: "Disconnect", onclick: "disconnect"},
 			{caption: "Preferences", onclick: "openPreferences"},
+			{caption: "Email Developer", onclick: "emailDeveloper"},
 		]},
 		
 		{name: "aboutPopup", kind: "Popup", scrim: true, components: [
@@ -64,6 +67,45 @@ enyo.kind({
 			]},
 		]},
 		
+		{name: "preferencesPopup", kind: "Popup", scrim: true, onBeforeOpen: "beforePreferencesOpen", components: [
+			{name: "preferencesHeader", style: "text-align: center;"},
+			{content: "<hr/>", allowHtml: true},
+			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+				{content: "Automatically connect to server on app open&nbsp;&nbsp;&nbsp;", allowHtml: true, flex: 1},
+				{name: "autoLogin", kind: "ToggleButton", onChange: "autoLoginToggle"},
+			]},
+			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+				{name: "startingPane", kind: "ListSelector", label: "Starting view after login", onChange: "startingPaneSelect", flex: 1, items: [
+					{caption: "Artists", value: "artistsList"},
+					{caption: "Albums", value: "albumsList"},
+					{caption: "Playlists", value: "playlistsList"},
+				]},
+			]},
+			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+				{name: "defaultAction", kind: "ListSelector", label: "Default Action", onChange: "defaultActionSelect", flex: 1, items: [
+					{caption: "Play All", value: "playAll"},
+				]},
+			]},
+			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+				{content: "Dashboard playback contorls (not yet created)", flex: 1},
+				{name: "dashboardPlayer", kind: "ToggleButton", onChange: "dashboardPlayerToggle"},
+			]},
+			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+				{name: "theme", kind: "ListSelector", label: "Theme", onChange: "themeSelect", flex: 1, items: [
+					{caption: "Dark", value: "dark"},
+				]},
+			]},
+			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+				{content: "Usage statitistics with Metrix", flex: 1},
+				{name: "allowMetrix", kind: "ToggleButton", onChange: "allowMetrixToggle"},
+			]},
+			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+				{content: "Debug mode", flex: 1},
+				{name: "debug", kind: "ToggleButton", onChange: "debugToggle"},
+			]},
+			{kind: "Button", caption: "Save", onclick:"saveNewPreferences"}
+		]},
+		
 		{name: "mainPane", kind: "HFlexBox", kind2: "SlidingPane", flex: 1, onSelectView: "mainPaneViewSelected", components: [
 			{name: "leftMenu", className: "leftMenu", width: "300px", layoutKind: "VFlexLayout", components: [
 				
@@ -72,9 +114,9 @@ enyo.kind({
 				{name: "playback", kind: "Playback", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPreviousTrack: "previousTrack", onNextTrack: "nextTrack", onBannerMessage: "bannerMessage"},
 			
 			]},
-			{name: "rightContent", className: "rightContent", kind: "Pane", flex: 1, onSelectView: "rightContentViewSelected", onCreateView: "rightContentViewCreated", transitionKind: "enyo.transitions.LeftRightFlyin", components: [	
+			{name: "rightContent", className: "rightContent", kind: "Pane", flex: 1, onSelectView: "rightContentViewSelected", onCreateView: "rightContentViewCreated", transitionKind: "enyo.transitions.Simple", components: [	
 				
-				{name: "hosts", kind: "Hosts", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onAmpacheConnect: "ampacheConnect"},
+				{name: "hosts", kind: "Hosts", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onAmpacheConnect: "ampacheConnect", onSavePreferences: "savePreferences"},
 				
 				{name: "nowplaying", kind: "Nowplaying", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts"},
 				
@@ -101,6 +143,8 @@ enyo.kind({
 		if(debug) this.log("create");
 		this.inherited(arguments);
 		
+		enyo.keyboard.setResizesWindow(false);
+		
 		AmpacheXL.Metrix = new Metrix(); 
 		
 		if((AmpacheXL.prefsCookieString)&&(true)) {
@@ -109,6 +153,8 @@ enyo.kind({
 			AmpacheXL.prefsCookie = enyo.json.parse(AmpacheXL.prefsCookieString);
 			
 			if(AmpacheXL.prefsCookie.allowMetrix) setTimeout(enyo.bind(this,"submitMetrix"),500);
+			
+			if(AmpacheXL.prefsCookie.autoLogin) setTimeout(enyo.bind(this,"ampacheConnect"),50);
 			
 		} else {
 		
@@ -122,7 +168,7 @@ enyo.kind({
 		enyo.setAllowedOrientation(AmpacheXL.prefsCookie.allowedOrientation);	
 		debug = AmpacheXL.prefsCookie.debug;
 		
-		this.activate();
+		//this.activate();
 		
 	},
 	
@@ -184,7 +230,49 @@ enyo.kind({
 	},
 	openPreferences: function() {
 		if(debug) this.log("openPreferences");
+		
+		this.$.preferencesPopup.openAtCenter();
 	},
+	beforePreferencesOpen: function() {
+		if(debug) this.log("beforePreferencesOpen");
+		
+		var appInfo = enyo.fetchAppInfo();
+		this.$.preferencesHeader.setContent(appInfo.title+" - "+appInfo.version);
+		
+		this.$.autoLogin.setState(AmpacheXL.prefsCookie.autoLogin);
+		this.$.startingPane.setValue(AmpacheXL.prefsCookie.startingPane);
+		this.$.defaultAction.setValue(AmpacheXL.prefsCookie.defaultAction);
+		this.$.dashboardPlayer.setState(AmpacheXL.prefsCookie.dashboardPlayer);
+		this.$.theme.setValue(AmpacheXL.prefsCookie.theme);
+		this.$.allowMetrix.setState(AmpacheXL.prefsCookie.allowMetrix);
+		this.$.debug.setState(AmpacheXL.prefsCookie.debug);
+			
+	},
+	saveNewPreferences: function() {
+		if(debug) this.log("saveNewPreferences");
+		
+		AmpacheXL.prefsCookie.autoLogin = this.$.autoLogin.getState();
+		AmpacheXL.prefsCookie.startingPane = this.$.startingPane.getValue();
+		AmpacheXL.prefsCookie.defaultAction = this.$.defaultAction.getValue();
+		AmpacheXL.prefsCookie.dashboardPlayer = this.$.dashboardPlayer.getState();
+		AmpacheXL.prefsCookie.theme = this.$.theme.getValue();
+		AmpacheXL.prefsCookie.allowMetrix = this.$.allowMetrix.getState();
+		AmpacheXL.prefsCookie.debug = this.$.debug.getState();
+		
+		
+		debug = this.$.debug.getState();
+		
+		this.savePreferences();
+		this.$.preferencesPopup.close();
+		
+	},
+	emailDeveloper: function() {
+		if(debug) this.log("emailDeveloper") 
+		
+		var appInfo = enyo.fetchAppInfo();
+		
+		window.open("mailto:ampachexl.help@gmail.com?subject=AmpacheXL Help - v"+appInfo.version);
+	},	
 	headerClick: function() {
 		if(debug) this.log("got header click");
 		
@@ -215,6 +303,9 @@ enyo.kind({
 	},
 	
 	
+	doBannerMessage: function(inMessage, forcePopup) {
+		this.bannerMessage("amapchexl", inMessage, forcePopup);
+	},
 	bannerMessage: function(inSender, inMessage, forcePopup) {
 		if(debug) this.log("bannerMessage: "+inMessage);
 		
@@ -323,6 +414,8 @@ enyo.kind({
 	resizeHandler: function() {
 		if(debug) this.log("doing resize to "+document.body.clientWidth+"x"+document.body.clientHeight);
 		
+		this.$[this.currentRightPane].resize();
+		
 	},
 
 	ampacheConnect: function() {
@@ -382,23 +475,56 @@ enyo.kind({
 			
 			*/
 			
+			if(debug) this.log("connectResponse: "+enyo.json.stringify(AmpacheXL.connectResponse));
+			
+			this.updateCounts();
+			
+			switch(AmpacheXL.prefsCookie.startingPane) {
+				case "artistsList":
+					this.updateSpinner("AmpacheXL", true);
+					this.dataRequest("AmpacheXL", "artistsList", "artists", "");
+					this.$.rightContent.selectViewByName("artistsList");
+					break;
+				case "albumsList":
+					this.updateSpinner("AmpacheXL", true);
+					this.dataRequest("AmpacheXL", "albumsList", "albums", "");
+					this.$.rightContent.selectViewByName("albumsList");
+					break;
+				case "playlistsList":
+					//this.updateSpinner("AmpacheXL", true);
+					//this.dataRequest("AmpacheXL", "playlistsList", "playlists", "");
+					this.$.rightContent.selectViewByName("playlistsList");
+					break;
+				//more here
+				default: 
+					this.updateSpinner("AmpacheXL", true);
+					this.dataRequest("AmpacheXL", "artistsList", "artists", "");
+					this.$.rightContent.selectViewByName("artistsList");
+					break;
+			}
+			
 		} else {
+		
 			if(debug) this.log("did not find auth, so we got rejected from Ampache");
 			
 			AmpacheXL.connectResponse.success = false;
+			
+			var errorNodes, singleErrorNode;
+			errorNodes = xmlobject.getElementsByTagName("error");
+			for(var i = 0; i < errorNodes.length; i++) {
+				singleErrorNode = errorNodes[i];
+				
+				this.doBannerMessage(singleErrorNode.childNodes[0].nodeValue, true);
+				
+			}
+			
 		}
-		
-		if(debug) this.log("connectResponse: "+enyo.json.stringify(AmpacheXL.connectResponse));
-		
-		this.updateCounts();
-		
-		this.updateSpinner("amapchexl", true);
-		this.dataRequest("amapchexl", "artistsList", "artists", "");
-		this.$.rightContent.selectViewByName("artistsList");
 		
 	},
 	ampacheConnectFailure: function(inSender, inResponse) {
 		if(debug) this.log("ampacheConnectFailure");
+		
+		this.bannerMessage("amapchexl", "Failed to connect to AmpacheXL.  Check your settings.", true);
 	},
 	
 	dataRequestResponse: function(inSender, inResponse) {
@@ -411,10 +537,7 @@ enyo.kind({
 	dataRequestFailure: function(inSender, inResponse) {
 		if(debug) this.log("dataRequestFailure");
 		
-		this.bannerMessare("amapchexl", "Data request failed", true);
+		this.bannerMessare("AmpacheXL", "Data request failed", true);
 	},
 	
 });
-
-
-//asdf
