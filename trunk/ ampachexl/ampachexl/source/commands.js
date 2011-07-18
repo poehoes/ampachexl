@@ -3,17 +3,28 @@ var defaultCookie = function() {
 
 	var newCookie = {
 		accounts: [],
-		//accounts: [{name: "local", url: "http://192.168.1.105/ampache/", username: "ampachexl", password: "ampachexl"}],
 		currentAccountIndex: 0,
-		streamDebug: false,
+		autoLogin: true,
+		startingPane: "artistsList",
+		
+		defaultAction: "playAll",
+		theme: "dark",
 		version: "unknown",
 		allowedOrientation: "free",
-		theme: "defualt",
 		recent: 0,
-		albumsSort: 0,
 		searchType: 0,
 		dashboardPlayer: true,
+		
+		albumsSort: 0,
+		artistssSort: 0,
+		songsSort: 0,
+		playlistsSort: 0,
+		videosSort: 0,
+		
+		allowMetrix: true,
+		
 		debug: false,
+		streamDebug: false,
 	};
 	
 	return newCookie;

@@ -14,21 +14,28 @@ enyo.kind({
 		onPlaySong: "",
 		onUpdateCounts: "",
 		onAmpacheConnect: "",
+		onSavePreferences: "",
 	},
 	
 	components: [
 	
-		{name: "addPopup", kind: "Popup", lazy: false, scrim: true, components: [
+		{name: "addPopup", kind: "Popup", lazy: false, showKeyboardWhenOpening: true, scrim: true, components: [
 			{content: "AmpacheXL", style: "text-align: center; font-size: larger;"},
 			{kind: "Divider", caption: "Name"},
 			{name: "nameInput", kind: "Input"},
-			{kind: "Divider", caption: "URL"},
+			{kind: "Divider", caption: "URL (including 'http://' and ampache directory)"},
 			{name: "urlInput", kind: "Input", value: "http://"},
 			{kind: "Divider", caption: "Username"},
 			{name: "usernameInput", kind: "Input"},
 			{kind: "Divider", caption: "Password"},
 			{name: "passwordInput", kind: "PasswordInput"},
-			{kind: "Button", caption: "Save", onclick:"saveNew"}
+			{kind: "Button", caption: "Save", onclick:"saveNew"},
+		]},
+		
+		{name: "deletePopup", kind: "Popup", scrim: true, components: [
+			{content: "Are you sure you want to delete this host?", style: "text-align: center; font-size: smaller;"},
+			{kind: "Button", caption: "Yes", className: "enyo-button-affirmative", onclick:"confirmDeleteHost"},
+			{kind: "Button", caption: "No", className: "enyo-button-negative", onclick:"cancelDeleteHost"},
 		]},
 	
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
@@ -37,15 +44,16 @@ enyo.kind({
 		]},
 							
 		{name: "hostsVirtualList", kind: "VirtualList", onSetupRow: "setupHostsItem", flex: 1, components: [
-			{name: "hostsItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", onclick: "hostsClick", components: [
-				{kind: "VFlexBox", flex: 1, components: [
+			{name: "hostsItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", components: [
+				{kind: "VFlexBox", flex: 1, onclick: "hostsClick", components: [
 					{name: "hostsName", className: "title"},
 					{name: "hostsUrl", className: "subtitle"},
 				]},
-				{kind: "VFlexBox", components: [
+				{kind: "VFlexBox", onclick: "hostsClick", components: [
 					{name: "hostsUsername", className: "count"},
 					{name: "hostsPassword", className: "count"},
 				]},
+				{name: "deleteHost", kind: "Image", src: "images/11-x@2x.png", onclick: "deleteHost", className: "deleteHost"},
 			]},
 		]},
 		
@@ -64,10 +72,17 @@ enyo.kind({
 	activate: function() {
 		if(debug) this.log("activate");
 		
-		this.$.hostsVirtualList.refresh();
+		this.resize();
+		
+		this.$.hostsVirtualList.punt();
 		
 		//this.$.headerSubtitle.setContent(AmpacheXL.hosts.length+" items");
 		
+	},
+	resize: function() {
+		if(debug) this.log("resize");
+		
+		this.$.hostsVirtualList.resized();
 	},
 	
 	addClick: function() {
@@ -77,6 +92,8 @@ enyo.kind({
 	},
 	saveNew: function() {
 		if(debug) this.log("saveNew");
+		
+		enyo.keyboard.setManualMode(false);
 		
 		var newHost = {
 			name: this.$.nameInput.getValue(), 
@@ -90,6 +107,8 @@ enyo.kind({
 		this.$.hostsVirtualList.punt();
 		
 		this.$.addPopup.close();
+		
+		this.doSavePreferences();
 	},
 	
 	setupHostsItem: function(inSender, inIndex) {
@@ -129,6 +148,28 @@ enyo.kind({
 		
 		this.doAmpacheConnect();
 		
+	},
+	deleteHost: function(inSender, inEvent) {
+		if(debug) this.log("deleteHost: "+inEvent.rowIndex);
+		
+		this.selectedHost = inEvent.rowIndex;
+		
+		this.$.deletePopup.openAtCenter();
+		
+	},
+	confirmDeleteHost: function() {
+		if(debug) this.log("confirmDeleteHost: "+this.selectedHost);
+		
+		AmpacheXL.prefsCookie.accounts.splice(this.selectedHost,1);
+		
+		this.$.deletePopup.close();
+		this.$.hostsVirtualList.punt();
+		this.doSavePreferences();
+	},
+	cancelDeleteHost: function() {
+		if(debug) this.log("cancelDeleteHost");
+		
+		this.$.deletePopup.close();
 	},
 	
 });

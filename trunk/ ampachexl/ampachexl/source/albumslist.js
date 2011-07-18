@@ -55,6 +55,8 @@ enyo.kind({
 	activate: function(inMode) {
 		if(debug) this.log("activate");
 		
+		this.resize();
+		
 		if(AmpacheXL.selectedArtist) {
 			this.$.headerTitle.setContent("Albums ["+AmpacheXL.selectedArtist.name+"]");
 		} else {
@@ -67,6 +69,11 @@ enyo.kind({
 			}
 		}
 		
+	},
+	resize: function() {
+		if(debug) this.log("resize");
+		
+		this.$.albumsVirtualList.resized();
 	},
 	dataRequestResponse: function(inResponse) {
 		if(debug) this.log("dataRequestResponse");

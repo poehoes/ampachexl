@@ -59,11 +59,18 @@ enyo.kind({
 	activate: function() {
 		if(debug) this.log("activate");
 		
+		this.resize();
+		
 		if(AmpacheXL.selectedAlbum) {
 			this.$.headerSubtitle.setContent(AmpacheXL.selectedAlbum.name);
 		} else {
 			this.$.headerSubtitle.setContent("All Artists");
 		}
+	},
+	resize: function() {
+		if(debug) this.log("resize");
+		
+		this.$.songsVirtualList.resized();
 	},
 	dataRequestResponse: function(inResponse) {
 		if(debug) this.log("dataRequestResponse");

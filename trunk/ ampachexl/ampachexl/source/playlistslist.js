@@ -55,10 +55,17 @@ enyo.kind({
 	activate: function() {
 		if(debug) this.log("activate");
 		
+		this.resize();
+		
 		if(this.fullResultsList.length == 0) {
 			this.getPlaylists();
 		}
 		
+	},
+	resize: function() {
+		if(debug) this.log("resize");
+		
+		this.$.playlistsVirtualList.resized();
 	},
 	dataRequestResponse: function(inResponse) {
 		if(debug) this.log("dataRequestResponse");
