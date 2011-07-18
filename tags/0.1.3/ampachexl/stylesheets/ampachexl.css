@@ -1,0 +1,150 @@
+.leftMenu{
+	width: 300px;
+}
+
+.LeftMenuKind,
+.Playback {
+	color: white;
+	background-color: #0f0f0f;
+	background-image: url("../images/list-bg.png");
+}
+
+.rightContent,
+.listContent {
+	background-color: #1a1a1a;
+	background-image: url("../images/list-bg.png");
+	color: white;
+}
+
+.enyo-toolbar {
+	color: white;
+	min-height: 56px;
+}
+
+.playbackFooter {
+	height: 50px;
+	background-color: #d8d8b8;
+}
+
+.listItem {
+	padding: 2px 10px 4px 10px;
+	background-color: rgba(0,0,0,0);
+}
+
+.listItem .listIndex {
+	font-size: 16px;
+	min-width: 26px;
+	text-align: center;
+	margin-right: 4px;
+	margin-left: -4px;
+}
+
+.listItem .subtitle {
+	height: 12px;
+	font-size: 12px;
+	text-align: left;
+	margin-left: 8px;
+}
+
+.listItem .count {
+	height: 14px;
+	font-size: 14px;
+	text-align: right;
+	font-style: italic;
+}
+
+.listItem.selected {
+	background-color: rgba(255,255,255,0.15);
+}
+
+
+.headerTitle  {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: white;
+	text-align: center;
+}
+
+.headerSubtitle {
+	font-size: 14px;
+	height: 24px;
+	color:#a9a9a9;
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.truncating {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.playbackSongArt {
+	height: 200px;
+	width: 200px;
+	/*margin: 5px 50px;*/
+	margin: 5px 49px;
+	border: 1px solid #3a3a3a;
+}
+
+.playbackSongTitle {
+	text-align: center;
+	font-size: 16px;
+}
+
+.playbackSongArtist {
+	text-align: center;
+	font-size: 12px;
+}
+
+.playbackSongAlbum {
+	text-align: center;
+	font-size: 12px;
+}
+
+.playbackTime {
+	margin-left: 2px;
+	margin-right: 2px;
+	font-size: 12px;
+	min-width: 28px;
+}
+
+.songTimeWrapper {
+	height: 32px;
+}
+.songSlider {
+	margin: -10px 10px;
+}
+
+.searchInputWrapper {
+	border-top: 1px solid silver;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+	min-height: 40px;
+}
+
+.searchInputWrapper .enyo-input {
+	border-width: 5px 14px;
+}
+
+.searchInputWrapper .enyo-input-focus {
+	-webkit-border-image: none;
+	background-color: rgba(255, 255, 255, 0.1);
+	color: #F2F2F2;
+}
+
+.searchInputWrapper .enyo-input-input {
+	color: #F2F2F2;
+	font-style: italic;
+}
+
+.menuItem {
+	border-top: 1px solid silver;
+	border-bottom: none;
+}
+
+.deleteHost {
+	margin-left: 10px;
+}
