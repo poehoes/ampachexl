@@ -14,6 +14,7 @@ enyo.kind({
 		onOpenWeb: "",
 		onPlaySong: "",
 		onBannerMessage: "",
+		onNowplayingUpdated: "",
 	},
 	
 	fullResultsList: [],
@@ -275,17 +276,51 @@ enyo.kind({
 	songsClick: function(inSender, inEvent) {
 		if(debug) this.log("songsClick: "+inEvent.rowIndex);
 		
+		var actionArray = AmpacheXL.prefsCookie.defaultAction.split("[]:[]");
+		var playAction = actionArray[0];
+		var playSongs = actionArray[1];
+		var playOrder = actionArray[2];
+		
 		var row = this.resultsList[inEvent.rowIndex];
 		
 		if(debug) this.log("songsClick: "+enyo.json.stringify(row));
 		
-		this.doPlaySong(row);
+		var newSongs = [], s = {};
 		
-		//give more options like enqueue, replace, etc.
+		if(playAction == "queue") newSongs = newSongs.concat(AmpacheXL.nowplaying);
+		
+		if(playSongs == "single") {
+		
+			newSongs.push(row);
+			
+		} else {
+		
+			if(playOrder == "straight") {
+			
+				newSongs = newSongs.concat(this.resultsList);
+				
+			} else {
+			
+				var originalList = this.resultsList.concat([]);
+			
+				do {
+				
+					var randomSong = Math.floor(Math.random()*originalList.length);
+					
+					s = originalList.splice(randomSong, 1)[0];
+					newSongs.push(s);
+					
+					//if(debug) this.log("splicing random song at index "+randomSong+": "+enyo.json.stringify(s));
+					
+				} while(originalList.length > 0);
+				
+			}
+		}
+		
 		AmpacheXL.nowplaying.length = 0;
-		AmpacheXL.nowplaying = this.resultsList.concat([]);
+		AmpacheXL.nowplaying = newSongs;
 		
-		AmpacheXL.nowplayingIndex = inEvent.rowIndex+1;
+		this.doNowplayingUpdated(playAction);
 		
 		this.doViewSelected("nowplaying");
 		

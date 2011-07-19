@@ -124,6 +124,39 @@ enyo.kind({
 		this.$.nowplayingVirtualList.refresh();
 		this.doUpdateCounts();
 	},
+	nowplayingUpdated: function(inPlayAction) {
+		if(debug) this.log("nowplayingUpdated: "+inPlayAction);
+		
+		if(inPlayAction == "play") {
+			
+			var row = AmpacheXL.nowplaying[0];
+			
+			AmpacheXL.nowplayingIndex = 1;
+			AmpacheXL.currentSong = row;
+			
+			this.doPlaySong(row);
+			
+			this.$.nowplayingVirtualList.refresh();
+			this.doUpdateCounts();
+			
+		} else if(AmpacheXL.currentSong.artist) {
+			//are already playing a song, so dont interfere
+		} else {
+		
+			//first addition to playlist
+			var row = AmpacheXL.nowplaying[0];
+			
+			AmpacheXL.nowplayingIndex = 1;
+			AmpacheXL.currentSong = row;
+			
+			this.doPlaySong(row);
+			
+			this.$.nowplayingVirtualList.refresh();
+			this.doUpdateCounts();
+			
+		}
+		
+	},
 	
 	setupNowplayingItem: function(inSender, inIndex) {
 		//if(debug) this.log("setupNowplayingItem: "+inIndex);

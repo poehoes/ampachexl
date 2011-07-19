@@ -1,13 +1,10 @@
 Todo: 
 
- - clear new hosts add
  - search
  - random/album of day
  - dashboard
- - enqueue to now playing
  - sort lists
- - rearrange now playing
- - remove now playing
+ - rearrange now playing items
+ - remove now playing itmes
  - videos
  - coverflow?
- - ping for session timeout

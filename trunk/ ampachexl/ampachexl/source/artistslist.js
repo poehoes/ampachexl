@@ -65,7 +65,7 @@ enyo.kind({
 	resize: function() {
 		if(debug) this.log("resize");
 		
-		this.$.artistssVirtualList.resized();
+		this.$.artistsVirtualList.resized();
 	},
 	dataRequestResponse: function(inResponse) {
 		if(debug) this.log("dataRequestResponse");

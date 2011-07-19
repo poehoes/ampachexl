@@ -19,7 +19,7 @@ enyo.kind({
 	
 	components: [
 	
-		{name: "addPopup", kind: "Popup", lazy: false, showKeyboardWhenOpening: true, scrim: true, components: [
+		{name: "addPopup", kind: "Popup", lazy2: false, onBeforeOpen: "beforeAddPopupOpen", onOpen: "addPopupOpen", showKeyboardWhenOpening: true, scrim: true, components: [
 			{content: "AmpacheXL", style: "text-align: center; font-size: larger;"},
 			{kind: "Divider", caption: "Name"},
 			{name: "nameInput", kind: "Input"},
@@ -53,7 +53,7 @@ enyo.kind({
 					{name: "hostsUsername", className: "count"},
 					{name: "hostsPassword", className: "count"},
 				]},
-				{name: "deleteHost", kind: "Image", src: "images/11-x@2x.png", onclick: "deleteHost", className: "deleteHost"},
+				{name: "deleteHost", kind: "Image", src: "images/11-x@2x.png", width: "28px", onclick: "deleteHost", className: "deleteHost"},
 			]},
 		]},
 		
@@ -89,6 +89,20 @@ enyo.kind({
 		if(debug) this.log("addClick");
 		
 		this.$.addPopup.openAtCenter();
+	},
+	beforeAddPopupOpen: function() {
+		if(debug) this.log("beforeAddPopupOpen");
+		
+		this.$.nameInput.setValue("");
+		this.$.urlInput.setValue("http://");
+		this.$.usernameInput.setValue("");
+		this.$.passwordInput.setValue("");
+		
+	},
+	addPopupOpen: function() {
+		if(debug) this.log("addPopupOpen");
+		
+		this.$.nameInput.forceFocusEnableKeyboard();
 	},
 	saveNew: function() {
 		if(debug) this.log("saveNew");

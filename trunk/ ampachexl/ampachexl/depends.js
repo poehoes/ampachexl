@@ -16,7 +16,6 @@ enyo.depends(
 	"source/nowplaying.js",
 	
 		"source/videoslist.js",
-		"source/searchselector.js",
 	
 	"source/commands.js",
 	
