@@ -58,7 +58,7 @@ enyo.kind({
 		this.resize();
 		
 		if(this.fullResultsList.length == 0) {
-			this.getPlaylists();
+			//this.getPlaylists();
 		}
 		
 	},

@@ -155,7 +155,7 @@ enyo.kind({
 			AmpacheXL.allAlbums = this.fullResultsList.concat([]);
 		}
 		
-		if(AmpacheXL.selectedArtist) {
+		if((AmpacheXL.selectedArtist)&&(AmpacheXL.selectedArtist.type == "artist")) {
 			this.fullResultsList.splice(0,0,AmpacheXL.selectedArtist);
 			this.fullResultsList[0].isArtist = true;
 		}

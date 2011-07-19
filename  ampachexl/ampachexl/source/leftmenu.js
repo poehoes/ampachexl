@@ -26,7 +26,7 @@ enyo.kind({
 			
 			//random
 			
-			{name: "searchItem", showing: false, kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+			{name: "searchItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
 				{name: "searchItemTitle", content: "Search", flex: 1},
 				{name: "searchItemCount"},
 			]},

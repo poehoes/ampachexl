@@ -7,9 +7,8 @@ var defaultCookie = function() {
 		autoLogin: true,
 		startingPane: "artistsList",
 		
-		defaultAction: "playAll",
+		defaultAction: "queue[]:[]all[]:[]straight",
 		theme: "dark",
-		version: "unknown",
 		allowedOrientation: "free",
 		recent: 0,
 		searchType: 0,
@@ -25,6 +24,10 @@ var defaultCookie = function() {
 		
 		debug: false,
 		streamDebug: false,
+		
+		version: "unknown",
+		server: "unknown",
+		compatible: "unknown",
 	};
 	
 	return newCookie;
