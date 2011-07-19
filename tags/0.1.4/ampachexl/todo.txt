@@ -1,0 +1,10 @@
+Todo: 
+
+ - search
+ - random/album of day
+ - dashboard
+ - sort lists
+ - rearrange now playing items
+ - remove now playing itmes
+ - videos
+ - coverflow?
