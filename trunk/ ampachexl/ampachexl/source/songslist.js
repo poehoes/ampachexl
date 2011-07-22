@@ -20,6 +20,9 @@ enyo.kind({
 	fullResultsList: [],
 	resultsList: [],
 	
+	selectedSong: {},
+	selectedIndex: -1,
+	
 	components: [
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
 			{name: "headerTitle", kind: "Control", content: "Songs", className: "headerTitle"},
@@ -35,19 +38,25 @@ enyo.kind({
 							
 		{name: "songsVirtualList", kind: "VirtualList", onSetupRow: "setupSongsItem", flex: 1, components: [
 			//{name: "songsDivider", kind: "Divider"},
-			{name: "songsItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", onclick: "songsClick", components: [
-				{kind: "VFlexBox", flex: 1, components: [
+			{name: "songsItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", components: [
+				{kind: "VFlexBox", flex: 1, onclick: "songsClick", components: [
 					{name: "songsTitle", className: "title"},
 					{name: "songsArtist", className: "subtitle"},
 				]},
-				{kind: "VFlexBox", components: [
+				{kind: "VFlexBox", onclick: "songsClick", components: [
 					{name: "songsAlbum", className: "count"},
 					{name: "songsTrack", className: "count"},
 				]},
+				//name: "songsMoreButton", kind: "Button", caption: "...", onclick: "songsMoreClick"},
+				{name: "songsMoreIcon", kind: "Image", src: "images/16-play@2x-light.png", className: "songsMoreIcon", onclick: "songsMoreClick"},
 			]},
 		]},
 		
 		{name: "footer", kind: "Toolbar", components: [
+			//
+		]},
+		
+		{name: "morePopupMenu", kind: "PopupSelect", className: "morePopupMenu", onBeforeOpen2: "beforeMoreOpen", onSelect: "moreSelect", onClose: "moreClosed", components: [
 			//
 		]},
 	],
@@ -276,14 +285,22 @@ enyo.kind({
 	songsClick: function(inSender, inEvent) {
 		if(debug) this.log("songsClick: "+inEvent.rowIndex);
 		
-		var actionArray = AmpacheXL.prefsCookie.defaultAction.split("[]:[]");
+		this.selectedSong = this.resultsList[inEvent.rowIndex];
+		this.selectedIndex = inEvent.rowIndex;
+		
+		if(debug) this.log("songsClick: "+enyo.json.stringify(this.selectedSong));
+		
+		this.songsAction(AmpacheXL.prefsCookie.defaultAction);
+		
+	}, 
+	songsAction: function(inAction) {
+	
+		var actionArray = inAction.split("[]:[]");
 		var playAction = actionArray[0];
 		var playSongs = actionArray[1];
 		var playOrder = actionArray[2];
 		
-		var row = this.resultsList[inEvent.rowIndex];
-		
-		if(debug) this.log("songsClick: "+enyo.json.stringify(row));
+		var row = this.selectedSong;
 		
 		var newSongs = [], s = {};
 		
@@ -303,6 +320,10 @@ enyo.kind({
 			
 				var originalList = this.resultsList.concat([]);
 			
+				//add selected song first
+				s = originalList.splice(this.selectedIndex, 1)[0];
+				newSongs.push(s);
+					
 				do {
 				
 					var randomSong = Math.floor(Math.random()*originalList.length);
@@ -325,7 +346,91 @@ enyo.kind({
 		this.doViewSelected("nowplaying");
 		
 	},
-	
+	songsMoreClick: function(inSender, inEvent) {
+		if(debug) this.log("songsMoreClick: "+inEvent.rowIndex);
+		
+		this.selectedSong = this.resultsList[inEvent.rowIndex];
+		this.selectedIndex = inEvent.rowIndex;
+		
+		this.$.morePopupMenu.setItems([
+			{caption: $L("Play"), components: [
+				{name: "Play all", caption: "Play all"},
+				{name: "Play all, shuffled", caption: "Play all, shuffled"},
+				{name: "Play single song", caption: "Play single song"},
+			]},
+			{caption: $L("Queue"), components: [
+				{name: "Queue all", caption: "Queue all"},
+				{name: "Queue all, shuffled", caption: "Queue all, shuffled"},
+				{name: "Queue single song", caption: "Queue single song"},
+			]},
+			{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
+			{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
+			
+			/*
+			{caption: $L("Web"), components: [
+				{name: "Google", caption: "Google"},
+				{name: "Wikipedia", caption: "Wikipedia"},
+			]},
+			
+			//download
+			*/
+		]);
+								
+		this.$.morePopupMenu.openAtEvent(inEvent);
+		
+	},
+	moreSelect: function(inSender, inEvent) {
+		if(inEvent) {
+			if(debug) this.log("moreSelect: "+inEvent.value);
+			
+			switch(inEvent.value) {
+				case "Play":
+					//
+					break;
+				case "Play all":
+					this.songsAction("play[]:[]all[]:[]straight");
+					break;
+				case "Play all, shuffled":
+					this.songsAction("play[]:[]all[]:[]shuffled");
+					break;
+				case "Play single song":
+					this.songsAction("play[]:[]single[]:[]straight");
+					break;
+				case "Queue":
+					//
+					break;
+				case "Queue all":
+					this.songsAction("queue[]:[]all[]:[]straight");
+					break;
+				case "Queue all, shuffled":
+					this.songsAction("queue[]:[]all[]:[]shuffled");
+					break;
+				case "Queue single song":
+					this.songsAction("queue[]:[]single[]:[]straight");
+					break;
+				default: 
+					
+					if(inEvent.value.substring(0,5) == "Album") {
+						this.doUpdateSpinner(true);
+						this.doDataRequest("songsList", "album_songs", "&filter="+this.selectedSong.album_id);
+						this.doViewSelected("songsList");
+					} else if(inEvent.value.substring(0,6) == "Artist") {
+						this.selectedSong.type = "artist";
+						this.selectedSong.songs = "all";
+						this.selectedSong.name = this.selectedSong.artist;
+						this.selectedSong.id = this.selectedSong.artist_id;
+						AmpacheXL.selectedArtist = this.selectedSong;
+						this.doUpdateSpinner(true);
+						this.doDataRequest("albumsList", "artist_albums", "&filter="+this.selectedSong.artist_id);
+						this.doViewSelected("albumsList");
+					} else {
+						this.log("unknown more command: "+inEvent.value);
+					}
+					
+					break;
+			}
+		}
+	},
 });
 
 

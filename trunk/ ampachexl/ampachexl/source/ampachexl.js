@@ -58,11 +58,9 @@ enyo.kind({
 			{kind: "Button", caption: "OK", onclick:"closeBannerMessagePopup"}
 		]},
 		
-		{name: "loadingPopup", kind: "Popup", scrim: true, dismissWithClick: true, dismissWithEscape: true, components: [
+		{name: "loadingPopup", kind: "Popup", lazy: false, scrim: true, dismissWithClick: true, dismissWithEscape: true, components: [
 			{kind: "HFlexBox", align: "center", pack: "center", components: [
-				//{kind: "Spacer"},
 				{kind: "SpinnerLarge"},
-				//{kind: "Spacer"},
 			]},
 		]},
 		
@@ -75,6 +73,7 @@ enyo.kind({
 			]},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 				{name: "startingPane", kind: "ListSelector", label: "Starting view after login", onChange: "startingPaneSelect", flex: 1, items: [
+					{caption: "Random", value: "random"},
 					{caption: "Artists", value: "artistsList"},
 					{caption: "Albums", value: "albumsList"},
 					{caption: "Playlists", value: "playlistsList"},
@@ -88,6 +87,13 @@ enyo.kind({
 					{caption: "Queue all", value: "queue[]:[]all[]:[]straight"},
 					{caption: "Queue all, shuffled", value: "queue[]:[]all[]:[]shuffled"},
 					{caption: "Queue single song", value: "queue[]:[]single[]:[]straight"},
+				]},
+			]},
+			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+				{name: "nowPlayingEnd", kind: "ListSelector", label: "When playback ends", onChange: "nowPlayingEndSelect", flex: 1, items: [
+					{caption: "Stop", value: "stop[]:[]straight"},
+					{caption: "Play again", value: "play[]:[]straight"},
+					{caption: "Play again, shuffled", value: "play[]:[]shuffled"},
 				]},
 			]},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
@@ -135,7 +141,7 @@ enyo.kind({
 				
 				{name: "nowplaying", kind: "Nowplaying", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts"},
 				
-				//random
+				{name: "random", kind: "Random", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
 				
 				{name: "artistsList", kind: "ArtistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
 				{name: "albumsList", kind: "AlbumsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
@@ -163,7 +169,7 @@ enyo.kind({
 			if(debug) this.log("we have cookie");
 			AmpacheXL.prefsCookie = enyo.json.parse(AmpacheXL.prefsCookieString);
 			
-			if(AmpacheXL.prefsCookie.allowMetrix) setTimeout(enyo.bind(this,"submitMetrix"),500);
+			if(AmpacheXL.prefsCookie.allowMetrix) setTimeout(enyo.bind(this,"submitMetrix"),10000);
 			
 			if(AmpacheXL.prefsCookie.autoLogin) setTimeout(enyo.bind(this,"ampacheConnect"),50);
 			
@@ -200,7 +206,7 @@ enyo.kind({
 		
 		AmpacheXL.Metrix.postDeviceData();
 		
-		AmpacheXL.Metrix.checkBulletinBoard(1, false);
+		AmpacheXL.Metrix.checkBulletinBoard(10, false);
 		
 	},
 	openAbout: function() {
@@ -217,6 +223,8 @@ enyo.kind({
 		if(debug) this.log("disconnect");
 		
 		AmpacheXL.connected = false;
+		
+		AmpacheXL.currentSong = {};
 		
 		AmpacheXL.connectResponse.auth = "";
 		AmpacheXL.connectResponse.update = "";
@@ -256,6 +264,7 @@ enyo.kind({
 		this.$.autoLogin.setState(AmpacheXL.prefsCookie.autoLogin);
 		this.$.startingPane.setValue(AmpacheXL.prefsCookie.startingPane);
 		this.$.defaultAction.setValue(AmpacheXL.prefsCookie.defaultAction);
+		this.$.nowPlayingEnd.setValue(AmpacheXL.prefsCookie.nowPlayingEnd);
 		this.$.dashboardPlayer.setState(AmpacheXL.prefsCookie.dashboardPlayer);
 		this.$.theme.setValue(AmpacheXL.prefsCookie.theme);
 		this.$.allowMetrix.setState(AmpacheXL.prefsCookie.allowMetrix);
@@ -268,6 +277,7 @@ enyo.kind({
 		AmpacheXL.prefsCookie.autoLogin = this.$.autoLogin.getState();
 		AmpacheXL.prefsCookie.startingPane = this.$.startingPane.getValue();
 		AmpacheXL.prefsCookie.defaultAction = this.$.defaultAction.getValue();
+		AmpacheXL.prefsCookie.nowPlayingEnd = this.$.nowPlayingEnd.getValue();
 		AmpacheXL.prefsCookie.dashboardPlayer = this.$.dashboardPlayer.getState();
 		AmpacheXL.prefsCookie.theme = this.$.theme.getValue();
 		AmpacheXL.prefsCookie.allowMetrix = this.$.allowMetrix.getState();
@@ -328,7 +338,12 @@ enyo.kind({
 			this.bannerMessageText = inMessage;
 			this.$.bannerMessagePopup.openAtCenter();
 		} else {
-			enyo.windows.removeBannerMessage(this.bannerMessageId);
+			try {
+				enyo.windows.removeBannerMessage(this.bannerMessageId);
+			} catch(e) {
+				this.error(e);
+			}
+			
 			this.bannerMessageId = enyo.windows.addBannerMessage(inMessage, "{}");
 		}
 		
@@ -466,6 +481,9 @@ enyo.kind({
 				AmpacheXL.connectResponse.success = true;
 				
 				try {
+				
+					//AmpacheXL.prefsCookie.newAuth = xmlobject.getElementsByTagName("auth")[0].childNodes[0].nodeValue;
+				
 					AmpacheXL.connectResponse.auth = xmlobject.getElementsByTagName("auth")[0].childNodes[0].nodeValue;
 					AmpacheXL.connectResponse.update = xmlobject.getElementsByTagName("update")[0].childNodes[0].nodeValue;
 					AmpacheXL.connectResponse.add = xmlobject.getElementsByTagName("add")[0].childNodes[0].nodeValue;
@@ -475,6 +493,8 @@ enyo.kind({
 					AmpacheXL.connectResponse.albums = xmlobject.getElementsByTagName("albums")[0].childNodes[0].nodeValue;
 					AmpacheXL.connectResponse.playlists = xmlobject.getElementsByTagName("playlists")[0].childNodes[0].nodeValue;
 					AmpacheXL.connectResponse.videos = xmlobject.getElementsByTagName("videos")[0].childNodes[0].nodeValue;
+					
+					if(debug) this.log("finshied most of connection parsing.  now trying tags and api");
 					
 					AmpacheXL.connectResponse.tags = xmlobject.getElementsByTagName("tags")[0].childNodes[0].nodeValue;
 					AmpacheXL.connectResponse.api = xmlobject.getElementsByTagName("api")[0].childNodes[0].nodeValue;
@@ -500,11 +520,14 @@ enyo.kind({
 				
 				*/
 				
-				if(debug) this.log("connectResponse: "+enyo.json.stringify(AmpacheXL.connectResponse));
+				//if(debug) this.log("connectResponse: "+enyo.json.stringify(AmpacheXL.connectResponse));
 				
 				this.updateCounts();
 				
 				switch(AmpacheXL.prefsCookie.startingPane) {
+					case "random":
+						this.$.rightContent.selectViewByName("random");
+						break;
 					case "artistsList":
 						this.updateSpinner("AmpacheXL", true);
 						this.dataRequest("AmpacheXL", "artistsList", "artists", "");

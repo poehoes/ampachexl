@@ -8,6 +8,8 @@ enyo.depends(
 	
 	"source/hosts.js",
 	
+	"source/random.js",
+	
 	"source/albumslist.js",
 	"source/playlistslist.js",
 	"source/artistslist.js",

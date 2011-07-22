@@ -13,7 +13,10 @@ enyo.kind({
 		onOpenWeb: "",
 		onPlaySong: "",
 		onUpdateCounts: "",
+		onBannerMessage: "",
 	},
+	
+	listMode: "play",
 	
 	components: [
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
@@ -22,22 +25,29 @@ enyo.kind({
 		]},
 							
 		{name: "nowplayingVirtualList", kind: "VirtualList", onSetupRow: "setupNowplayingItem", flex: 1, components: [
-			{name: "nowplayingItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", onclick: "nowplayingClick", components: [
-				{name: "nowplayingIndex", className: "listIndex"},
-				{kind: "VFlexBox", flex: 1, components: [
+			{name: "nowplayingItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", components: [
+				{name: "nowplayingIndex", onclick: "nowplayingClick", className: "listIndex"},
+				{kind: "VFlexBox", flex: 1, onclick: "nowplayingClick", components: [
 					{name: "nowplayingTitle", className: "title"},
 					{name: "nowplayingArtist", className: "subtitle"},
 				]},
-				{kind: "VFlexBox", components: [
+				{name: "nowplayingAlbumWrapper", onclick: "nowplayingClick", kind: "VFlexBox", components: [
 					{name: "nowplayingAlbum", className: "count"},
 					{name: "nowplayingTrack", className: "count"},
 				]},
+				{name: "nowplayingMoveUp", kind: "Image", onclick: "nowplayingMoveUp", src: "images/07-arrow-north@2x-light.png", className: "nowplayingMoveUp"},
+				{name: "nowplayingMoveUpSpacer", content: "&nbsp;", allowHtml: true},
+				{name: "nowplayingMoveDown", kind: "Image", onclick: "nowplayingMoveDown", src: "images/03-arrow-south@2x-light.png", className: "nowplayingMoveDown"},
+				{name: "nowplayingMoveDownSpacer", content: "&nbsp;", allowHtml: true},
+				{name: "nowplayingRemove", kind: "Image", onclick: "nowplayingRemove", src: "images/11-x@2x-light.png", className: "nowplayingRemove"},
 			]},
 		]},
 		
 		{name: "footer", kind: "Toolbar", layoutKind: "HFlexLayout", components: [
 			{kind: "Spacer"},
-			//name: "refreshCommandButton", icon: 'images/menu-icon-refresh.png', onclick: "getNowplaying"},
+			{name: "shuffleButton", caption: "Shuffle", onclick: "shuffleClick"},
+			{name: "shuffleSpacer", kind: "Spacer"},
+			{name: "editButton", caption: "Edit", onclick: "editClick"},
 			{kind: "Spacer"},
 		]},
 	],
@@ -58,6 +68,17 @@ enyo.kind({
 		
 		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
 		
+		this.listMode = "play";
+		this.$.shuffleButton.show();
+		this.$.shuffleSpacer.show();
+		this.$.editButton.setCaption("Edit");
+		this.$.footer.render();
+		
+	},
+	resize: function() {
+		if(debug) this.log("resize");
+		
+		this.$.nowplayingVirtualList.resized();
 	},
 	previousTrack: function() {
 		if(debug) this.log("previousTrack");
@@ -111,8 +132,56 @@ enyo.kind({
 				this.log("could not find current song");
 				break;
 			case AmpacheXL.nowplaying.length-1:
-				this.log("current song is last in list");
+				this.log("current song is last in list: "+AmpacheXL.prefsCookie.nowPlayingEnd);
+				
+				var actionArray = AmpacheXL.prefsCookie.nowPlayingEnd.split("[]:[]");
+				var playAction = actionArray[0];
+				var playOrder = actionArray[1];
+		
+				switch(playOrder) {
+					case "shuffled":
+						var newSongs = [], s = {};
+		
+						var originalList = AmpacheXL.nowplaying.concat([]);
+						
+						do {
+						
+							var randomSong = Math.floor(Math.random()*originalList.length);
+							
+							s = originalList.splice(randomSong, 1)[0];
+							newSongs.push(s);
+							
+							//if(debug) this.log("splicing random song at index "+randomSong+": "+enyo.json.stringify(s));
+							
+						} while(originalList.length > 0);
+						
+						AmpacheXL.nowplaying.length = 0;
+						AmpacheXL.nowplaying = newSongs;
+				
+						break;
+					default: 
+						//keep list as is
+						break;
+				}
+				
+				if(playAction == "play") {
+				
+					var row = AmpacheXL.nowplaying[0];
+					
+					AmpacheXL.nowplayingIndex = 1;
+					AmpacheXL.currentSong = row;
+					
+					this.doPlaySong(row);
+					
+					this.$.nowplayingVirtualList.refresh();
+					this.doUpdateCounts();
+					
+				} else {
+					//
+				}
+				
 				break;
+				
 			default:
 				this.log("found current song at index: "+currentIndex);
 				
@@ -176,6 +245,22 @@ enyo.kind({
 			this.$.nowplayingAlbum.setContent(row.album);
 			this.$.nowplayingTrack.setContent("Track #"+row.track);
 			
+			if(this.listMode == "edit") {
+				this.$.nowplayingAlbumWrapper.hide();
+				this.$.nowplayingMoveUp.show();
+				this.$.nowplayingMoveUpSpacer.show();
+				this.$.nowplayingMoveDown.show();
+				this.$.nowplayingMoveDownSpacer.show();
+				this.$.nowplayingRemove.show();
+			} else {
+				this.$.nowplayingAlbumWrapper.show();
+				this.$.nowplayingMoveUp.hide();
+				this.$.nowplayingMoveUpSpacer.hide();
+				this.$.nowplayingMoveDown.hide();
+				this.$.nowplayingMoveDownSpacer.hide();
+				this.$.nowplayingRemove.hide();
+			} 
+			
 			if(AmpacheXL.currentSong.id == row.id) {
 				this.$.nowplayingItem.addClass("selected");
 			} else {
@@ -192,6 +277,63 @@ enyo.kind({
 		
 		this.$.nowplayingVirtualList.punt();
 	},
+	shuffleClick: function() {
+		if(debug) this.log("shuffleClick");
+		
+		var newSongs = [], s = {};
+		
+		var originalList = AmpacheXL.nowplaying.concat([]);
+						
+		do {
+		
+			var randomSong = Math.floor(Math.random()*originalList.length);
+			
+			s = originalList.splice(randomSong, 1)[0];
+			newSongs.push(s);
+			
+			//if(debug) this.log("splicing random song at index "+randomSong+": "+enyo.json.stringify(s));
+			
+		} while(originalList.length > 0);
+		
+		AmpacheXL.nowplaying.length = 0;
+		AmpacheXL.nowplaying = newSongs;
+		
+		var currentIndex = -1;
+		for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
+		
+			s = AmpacheXL.nowplaying[i];
+			if(s.id == AmpacheXL.currentSong.id) currentIndex = i;
+		
+		}
+		AmpacheXL.nowplayingIndex = currentIndex+1;
+		
+		this.$.nowplayingVirtualList.punt();
+		this.doUpdateCounts();
+		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
+	},
+	editClick: function() {
+		if(debug) this.log("editClick");
+		
+		switch(this.listMode) {
+			case "play":
+				this.listMode = "edit";
+				//this.$.shuffleButton.hide();
+				//this.$.shuffleSpacer.hide();
+				this.$.editButton.setCaption("Done");
+				this.$.footer.render();
+				break;
+			case "edit":
+				this.listMode = "play";
+				//this.$.shuffleButton.show();
+				//this.$.shuffleSpacer.show();
+				this.$.editButton.setCaption("Edit");
+				this.$.footer.render();
+				break;
+		}
+		
+		this.$.nowplayingVirtualList.refresh();
+		
+	},
 	nowplayingClick: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingClick: "+inEvent.rowIndex);
 		
@@ -206,6 +348,69 @@ enyo.kind({
 		
 		this.$.nowplayingVirtualList.refresh();
 		this.doUpdateCounts();
+		
+	},
+	nowplayingMoveUp: function(inSender, inEvent) {
+		if(debug) this.log("nowplayingMoveUp: "+inEvent.rowIndex);
+		
+		var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
+		AmpacheXL.nowplaying.splice(inEvent.rowIndex - 1, 0, row);
+		
+		var currentIndex = -1;
+		for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
+		
+			s = AmpacheXL.nowplaying[i];
+			if(s.id == AmpacheXL.currentSong.id) currentIndex = i;
+		
+		}
+		AmpacheXL.nowplayingIndex = currentIndex+1;
+		
+		this.$.nowplayingVirtualList.refresh();
+		this.doUpdateCounts();
+		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
+		
+	},
+	nowplayingMoveDown: function(inSender, inEvent) {
+		if(debug) this.log("nowplayingMoveDown: "+inEvent.rowIndex);
+		
+		var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
+		AmpacheXL.nowplaying.splice(inEvent.rowIndex + 1, 0, row);
+		
+		var currentIndex = -1;
+		for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
+		
+			s = AmpacheXL.nowplaying[i];
+			if(s.id == AmpacheXL.currentSong.id) currentIndex = i;
+		
+		}
+		AmpacheXL.nowplayingIndex = currentIndex+1;
+		
+		this.$.nowplayingVirtualList.refresh();
+		this.doUpdateCounts();
+		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
+		
+	},
+	nowplayingRemove: function(inSender, inEvent) {
+		if(debug) this.log("nowplayingRemove: "+inEvent.rowIndex);
+		
+		if(AmpacheXL.nowplayingIndex == inEvent.rowIndex+1) {
+			this.doBannerMessage("You cannot remove the song that is currently playing", true);
+		} else {
+			var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
+		}
+		
+		var currentIndex = -1;
+		for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
+		
+			s = AmpacheXL.nowplaying[i];
+			if(s.id == AmpacheXL.currentSong.id) currentIndex = i;
+		
+		}
+		AmpacheXL.nowplayingIndex = currentIndex+1;
+		
+		this.$.nowplayingVirtualList.refresh();
+		this.doUpdateCounts();
+		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
 		
 	},
 	

@@ -14,6 +14,7 @@ enyo.kind({
 	},
 	
 	movingSlider: false,
+	startPlayingTimer: "",
 	
 	components: [
 		
@@ -61,7 +62,6 @@ enyo.kind({
 		AmpacheXL.audioObject.addEventListener("playing", enyo.bind(this, "playingEvent"), false);
 		AmpacheXL.audioObject.addEventListener("pause", enyo.bind(this, "pauseEvent"), false);
 		AmpacheXL.audioObject.addEventListener("timeupdate", enyo.bind(this, "timeupdateEvent"), false);
-		//AmpacheXL.audioObject.addEventListener("play", enyo.bind(this, "playEvent"), false);
 		AmpacheXL.audioObject.addEventListener("ended", enyo.bind(this, "endedEvent"), false);
 		AmpacheXL.audioObject.addEventListener("error", enyo.bind(this, "errorEvent"), false);
 		
@@ -69,6 +69,8 @@ enyo.kind({
 	
 	playSong: function(inSongObject) {
 		if(debug) this.log("playSong: "+enyo.json.stringify(inSongObject));
+		
+		clearTimeout(this.startPlayingTimer);
 		
 		AmpacheXL.currentSong = inSongObject;
 		
@@ -88,6 +90,7 @@ enyo.kind({
 		AmpacheXL.audioObject.src = "";
 		
 		AmpacheXL.audioObject.src = inSongObject.url;
+		this.startPlayingTimer = setTimeout(enyo.bind(this, "playingFailed"), 10000);
 		AmpacheXL.audioObject.play();
 		
 		this.$.songTitle.setContent(inSongObject.title);
@@ -166,6 +169,8 @@ enyo.kind({
 	playingEvent: function() {
 		if(debug) this.log("playingEvent");
 		
+		clearTimeout(this.startPlayingTimer);
+		
 		this.$.play.hide();
 		if(AmpacheXL.connected) this.$.pause.show();
 		
@@ -174,6 +179,8 @@ enyo.kind({
 	},
 	timeupdateEvent: function() {
 		//if(debug) this.log("timeupdateEvent: "+AmpacheXL.audioObject.currentTime);
+		
+		clearTimeout(this.startPlayingTimer);
 		
 		//var progress = parseInt(100 * (AmpacheXL.audioObject.currentTime/AmpacheXL.audioObject.duration));
 		var progress = parseInt(100 * (AmpacheXL.audioObject.currentTime/AmpacheXL.currentSong.time));
@@ -200,9 +207,37 @@ enyo.kind({
 	errorEvent: function() {
 		if(debug) this.log("errorEvent");
 		
+		clearTimeout(this.startPlayingTimer);
+		
 		this.error(AmpacheXL.audioObject.error);
 		
 		if(AmpacheXL.connected) this.doBannerMessage("Error playing file '"+AmpacheXL.currentSong.title+"'");
+		
+		this.doNextTrack();
+	},
+	
+	playingFailed: function() {
+		if(debug) this.log("playingFailed");
+		
+		if(AmpacheXL.connected) this.doBannerMessage("Error playing file '"+AmpacheXL.currentSong.title+"'");
+		
+		AmpacheXL.audioObject.removeEventListener("playing", enyo.bind(this, "playingEvent"), false);
+		AmpacheXL.audioObject.removeEventListener("pause", enyo.bind(this, "pauseEvent"), false);
+		AmpacheXL.audioObject.removeEventListener("timeupdate", enyo.bind(this, "timeupdateEvent"), false);
+		AmpacheXL.audioObject.removeEventListener("ended", enyo.bind(this, "endedEvent"), false);
+		AmpacheXL.audioObject.removeEventListener("error", enyo.bind(this, "errorEvent"), false);
+		
+		AmpacheXL.audioObject = null;
+		AmpacheXL.audioObject = new Audio();
+		
+		AmpacheXL.audioObject.addEventListener("playing", enyo.bind(this, "playingEvent"), false);
+		AmpacheXL.audioObject.addEventListener("pause", enyo.bind(this, "pauseEvent"), false);
+		AmpacheXL.audioObject.addEventListener("timeupdate", enyo.bind(this, "timeupdateEvent"), false);
+		AmpacheXL.audioObject.addEventListener("ended", enyo.bind(this, "endedEvent"), false);
+		AmpacheXL.audioObject.addEventListener("error", enyo.bind(this, "errorEvent"), false);
+		
+		if(AmpacheXL.connected) this.$.play.show();
+		this.$.pause.hide();
 		
 		this.doNextTrack();
 	},

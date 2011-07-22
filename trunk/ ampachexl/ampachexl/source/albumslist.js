@@ -152,8 +152,15 @@ enyo.kind({
 		this.fullResultsList.sort(sort_by("name", false));
 		
 		if(this.fullResultsList.length == AmpacheXL.connectResponse.albums) {
+			if(debug) this.log("was all albums, now saving");
+		
 			AmpacheXL.allAlbums = this.fullResultsList.concat([]);
+			
+			AmpacheXL.prefsCookie.oldAuth  = AmpacheXL.connectResponse.auth;
+			window.localStorage.setItem("allAlbums", enyo.json.stringify(AmpacheXL.allAlbums));
 		}
+		
+		if(debug) this.log("AmpacheXL.selectedArtist: "+enyo.json.stringify(AmpacheXL.selectedArtist));
 		
 		if((AmpacheXL.selectedArtist)&&(AmpacheXL.selectedArtist.type == "artist")) {
 			this.fullResultsList.splice(0,0,AmpacheXL.selectedArtist);
