@@ -1,0 +1,10 @@
+Todo: 
+
+ - dashboard
+ - sort lists
+ - videos
+ - coverflow?
+ - help
+ - download
+ - edit hosts
+ - check hosts for apache and http
