@@ -24,11 +24,14 @@ enyo.kind({
 				{name: "nowplayingItemCount"},
 			]},
 			
-			//random
-			
 			{name: "searchItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
 				{name: "searchItemTitle", content: "Search", flex: 1},
-				{name: "searchItemCount"},
+				//name: "searchItemCount"},
+			]},
+			
+			{name: "randomItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+				{name: "randomItemTitle", content: "Random", flex: 1},
+				//name: "randomItemCount"},
 			]},
 			
 			{name: "artistsItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
@@ -101,6 +104,10 @@ enyo.kind({
 				
 			case "searchItem":
 				this.doViewSelected("searchSelector");
+				break;
+				
+			case "randomItem":
+				this.doViewSelected("random");
 				break;
 				
 			case "artistsItem":

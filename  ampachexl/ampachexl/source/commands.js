@@ -5,9 +5,10 @@ var defaultCookie = function() {
 		accounts: [],
 		currentAccountIndex: 0,
 		autoLogin: true,
-		startingPane: "artistsList",
+		startingPane: "albumsList",
 		
-		defaultAction: "queue[]:[]all[]:[]straight",
+		defaultAction: "queue[]:[]all[]:[]shuffled",
+		nowPlayingEnd: "stop[]:[]straight",
 		theme: "dark",
 		allowedOrientation: "free",
 		recent: 0,

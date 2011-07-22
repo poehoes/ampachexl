@@ -39,18 +39,33 @@
 	margin-left: -4px;
 }
 
+.listItem .title {
+	height: 25px;
+	font-size: 18px;
+	text-align: left;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .listItem .subtitle {
-	height: 12px;
+	height: 14px;
 	font-size: 12px;
 	text-align: left;
 	margin-left: 8px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .listItem .count {
 	height: 14px;
-	font-size: 14px;
+	font-size: 12px;
 	text-align: right;
 	font-style: italic;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .listItem.selected {
@@ -80,6 +95,7 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	max-width: 100%;
 }
 
 .playbackSongArt {
@@ -147,4 +163,45 @@
 
 .deleteHost {
 	margin-left: 10px;
+}
+
+.randomSongArt {
+	height: 300px;
+	width: 300px;
+	border: 1px solid #3a3a3a;
+}
+
+.randomSongArtist {
+	font-style: bold;
+	font-size: 20px;
+}
+
+.randomSongAlbum {
+	font-size: 24px;
+}
+
+.randomSongTracks {
+	font-size: 16px;
+	font-style: italic;
+}
+
+.nowplayingMoveUp {
+	max-height: 30px;
+}
+
+.nowplayingMoveDown {
+	max-height: 30px;
+}
+
+.nowplayingRemove {
+	max-height: 30px;
+}
+
+.songsMoreIcon {
+	margin-left: 5px;
+	max-height: 30px;
+}
+
+.morePopupMenu .enyo-menu-inner{
+	min-width: 300px;
 }
