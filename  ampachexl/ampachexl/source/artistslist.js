@@ -23,7 +23,7 @@ enyo.kind({
 		]},
 		
 		{name: "artistsSearchInputWrapper", className: "searchInputWrapper", kind: "Item", layoutKind: "HFlexLayout", components: [
-			{name: "artistsSearchInput", kind: "Input", hint: "Filter", oninput: "artistsInput", flex: 1, components: [
+			{name: "artistsSearchInput", kind: "Input", hint: "Filter", autoCapitalize: "lowercase", oninput: "artistsInput", flex: 1, components: [
 				{name: "artistsSearchClear", kind: "Image", src: "images/11-x@2x.png", showing: false, className: "searchClear", onclick: "resetArtistsSearch"},
 				{name: "artistsSearchSpinner", kind: "Spinner"},
 			]}

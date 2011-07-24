@@ -24,7 +24,7 @@ enyo.kind({
 		]},
 		
 		{name: "playlistsSearchInputWrapper", className: "searchInputWrapper", kind: "Item", layoutKind: "HFlexLayout", components: [
-			{name: "playlistsSearchInput", kind: "Input", hint: "Filter", oninput: "playlistsInput", flex: 1, components: [
+			{name: "playlistsSearchInput", kind: "Input", hint: "Filter", autoCapitalize: "lowercase", oninput: "playlistsInput", flex: 1, components: [
 				{name: "playlistsSearchClear", kind: "Image", src: "images/11-x@2x.png", showing: false, className: "searchClear", onclick: "resetPlaylistsSearch"},
 				{name: "playlistsSearchSpinner", kind: "Spinner"},
 			]}

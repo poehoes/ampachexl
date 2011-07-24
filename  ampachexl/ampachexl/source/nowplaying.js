@@ -96,13 +96,13 @@ enyo.kind({
 		
 		switch(currentIndex) {
 			case -1:
-				this.log("could not find current song");
+				if(debug) this.log("could not find current song");
 				break;
 			case 0:
-				this.log("current song is first in list");
+				if(debug) this.log("current song is first in list");
 				break;
 			default:
-				this.log("found current song at index: "+currentIndex);
+				if(debug) this.log("found current song at index: "+currentIndex);
 				
 				this.doPlaySong(AmpacheXL.nowplaying[currentIndex-1]);
 				AmpacheXL.nowplayingIndex = currentIndex;
@@ -129,10 +129,10 @@ enyo.kind({
 		
 		switch(currentIndex) {
 			case -1:
-				this.log("could not find current song");
+				if(debug) this.log("could not find current song");
 				break;
 			case AmpacheXL.nowplaying.length-1:
-				this.log("current song is last in list: "+AmpacheXL.prefsCookie.nowPlayingEnd);
+				if(debug) this.log("current song is last in list: "+AmpacheXL.prefsCookie.nowPlayingEnd);
 				
 				var actionArray = AmpacheXL.prefsCookie.nowPlayingEnd.split("[]:[]");
 				var playAction = actionArray[0];
@@ -183,7 +183,7 @@ enyo.kind({
 				break;
 				
 			default:
-				this.log("found current song at index: "+currentIndex);
+				if(debug) this.log("found current song at index: "+currentIndex);
 				
 				this.doPlaySong(AmpacheXL.nowplaying[currentIndex+1]);
 				AmpacheXL.nowplayingIndex = currentIndex+2;

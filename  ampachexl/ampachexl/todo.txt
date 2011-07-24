@@ -6,5 +6,6 @@ Todo:
  - coverflow?
  - help
  - download
- - edit hosts
- - check hosts for apache and http
+ - bnd volume keys to media
+ - dont update when deactivated
+ 

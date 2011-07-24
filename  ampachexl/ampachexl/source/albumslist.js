@@ -23,7 +23,7 @@ enyo.kind({
 		]},
 		
 		{name: "albumsSearchInputWrapper", className: "searchInputWrapper", kind: "Item", layoutKind: "HFlexLayout", components: [
-			{name: "albumsSearchInput", kind: "Input", hint: "Filter", oninput: "albumsInput", flex: 1, components: [
+			{name: "albumsSearchInput", kind: "Input", hint: "Filter", autoCapitalize: "lowercase", oninput: "albumsInput", flex: 1, components: [
 				{name: "albumsSearchClear", kind: "Image", src: "images/11-x@2x.png", showing: false, className: "searchClear", onclick: "resetAlbumsSearch"},
 				{name: "albumsSearchSpinner", kind: "Spinner"},
 			]}
@@ -32,6 +32,7 @@ enyo.kind({
 		{name: "albumsVirtualList", kind: "VirtualList", onSetupRow: "setupAlbumsItem", flex: 1, components: [
 			{name: "albumsDivider", kind: "Divider"},
 			{name: "albumsItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", onclick: "albumsClick", components: [
+				{name: "listArt", kind: "Image", className: "listArt"},
 				{kind: "VFlexBox", flex: 1, components: [
 					{name: "albumsTitle", className: "title"},
 					{name: "albumsArtist", className: "subtitle"},
@@ -195,7 +196,11 @@ enyo.kind({
 		this.resultsList.length = 0;
 		this.resultsList = this.filterAlbums(this.fullResultsList);
 		
-		this.$.headerSubtitle.setContent(this.resultsList.length+" albums");
+		if(this.resultsList.length == 1) {
+			this.$.headerSubtitle.setContent(this.resultsList.length+" album");
+		} else {
+			this.$.headerSubtitle.setContent(this.resultsList.length+" albums");
+		}
 		
 		this.$.albumsVirtualList.punt();
 		
@@ -240,6 +245,8 @@ enyo.kind({
 			
 			if(row.isArtist) {
 			
+				this.$.listArt.hide();
+				
 				this.$.albumsTitle.setContent("All Albums");	
 				this.$.albumsArtist.setContent(row.name);
 				
@@ -250,6 +257,16 @@ enyo.kind({
 				}
 
 			} else {
+			
+				if(AmpacheXL.prefsCookie.artOnLists) {
+					row.newArt = row.art;
+					row.newArt = row.newArt.replace(AmpacheXL.prefsCookie.oldAuth, AmpacheXL.connectResponse.auth);
+					
+					this.$.listArt.setSrc(row.newArt);
+					this.$.listArt.show();
+				} else {
+					this.$.listArt.hide();
+				}
 			
 				this.$.albumsTitle.setContent(row.name);
 				this.$.albumsArtist.setContent(row.artist);
