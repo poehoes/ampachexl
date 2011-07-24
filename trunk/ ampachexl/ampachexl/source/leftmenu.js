@@ -9,6 +9,7 @@ enyo.kind({
 		onDataRequest: "",
 		onUpdateSpinner: "",
 		onBannerMessage: "",
+		onOpenAppMenu: "",
 	},
 		
 	
@@ -92,6 +93,11 @@ enyo.kind({
 		
 	},
 	
+	headerClick: function() {
+		if(debug) this.log("headerClick");
+		
+		this.doOpenAppMenu();
+	},
 	itemClick: function(inSender) {
 		if(debug) this.log("itemClick: "+inSender.getName());
 		

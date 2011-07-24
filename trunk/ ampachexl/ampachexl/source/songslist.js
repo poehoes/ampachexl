@@ -23,6 +23,8 @@ enyo.kind({
 	selectedSong: {},
 	selectedIndex: -1,
 	
+	songsMouseTimer: "",
+	
 	components: [
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
 			{name: "headerTitle", kind: "Control", content: "Songs", className: "headerTitle"},
@@ -30,7 +32,7 @@ enyo.kind({
 		]},
 		
 		{name: "songsSearchInputWrapper", className: "searchInputWrapper", kind: "Item", layoutKind: "HFlexLayout", components: [
-			{name: "songsSearchInput", kind: "Input", hint: "Filter", oninput: "songsInput", flex: 1, components: [
+			{name: "songsSearchInput", kind: "Input", autoCapitalize: "lowercase", hint: "Filter", oninput: "songsInput", flex: 1, components: [
 				{name: "songsSearchClear", kind: "Image", src: "images/11-x@2x.png", showing: false, className: "searchClear", onclick: "resetSongsSearch"},
 				{name: "songsSearchSpinner", kind: "Spinner"},
 			]}
@@ -39,16 +41,17 @@ enyo.kind({
 		{name: "songsVirtualList", kind: "VirtualList", onSetupRow: "setupSongsItem", flex: 1, components: [
 			//{name: "songsDivider", kind: "Divider"},
 			{name: "songsItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", components: [
-				{kind: "VFlexBox", flex: 1, onclick: "songsClick", components: [
+				{name: "listArt", kind: "Image", onclick2: "songsClick", onmousedown: "songsMousedown", onmouseup: "songsMouseup", className: "listArt"},
+				{kind: "VFlexBox", flex: 1, onclick2: "songsClick", onmousedown: "songsMousedown", onmouseup: "songsMouseup", components: [
 					{name: "songsTitle", className: "title"},
 					{name: "songsArtist", className: "subtitle"},
 				]},
-				{kind: "VFlexBox", onclick: "songsClick", components: [
+				{kind: "VFlexBox", onclick2: "songsClick", onmousedown: "songsMousedown", onmouseup: "songsMouseup", components: [
 					{name: "songsAlbum", className: "count"},
 					{name: "songsTrack", className: "count"},
 				]},
 				//name: "songsMoreButton", kind: "Button", caption: "...", onclick: "songsMoreClick"},
-				{name: "songsMoreIcon", kind: "Image", src: "images/16-play@2x-light.png", className: "songsMoreIcon", onclick: "songsMoreClick"},
+				//name: "songsMoreIcon", kind: "Image", src: "images/16-play@2x-light.png", className: "songsMoreIcon", onclick: "songsMoreClick"},
 			]},
 		]},
 		
@@ -71,11 +74,13 @@ enyo.kind({
 		
 		this.resize();
 		
+		/*
 		if(AmpacheXL.selectedAlbum) {
 			this.$.headerSubtitle.setContent(AmpacheXL.selectedAlbum.name);
 		} else {
 			this.$.headerSubtitle.setContent("All Artists");
 		}
+		*/
 	},
 	resize: function() {
 		if(debug) this.log("resize");
@@ -183,6 +188,12 @@ enyo.kind({
 		this.resultsList.length = 0;
 		this.resultsList = this.filterSongs(this.fullResultsList);
 		
+		if(this.resultsList.length == 1) {
+			this.$.headerSubtitle.setContent(this.resultsList.length+" song");
+		} else {
+			this.$.headerSubtitle.setContent(this.resultsList.length+" songs");
+		}
+		
 		this.$.songsVirtualList.punt();
 		
 		this.doUpdateSpinner(false);
@@ -219,6 +230,13 @@ enyo.kind({
 			//this.setupSongsDivider(inIndex);
 			this.$.songsItem.applyStyle("border-top", "1px solid silver;");
 			this.$.songsItem.applyStyle("border-bottom", "none;");
+			
+			if(AmpacheXL.prefsCookie.artOnLists) {
+				this.$.listArt.setSrc(row.art);
+				this.$.listArt.show();
+			} else {
+				this.$.listArt.hide();
+			}
 			
 			this.$.songsTitle.setContent(row.title);
 			this.$.songsArtist.setContent(row.artist);
@@ -281,6 +299,23 @@ enyo.kind({
 		
 		//this.$.songsSearchInputWrapper.show();
 		this.$.songsVirtualList.resized();
+	},
+	songsMousedown: function(inSender, inEvent) {
+		if(debug) this.log("songsMousedown") 
+		
+		this.newClick = true;
+		this.songsMouseTimer = setTimeout(enyo.bind(this, "songsMoreClick", inSender, inEvent), 500);
+		
+	},
+	songsMouseup: function(inSender, inEvent) {
+		if(debug) this.log("songsMouseup") 
+		
+		clearTimeout(this.songsMouseTimer);
+		
+		if(this.newClick) this.songsClick(inSender, inEvent);
+		
+		this.newClick = false;
+		
 	},
 	songsClick: function(inSender, inEvent) {
 		if(debug) this.log("songsClick: "+inEvent.rowIndex);
@@ -348,6 +383,8 @@ enyo.kind({
 	},
 	songsMoreClick: function(inSender, inEvent) {
 		if(debug) this.log("songsMoreClick: "+inEvent.rowIndex);
+		
+		this.newClick = false;
 		
 		this.selectedSong = this.resultsList[inEvent.rowIndex];
 		this.selectedIndex = inEvent.rowIndex;

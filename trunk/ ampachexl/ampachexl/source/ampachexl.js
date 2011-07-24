@@ -1,7 +1,7 @@
 
 var AmpacheXL = {};
 
-var debug = true;
+var debug = false;
 
 AmpacheXL.prefsCookieString = enyo.getCookie("AmpacheXL-prefs");
 AmpacheXL.prefsCookie;
@@ -23,11 +23,13 @@ enyo.kind({
 	
 	viewMode: "tablet",
 	
+	currentRightPane: "hosts",
+	
 	dataRequestView: "",
 	bannerMessageId: "",
 	
 	components: [
-		{kind: "ApplicationEvents", onLoad: "appLoaded", onUnload: "appUnloaded", onError: "appError", onWindowActivated: "windowActivated", onWindowDeactivated: "windowDeactivated", onBack: "backHandler"},
+		{kind: "ApplicationEvents", onLoad: "appLoaded", onUnload: "appUnloaded", onError: "appError", onWindowActivated: "windowActivated", onWindowDeactivated: "windowDeactivated", onBack: "backHandler", onWindowParamsChange: "windowParamsChangeHandler"},
 		
 		{name: "ampacheConnectService", kind: "WebService", handleAs: "xml", onSuccess: "ampacheConnectResponse", onFailure: "ampacheConnectFailure"},
 		//name: "dataRequestService", kind: "WebService", handleAs: "xml", onSuccess: "dataRequestResponse", onFailure: "dataRequestFailure"},
@@ -38,7 +40,10 @@ enyo.kind({
 			{caption: "About", onclick: "openAbout"},
 			{caption: "Disconnect", onclick: "disconnect"},
 			{caption: "Preferences", onclick: "openPreferences"},
-			{caption: "Email Developer", onclick: "emailDeveloper"},
+			{caption: "Help", components: [
+				{caption: "Open in browser", onclick: "openBrowser"},
+				{caption: "Email Developer", onclick: "emailDeveloper"},
+			]},
 		]},
 		
 		{name: "aboutPopup", kind: "Popup", scrim: true, components: [
@@ -97,13 +102,17 @@ enyo.kind({
 				]},
 			]},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
-				{content: "Dashboard playback contorls (not yet created)", flex: 1},
+				{content: "Dashboard playback controls", flex: 1},
 				{name: "dashboardPlayer", kind: "ToggleButton", onChange: "dashboardPlayerToggle"},
 			]},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 				{name: "theme", kind: "ListSelector", label: "Theme", onChange: "themeSelect", flex: 1, items: [
 					{caption: "Dark", value: "dark"},
 				]},
+			]},
+			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+				{content: "Show album art on lists", flex: 1},
+				{name: "artOnLists", kind: "ToggleButton", onChange: "artOnListsToggle"},
 			]},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 				{content: "Usage statitistics with Metrix", flex: 1},
@@ -118,8 +127,7 @@ enyo.kind({
 		
 		{name: "searchPopup", kind: "Popup", scrim: true, onBeforeOpen: "beforeSearchOpen", onOpen: "searchOpen", showKeyboardWhenOpening: true, components: [
 			{name: "searchHeader", content: "Search", style: "text-align: center;"},
-			//content: "<hr/>", allowHtml: true},
-			{name: "searchInput", kind: "Input"},
+			{name: "searchInput", kind: "Input", autoCapitalize: "lowercase"},
 			{name: "artistsSearch", caption: "Artists", kind: "Button", className: "searchButton", onclick: "searchClick"},
 			{name: "albumsSearch", caption: "Albums", kind: "Button", className: "searchButton", onclick: "searchClick"},
 			{name: "playlistsSearch", caption: "Playlists", kind: "Button", className: "searchButton", onclick: "searchClick"},
@@ -127,12 +135,14 @@ enyo.kind({
 			{name: "allSearch", caption: "All of the above", kind: "Button", className: "searchButton", onclick: "searchClick"},
 		]},
 		
+		{name: "dashboard", kind:"Dashboard", onMessageTap: "messageTap", onIconTap: "iconTap", onUserClose: "dashboardClose"},
+		
 		{name: "mainPane", kind: "HFlexBox", kind2: "SlidingPane", flex: 1, onSelectView: "mainPaneViewSelected", components: [
 			{name: "leftMenu", className: "leftMenu", width: "300px", layoutKind: "VFlexLayout", components: [
 				
-				{name: "leftMenuKind", kind: "LeftMenuKind", flex: 1, onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
+				{name: "leftMenuKind", kind: "LeftMenuKind", flex: 1, onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onOpenAppMenu: "openAppMenu"},
 				
-				{name: "playback", kind: "Playback", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPreviousTrack: "previousTrack", onNextTrack: "nextTrack", onBannerMessage: "bannerMessage"},
+				{name: "playback", kind: "Playback", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPreviousTrack: "previousTrack", onNextTrack: "nextTrack", onBannerMessage: "bannerMessage", onUpdatePlaybackStatus: "updatePlaybackStatus"},
 			
 			]},
 			{name: "rightContent", className: "rightContent", kind: "Pane", flex: 1, onSelectView: "rightContentViewSelected", onCreateView: "rightContentViewCreated", transitionKind: "enyo.transitions.Simple", components: [	
@@ -267,6 +277,7 @@ enyo.kind({
 		this.$.nowPlayingEnd.setValue(AmpacheXL.prefsCookie.nowPlayingEnd);
 		this.$.dashboardPlayer.setState(AmpacheXL.prefsCookie.dashboardPlayer);
 		this.$.theme.setValue(AmpacheXL.prefsCookie.theme);
+		this.$.artOnLists.setState(AmpacheXL.prefsCookie.artOnLists);
 		this.$.allowMetrix.setState(AmpacheXL.prefsCookie.allowMetrix);
 		this.$.debug.setState(AmpacheXL.prefsCookie.debug);
 			
@@ -280,6 +291,7 @@ enyo.kind({
 		AmpacheXL.prefsCookie.nowPlayingEnd = this.$.nowPlayingEnd.getValue();
 		AmpacheXL.prefsCookie.dashboardPlayer = this.$.dashboardPlayer.getState();
 		AmpacheXL.prefsCookie.theme = this.$.theme.getValue();
+		AmpacheXL.prefsCookie.artOnLists = this.$.artOnLists.getState();
 		AmpacheXL.prefsCookie.allowMetrix = this.$.allowMetrix.getState();
 		AmpacheXL.prefsCookie.debug = this.$.debug.getState();
 		
@@ -290,6 +302,11 @@ enyo.kind({
 		this.$.preferencesPopup.close();
 		
 	},
+	openBrowser: function() {
+		if(debug) this.log("openBrowser") 
+		
+		window.open(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].url);
+	},	
 	emailDeveloper: function() {
 		if(debug) this.log("emailDeveloper") 
 		
@@ -359,6 +376,11 @@ enyo.kind({
 		this.$.bannerMessagePopup.close();
 		
 	},
+	openAppMenu: function() {
+		if(debug) this.log("openAppMenu");
+		
+		this.$.appMenu.open();
+	},
 	viewSelected: function(inSender, inItem) {
 		if(debug) this.log("viewSelected: "+inItem);
 		
@@ -404,6 +426,12 @@ enyo.kind({
 		if(debug) this.log("playSong: "+enyo.json.stringify(inSongObject));
 		
 		this.$.playback.playSong(inSongObject);
+		
+		try {
+			enyo.windows.setWindowParams(this.dashWindow, inSongObject);
+		} catch(e) {
+			if(debug) this.log(e);
+		}
 	},
 	previousTrack: function() {
 		if(debug) this.log("previousTrack");
@@ -424,6 +452,16 @@ enyo.kind({
 		if(debug) this.log("nowplayingUpdated: "+inPlayAction) 
 		
 		this.$.nowplaying.nowplayingUpdated(inPlayAction);
+	},
+	updatePlaybackStatus: function() {
+		if(debug) this.log("updatePlaybackStatus");
+		
+		try {
+			enyo.windows.setWindowParams(this.dashWindow, AmpacheXL.currentSong);
+		} catch(e) {
+			if(debug) this.log(e);
+		}
+		
 	},
 	
 	backHandler: function(inSender, e) {
@@ -453,6 +491,44 @@ enyo.kind({
 		if(debug) this.log("doing resize to "+document.body.clientWidth+"x"+document.body.clientHeight);
 		
 		this.$[this.currentRightPane].resize();
+		
+	},
+	windowActivated: function() {
+		if(debug) this.log("windowActivated");
+		
+		try {
+			//if(this.doneFirstActivated) enyo.windows.setWindowParams(this.dashWindow, {close: true});
+			if(this.doneFirstActivated) this.dashWindow.close();
+			
+			this.doneFirstActivated = true;
+			
+		} catch(e) {
+			this.error(e);
+		}
+	},
+	windowDeactivated: function() {
+		if(debug) this.log("windowDeactivated");
+		
+		if((AmpacheXL.prefsCookie.dashboardPlayer)&&(AmpacheXL.currentSong)) this.dashWindow = enyo.windows.openDashboard("dashboard.html", "dashWindowName", AmpacheXL.currentSong, {clickableWhenLocked: true});
+		
+	},
+	windowParamsChangeHandler: function() {
+		if(debug) this.log("windowParamsChangeHandler: "+enyo.json.stringify(enyo.windowParams))
+		
+		switch(enyo.windowParams.playAction) {
+			case "previous":
+				this.previousTrack();
+				break;
+			case "next":
+				this.nextTrack();
+				break;
+			case "play":
+				this.$.playback.playClick();
+				break;
+			case "pause":
+				this.$.playback.pauseClick();
+				break;
+		}
 		
 	},
 

@@ -15,20 +15,25 @@ enyo.kind({
 		onUpdateCounts: "",
 		onAmpacheConnect: "",
 		onSavePreferences: "",
+		onBannerMessage: "",
 	},
+	
+	selectedHostIndex: -1,
+	selectedHost: {},
+	emptyHost: {name: "", url: "http://", username: "", password: ""},
 	
 	components: [
 	
-		{name: "addPopup", kind: "Popup", lazy2: false, onBeforeOpen: "beforeAddPopupOpen", onOpen: "addPopupOpen", showKeyboardWhenOpening: true, scrim: true, components: [
+		{name: "editPopup", kind: "Popup", lazy2: false, onBeforeOpen: "beforeEditPopupOpen", onOpen: "editPopupOpen", showKeyboardWhenOpening: true, scrim: true, components: [
 			{content: "AmpacheXL", style: "text-align: center; font-size: larger;"},
 			{kind: "Divider", caption: "Name"},
-			{name: "nameInput", kind: "Input"},
+			{name: "nameInput", kind: "Input", autoCapitalize: "lowercase"},
 			{kind: "Divider", caption: "URL (including 'http://' and ampache directory)"},
-			{name: "urlInput", kind: "Input", value: "http://"},
+			{name: "urlInput", kind: "Input", value: "http://", autoCapitalize: "lowercase"},
 			{kind: "Divider", caption: "Username"},
-			{name: "usernameInput", kind: "Input"},
+			{name: "usernameInput", kind: "Input", autoCapitalize: "lowercase"},
 			{kind: "Divider", caption: "Password"},
-			{name: "passwordInput", kind: "PasswordInput"},
+			{name: "passwordInput", kind: "PasswordInput", autoCapitalize: "lowercase"},
 			{kind: "Button", caption: "Save", onclick:"saveNew"},
 		]},
 		
@@ -53,7 +58,8 @@ enyo.kind({
 					{name: "hostsUsername", className: "count"},
 					{name: "hostsPassword", className: "count"},
 				]},
-				{name: "deleteHost", kind: "Image", src: "images/11-x@2x.png", width: "28px", onclick: "deleteHost", className: "deleteHost"},
+				{name: "editHost", kind: "Image", src: "images/19-gear@2x-light.png", width: "28px", onclick: "editHost", className: "editHost"},
+				{name: "deleteHost", kind: "Image", src: "images/11-x@2x-light.png", width: "28px", onclick: "deleteHost", className: "deleteHost"},
 			]},
 		]},
 		
@@ -88,19 +94,22 @@ enyo.kind({
 	addClick: function() {
 		if(debug) this.log("addClick");
 		
-		this.$.addPopup.openAtCenter();
-	},
-	beforeAddPopupOpen: function() {
-		if(debug) this.log("beforeAddPopupOpen");
+		this.selectedHostIndex = -1;
+		this.selectedHost = this.emptyHost;
 		
-		this.$.nameInput.setValue("");
-		this.$.urlInput.setValue("http://");
-		this.$.usernameInput.setValue("");
-		this.$.passwordInput.setValue("");
+		this.$.editPopup.openAtCenter();
+	},
+	beforeEditPopupOpen: function() {
+		if(debug) this.log("beforeEditPopupOpen");
+		
+		this.$.nameInput.setValue(this.selectedHost.name);
+		this.$.urlInput.setValue(this.selectedHost.url);
+		this.$.usernameInput.setValue(this.selectedHost.username);
+		this.$.passwordInput.setValue(this.selectedHost.password);
 		
 	},
-	addPopupOpen: function() {
-		if(debug) this.log("addPopupOpen");
+	editPopupOpen: function() {
+		if(debug) this.log("editPopupOpen");
 		
 		this.$.nameInput.forceFocusEnableKeyboard();
 	},
@@ -109,20 +118,38 @@ enyo.kind({
 		
 		enyo.keyboard.setManualMode(false);
 		
-		var newHost = {
-			name: this.$.nameInput.getValue(), 
-			url: this.$.urlInput.getValue(), 
-			username: this.$.usernameInput.getValue(), 
-			password: this.$.passwordInput.getValue(), 
-		};
+		if(this.selectedHostIndex == -1) {
 		
-		AmpacheXL.prefsCookie.accounts.push(newHost);
+			var newHost = {
+				name: this.$.nameInput.getValue(), 
+				url: this.$.urlInput.getValue(), 
+				username: this.$.usernameInput.getValue(), 
+				password: this.$.passwordInput.getValue(), 
+			};
+			
+			AmpacheXL.prefsCookie.accounts.push(newHost);
+			
+		} else {
+		
+			AmpacheXL.prefsCookie.accounts[this.selectedHostIndex].name = this.$.nameInput.getValue();
+			AmpacheXL.prefsCookie.accounts[this.selectedHostIndex].url =  this.$.urlInput.getValue();
+			AmpacheXL.prefsCookie.accounts[this.selectedHostIndex].username =  this.$.usernameInput.getValue();
+			AmpacheXL.prefsCookie.accounts[this.selectedHostIndex].password =  this.$.passwordInput.getValue();
+			
+		}
 		
 		this.$.hostsVirtualList.punt();
 		
-		this.$.addPopup.close();
+		this.$.editPopup.close();
 		
 		this.doSavePreferences();
+		
+		if(this.$.urlInput.getValue().toUpperCase().indexOf("AMPACHE") < 0) {
+			this.doBannerMessage("The URL you entered did not include 'ampache'.  The URL needs to include the approprite Ampache directory for your system.", true);
+		} else if(this.$.urlInput.getValue().toUpperCase().indexOf("HTTP") < 0) {
+			this.doBannerMessage("The URL you entered did not include the leading 'http' or 'https'.  You need to include that part of the URL.", true);
+		} 
+			
 	},
 	
 	setupHostsItem: function(inSender, inIndex) {
@@ -163,18 +190,27 @@ enyo.kind({
 		this.doAmpacheConnect();
 		
 	},
+	editHost: function(inSender, inEvent) {
+		if(debug) this.log("editHost: "+inEvent.rowIndex);
+		
+		this.selectedHostIndex = inEvent.rowIndex;
+		this.selectedHost = AmpacheXL.prefsCookie.accounts[inEvent.rowIndex];
+		
+		this.$.editPopup.openAtCenter();
+		
+	},
 	deleteHost: function(inSender, inEvent) {
 		if(debug) this.log("deleteHost: "+inEvent.rowIndex);
 		
-		this.selectedHost = inEvent.rowIndex;
+		this.selectedHostIndex = inEvent.rowIndex;
 		
 		this.$.deletePopup.openAtCenter();
 		
 	},
 	confirmDeleteHost: function() {
-		if(debug) this.log("confirmDeleteHost: "+this.selectedHost);
+		if(debug) this.log("confirmDeleteHost: "+this.selectedHostIndex);
 		
-		AmpacheXL.prefsCookie.accounts.splice(this.selectedHost,1);
+		AmpacheXL.prefsCookie.accounts.splice(this.selectedHostIndex,1);
 		
 		this.$.deletePopup.close();
 		this.$.hostsVirtualList.punt();
