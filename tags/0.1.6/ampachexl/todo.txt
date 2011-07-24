@@ -1,0 +1,11 @@
+Todo: 
+
+ - dashboard
+ - sort lists
+ - videos
+ - coverflow?
+ - help
+ - download
+ - bnd volume keys to media
+ - dont update when deactivated
+ 
