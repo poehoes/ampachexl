@@ -1,5 +1,22 @@
-
-
+/*
+ *   AmapcheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
+ *   http://code.google.com/p/ampachexl/
+ *   Copyright (C) 2011  Wes Brown
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License along
+ *   with this program; if not, write to the Free Software Foundation, Inc.,
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 
 enyo.kind({
@@ -38,7 +55,7 @@ enyo.kind({
 			]}
 		]},
 							
-		{name: "songsVirtualList", kind: "VirtualList", onSetupRow: "setupSongsItem", flex: 1, components: [
+		{name: "songsVirtualList", kind: "ScrollerVirtualList", onSetupRow: "setupSongsItem", flex: 1, components: [
 			//{name: "songsDivider", kind: "Divider"},
 			{name: "songsItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", components: [
 				{name: "listArt", kind: "Image", onclick2: "songsClick", onmousedown: "songsMousedown", onmouseup: "songsMouseup", className: "listArt"},
@@ -59,7 +76,7 @@ enyo.kind({
 			//
 		]},
 		
-		{name: "morePopupMenu", kind: "PopupSelect", className: "morePopupMenu", onBeforeOpen2: "beforeMoreOpen", onSelect: "moreSelect", onClose: "moreClosed", components: [
+		{name: "morePopupMenu", kind: "PopupSelect", className: "morePopupMenu", scrim: true, onBeforeOpen2: "beforeMoreOpen", onSelect: "moreSelect", onClose: "moreClosed", components: [
 			//
 		]},
 	],
@@ -301,14 +318,15 @@ enyo.kind({
 		this.$.songsVirtualList.resized();
 	},
 	songsMousedown: function(inSender, inEvent) {
-		if(debug) this.log("songsMousedown") 
+		if(debug) this.log("songsMousedown: "+this.$.songsVirtualList.getScrollTop()) 
 		
 		this.newClick = true;
+		this.listOffset = this.$.songsVirtualList.getScrollTop();
 		this.songsMouseTimer = setTimeout(enyo.bind(this, "songsMoreClick", inSender, inEvent), 500);
 		
 	},
 	songsMouseup: function(inSender, inEvent) {
-		if(debug) this.log("songsMouseup") 
+		if(debug) this.log("songsMouseup: "+this.$.songsVirtualList.getScrollTop()) 
 		
 		clearTimeout(this.songsMouseTimer);
 		
@@ -359,7 +377,7 @@ enyo.kind({
 				s = originalList.splice(this.selectedIndex, 1)[0];
 				newSongs.push(s);
 					
-				do {
+				while(originalList.length > 0) {
 				
 					var randomSong = Math.floor(Math.random()*originalList.length);
 					
@@ -368,7 +386,7 @@ enyo.kind({
 					
 					//if(debug) this.log("splicing random song at index "+randomSong+": "+enyo.json.stringify(s));
 					
-				} while(originalList.length > 0);
+				} 
 				
 			}
 		}
@@ -382,38 +400,46 @@ enyo.kind({
 		
 	},
 	songsMoreClick: function(inSender, inEvent) {
-		if(debug) this.log("songsMoreClick: "+inEvent.rowIndex);
+		if(debug) this.log("songsMoreClick: "+inEvent.rowIndex+" with offset:"+this.$.songsVirtualList.getScrollTop());
 		
 		this.newClick = false;
 		
-		this.selectedSong = this.resultsList[inEvent.rowIndex];
-		this.selectedIndex = inEvent.rowIndex;
+		if(Math.abs(this.$.songsVirtualList.getScrollTop() - this.listOffset) > 5) {
 		
-		this.$.morePopupMenu.setItems([
-			{caption: $L("Play"), components: [
-				{name: "Play all", caption: "Play all"},
-				{name: "Play all, shuffled", caption: "Play all, shuffled"},
-				{name: "Play single song", caption: "Play single song"},
-			]},
-			{caption: $L("Queue"), components: [
-				{name: "Queue all", caption: "Queue all"},
-				{name: "Queue all, shuffled", caption: "Queue all, shuffled"},
-				{name: "Queue single song", caption: "Queue single song"},
-			]},
-			{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
-			{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
+			if(debug) this.log("change in scroller offset is too large: "+Math.abs(this.$.songsVirtualList.getScrollTop() - this.listOffset));
+		
+		} else {
+		
+			this.selectedSong = this.resultsList[inEvent.rowIndex];
+			this.selectedIndex = inEvent.rowIndex;
 			
-			/*
-			{caption: $L("Web"), components: [
-				{name: "Google", caption: "Google"},
-				{name: "Wikipedia", caption: "Wikipedia"},
-			]},
-			
-			//download
-			*/
-		]);
+			this.$.morePopupMenu.setItems([
+				{caption: $L("Play"), components: [
+					{name: "Play all", caption: "Play all"},
+					{name: "Play all, shuffled", caption: "Play all, shuffled"},
+					{name: "Play single song", caption: "Play single song"},
+				]},
+				{caption: $L("Queue"), components: [
+					{name: "Queue all", caption: "Queue all"},
+					{name: "Queue all, shuffled", caption: "Queue all, shuffled"},
+					{name: "Queue single song", caption: "Queue single song"},
+				]},
+				{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
+				{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
+				
+				/*
+				{caption: $L("Web"), components: [
+					{name: "Google", caption: "Google"},
+					{name: "Wikipedia", caption: "Wikipedia"},
+				]},
+				
+				//download
+				*/
+			]);
 								
-		this.$.morePopupMenu.openAtEvent(inEvent);
+			this.$.morePopupMenu.openAtEvent(inEvent);
+		
+		}
 		
 	},
 	moreSelect: function(inSender, inEvent) {
