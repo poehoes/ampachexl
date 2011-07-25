@@ -1,3 +1,23 @@
+/*
+ *   AmapcheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
+ *   http://code.google.com/p/ampachexl/
+ *   Copyright (C) 2011  Wes Brown
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License along
+ *   with this program; if not, write to the Free Software Foundation, Inc.,
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
 
 var AmpacheXL = {};
 
@@ -15,6 +35,7 @@ AmpacheXL.allPlaylists = [];
 AmpacheXL.allVideos = [];
 
 AmpacheXL.currentSong = {};
+AmpacheXL.nextSong = {};
 
 enyo.kind({
 	name: "AmpacheXL.main",
@@ -31,8 +52,9 @@ enyo.kind({
 	components: [
 		{kind: "ApplicationEvents", onLoad: "appLoaded", onUnload: "appUnloaded", onError: "appError", onWindowActivated: "windowActivated", onWindowDeactivated: "windowDeactivated", onBack: "backHandler", onWindowParamsChange: "windowParamsChangeHandler"},
 		
+		{name: "lockVolumeKeysService", kind: "PalmService", service: "palm://com.palm.audio/media/", method: "lockVolumeKeys", onSuccess: "lockVolumeKeysResponse", onFailure: "lockVolumeKeysFailure"},
+		
 		{name: "ampacheConnectService", kind: "WebService", handleAs: "xml", onSuccess: "ampacheConnectResponse", onFailure: "ampacheConnectFailure"},
-		//name: "dataRequestService", kind: "WebService", handleAs: "xml", onSuccess: "dataRequestResponse", onFailure: "dataRequestFailure"},
 		{name: "dataRequestService", kind: "WebService", handleAs: "txt", onSuccess: "dataRequestResponse", onFailure: "dataRequestFailure"},
 		{name: "pingService", kind: "WebService", handleAs: "xml", onSuccess: "ampachePingResponse", onFailure: "ampachePingFailure"},
 			
@@ -47,7 +69,7 @@ enyo.kind({
 		]},
 		
 		{name: "aboutPopup", kind: "Popup", scrim: true, components: [
-			{content: "AmpacheXL", style: "text-align: center; font-size: larger;"},
+			{content: "Ampache XL - "+enyo.fetchAppInfo().version, style: "text-align: center; font-size: larger;"},
 			{content: "<hr />", allowHtml: true},
 			{name: "aboutPopupText", content: "AmpacheXL is an app for Ampache written for use on a webOS tablet.", style: "text-align: center; font-size: smaller;"},
 			{content: "<hr />", allowHtml: true},
@@ -105,7 +127,7 @@ enyo.kind({
 				{content: "Dashboard playback controls", flex: 1},
 				{name: "dashboardPlayer", kind: "ToggleButton", onChange: "dashboardPlayerToggle"},
 			]},
-			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+			{kind: "Item", showing: false, align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 				{name: "theme", kind: "ListSelector", label: "Theme", onChange: "themeSelect", flex: 1, items: [
 					{caption: "Dark", value: "dark"},
 				]},
@@ -135,21 +157,19 @@ enyo.kind({
 			{name: "allSearch", caption: "All of the above", kind: "Button", className: "searchButton", onclick: "searchClick"},
 		]},
 		
-		{name: "dashboard", kind:"Dashboard", onMessageTap: "messageTap", onIconTap: "iconTap", onUserClose: "dashboardClose"},
-		
-		{name: "mainPane", kind: "HFlexBox", kind2: "SlidingPane", flex: 1, onSelectView: "mainPaneViewSelected", components: [
-			{name: "leftMenu", className: "leftMenu", width: "300px", layoutKind: "VFlexLayout", components: [
-				
-				{name: "leftMenuKind", kind: "LeftMenuKind", flex: 1, onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onOpenAppMenu: "openAppMenu"},
-				
-				{name: "playback", kind: "Playback", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPreviousTrack: "previousTrack", onNextTrack: "nextTrack", onBannerMessage: "bannerMessage", onUpdatePlaybackStatus: "updatePlaybackStatus"},
-			
+		{name: "mainPane", kind2: "HFlexBox", kind: "SlidingPane", flex: 1, onSelectView: "mainPaneViewSelected", components: [
+			{name: "leftMenu", kind: "SlidingView", className: "leftMenu", width: "300px", layoutKind2: "VFlexLayout", components: [
+				{kind: "VFlexBox", height: "100%", width: "300px", components: [
+					{name: "leftMenuKind", kind: "LeftMenuKind", flex: 1, onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onOpenAppMenu: "openAppMenu"},
+					
+					{name: "playback", kind: "Playback", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPreviousTrack: "previousTrack", onNextTrack: "nextTrack", onBannerMessage: "bannerMessage", onUpdatePlaybackStatus: "updatePlaybackStatus"},
+				]},
 			]},
 			{name: "rightContent", className: "rightContent", kind: "Pane", flex: 1, onSelectView: "rightContentViewSelected", onCreateView: "rightContentViewCreated", transitionKind: "enyo.transitions.Simple", components: [	
 				
 				{name: "hosts", kind: "Hosts", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onAmpacheConnect: "ampacheConnect", onSavePreferences: "savePreferences"},
 				
-				{name: "nowplaying", kind: "Nowplaying", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts"},
+				{name: "nowplaying", kind: "Nowplaying", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onQueueNextSong: "queueNextSong"},
 				
 				{name: "random", kind: "Random", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
 				
@@ -197,6 +217,8 @@ enyo.kind({
 		enyo.setAllowedOrientation(AmpacheXL.prefsCookie.allowedOrientation);	
 		debug = AmpacheXL.prefsCookie.debug;
 		
+		if(window.PalmSystem) this.$.lockVolumeKeysService.call({subscribe: true, foregroundApp: true, parameters: {subscribe: true, foregroundApp: true}});
+		
 		//this.activate();
 		
 	},
@@ -235,6 +257,7 @@ enyo.kind({
 		AmpacheXL.connected = false;
 		
 		AmpacheXL.currentSong = {};
+		AmpacheXL.nextSong = {};
 		
 		AmpacheXL.connectResponse.auth = "";
 		AmpacheXL.connectResponse.update = "";
@@ -423,7 +446,8 @@ enyo.kind({
 		}
 	},
 	playSong: function(inSender, inSongObject) {
-		if(debug) this.log("playSong: "+enyo.json.stringify(inSongObject));
+		if(debug) this.log("playSong");
+		//if(debug) this.log("playSong: "+enyo.json.stringify(inSongObject));
 		
 		this.$.playback.playSong(inSongObject);
 		
@@ -462,6 +486,11 @@ enyo.kind({
 			if(debug) this.log(e);
 		}
 		
+	},
+	queueNextSong: function(inSender, inSong) {
+		if(debug) this.log("queueNextSong")
+		
+		this.$.playback.queueNextSong(inSong);
 	},
 	
 	backHandler: function(inSender, e) {
@@ -531,7 +560,25 @@ enyo.kind({
 		}
 		
 	},
-
+	appUnloaded: function() {
+		if(debug) this.log("appUnloaded");
+		
+		this.disconnect();
+		
+		try {
+			this.dashWindow.close();
+		} catch(e) {
+			this.error(e);
+		}
+	},
+	
+	lockVolumeKeysResponse: function(inSender, inResponse) {
+		if(debug) this.log("lockVolumeKeysResponse: "+enyo.json.stringify(inResponse));
+	},
+	lockVolumeKeysFailure: function(inSender, inResponse) {
+		if(debug) this.log("lockVolumeKeysFailure");
+	},
+	
 	ampacheConnect: function() {
 		if(debug) this.log("ampacheConnect");
 		

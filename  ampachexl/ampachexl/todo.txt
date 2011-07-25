@@ -1,11 +1,11 @@
 Todo: 
 
- - dashboard
  - sort lists
  - videos
  - coverflow?
  - help
  - download
- - bnd volume keys to media
  - dont update when deactivated
+ - add recent to left menu
+ - bind volume keys to media?
  

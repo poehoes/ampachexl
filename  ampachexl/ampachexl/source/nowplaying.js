@@ -1,4 +1,22 @@
-
+/*
+ *   AmapcheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
+ *   http://code.google.com/p/ampachexl/
+ *   Copyright (C) 2011  Wes Brown
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License along
+ *   with this program; if not, write to the Free Software Foundation, Inc.,
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 
 enyo.kind({
@@ -14,9 +32,11 @@ enyo.kind({
 		onPlaySong: "",
 		onUpdateCounts: "",
 		onBannerMessage: "",
+		onQueueNextSong: "",
 	},
 	
 	listMode: "play",
+	nowplayingMouseTimer: "",
 	
 	components: [
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
@@ -24,14 +44,14 @@ enyo.kind({
 			{name: "headerSubtitle", kind: "Control", className: "headerSubtitle"},
 		]},
 							
-		{name: "nowplayingVirtualList", kind: "VirtualList", onSetupRow: "setupNowplayingItem", flex: 1, components: [
+		{name: "nowplayingVirtualList", kind: "ScrollerVirtualList", onSetupRow: "setupNowplayingItem", flex: 1, components: [
 			{name: "nowplayingItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", components: [
-				{name: "nowplayingIndex", onclick: "nowplayingClick", className: "listIndex"},
-				{kind: "VFlexBox", flex: 1, onclick: "nowplayingClick", components: [
+				{name: "nowplayingIndex", onclick2: "nowplayingClick", onmousedown: "nowplayingMousedown", onmouseup: "nowplayingMouseup", className: "listIndex"},
+				{kind: "VFlexBox", flex: 1, onclick2: "nowplayingClick", onmousedown: "nowplayingMousedown", onmouseup: "nowplayingMouseup", components: [
 					{name: "nowplayingTitle", className: "title"},
 					{name: "nowplayingArtist", className: "subtitle"},
 				]},
-				{name: "nowplayingAlbumWrapper", onclick: "nowplayingClick", kind: "VFlexBox", components: [
+				{name: "nowplayingAlbumWrapper", onclick2: "nowplayingClick", onmousedown: "nowplayingMousedown", onmouseup: "nowplayingMouseup", kind: "VFlexBox", components: [
 					{name: "nowplayingAlbum", className: "count"},
 					{name: "nowplayingTrack", className: "count"},
 				]},
@@ -49,6 +69,10 @@ enyo.kind({
 			{name: "shuffleSpacer", kind: "Spacer"},
 			{name: "editButton", caption: "Edit", onclick: "editClick"},
 			{kind: "Spacer"},
+		]},
+		
+		{name: "morePopupMenu", kind: "PopupSelect", className: "morePopupMenu", scrim: true, onBeforeOpen2: "beforeMoreOpen", onSelect: "moreSelect", onClose: "moreClosed", components: [
+			//
 		]},
 	],
 	
@@ -105,12 +129,14 @@ enyo.kind({
 				if(debug) this.log("found current song at index: "+currentIndex);
 				
 				this.doPlaySong(AmpacheXL.nowplaying[currentIndex-1]);
-				AmpacheXL.nowplayingIndex = currentIndex;
+				AmpacheXL.nowplayingIndex = currentIndex-1;
 				break;
 		}
 		
 		this.$.nowplayingVirtualList.refresh();
 		this.doUpdateCounts();
+		
+		enyo.job("getNextSong", enyo.bind(this, "getNextSong"), 5000);
 		
 	},
 	nextTrack: function() {
@@ -168,7 +194,7 @@ enyo.kind({
 				
 					var row = AmpacheXL.nowplaying[0];
 					
-					AmpacheXL.nowplayingIndex = 1;
+					AmpacheXL.nowplayingIndex = 0;
 					AmpacheXL.currentSong = row;
 					
 					this.doPlaySong(row);
@@ -186,21 +212,35 @@ enyo.kind({
 				if(debug) this.log("found current song at index: "+currentIndex);
 				
 				this.doPlaySong(AmpacheXL.nowplaying[currentIndex+1]);
-				AmpacheXL.nowplayingIndex = currentIndex+2;
+				AmpacheXL.nowplayingIndex = currentIndex+1;
 				break;
 		}
 		
 		this.$.nowplayingVirtualList.refresh();
 		this.doUpdateCounts();
+		
+		enyo.job("getNextSong", enyo.bind(this, "getNextSong"), 5000);
 	},
 	nowplayingUpdated: function(inPlayAction) {
 		if(debug) this.log("nowplayingUpdated: "+inPlayAction);
+		
+		//check for bad inputs
+		for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
+		
+			s = AmpacheXL.nowplaying[i];
+			
+			if((s)&&(s.id)) {
+				//song is OK
+			} else {
+				AmpacheXL.nowplaying.splice(i, 1);
+			}
+		}
 		
 		if(inPlayAction == "play") {
 			
 			var row = AmpacheXL.nowplaying[0];
 			
-			AmpacheXL.nowplayingIndex = 1;
+			AmpacheXL.nowplayingIndex = 0;
 			AmpacheXL.currentSong = row;
 			
 			this.doPlaySong(row);
@@ -210,12 +250,16 @@ enyo.kind({
 			
 		} else if(AmpacheXL.currentSong.artist) {
 			//are already playing a song, so dont interfere
+			
+			this.$.nowplayingVirtualList.refresh();
+			this.doUpdateCounts();
+			
 		} else {
 		
 			//first addition to playlist
 			var row = AmpacheXL.nowplaying[0];
 			
-			AmpacheXL.nowplayingIndex = 1;
+			AmpacheXL.nowplayingIndex = 0;
 			AmpacheXL.currentSong = row;
 			
 			this.doPlaySong(row);
@@ -225,6 +269,7 @@ enyo.kind({
 			
 		}
 		
+		enyo.job("getNextSong", enyo.bind(this, "getNextSong"), 5000);
 	},
 	
 	setupNowplayingItem: function(inSender, inIndex) {
@@ -305,7 +350,7 @@ enyo.kind({
 			if(s.id == AmpacheXL.currentSong.id) currentIndex = i;
 		
 		}
-		AmpacheXL.nowplayingIndex = currentIndex+1;
+		AmpacheXL.nowplayingIndex = currentIndex;
 		
 		this.$.nowplayingVirtualList.punt();
 		this.doUpdateCounts();
@@ -334,12 +379,30 @@ enyo.kind({
 		this.$.nowplayingVirtualList.refresh();
 		
 	},
+	nowplayingMousedown: function(inSender, inEvent) {
+		if(debug) this.log("nowplayingMousedown: "+this.$.nowplayingVirtualList.getScrollTop()) 
+		
+		this.newClick = true;
+		this.listOffset = this.$.nowplayingVirtualList.getScrollTop();
+		this.nowplayingMouseTimer = setTimeout(enyo.bind(this, "nowplayingMoreClick", inSender, inEvent), 500);
+		
+	},
+	nowplayingMouseup: function(inSender, inEvent) {
+		if(debug) this.log("nowplayingMouseup: "+this.$.nowplayingVirtualList.getScrollTop()) 
+		
+		clearTimeout(this.nowplayingMouseTimer);
+		
+		if(this.newClick) this.nowplayingClick(inSender, inEvent);
+		
+		this.newClick = false;
+		
+	},
 	nowplayingClick: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingClick: "+inEvent.rowIndex);
 		
 		var row = AmpacheXL.nowplaying[inEvent.rowIndex];
 		
-		AmpacheXL.nowplayingIndex = inEvent.rowIndex+1;
+		AmpacheXL.nowplayingIndex = inEvent.rowIndex;
 		AmpacheXL.currentSong = row;
 		
 		if(debug) this.log("nowplayingClick: "+enyo.json.stringify(row));
@@ -349,6 +412,101 @@ enyo.kind({
 		this.$.nowplayingVirtualList.refresh();
 		this.doUpdateCounts();
 		
+		enyo.job("getNextSong", enyo.bind(this, "getNextSong"), 5000);
+		
+	},	
+	nowplayingMoreClick: function(inSender, inEvent) {
+		if(debug) this.log("nowplayingMoreClick: "+inEvent.rowIndex+" with offset:"+this.$.nowplayingVirtualList.getScrollTop());
+		
+		this.newClick = false;
+		
+		if(Math.abs(this.$.nowplayingVirtualList.getScrollTop() - this.listOffset) > 5) {
+		
+			if(debug) this.log("change in scroller offset is too large: "+Math.abs(this.$.nowplayingVirtualList.getScrollTop() - this.listOffset));
+		
+		} else {
+		
+			this.selectedSong = AmpacheXL.nowplaying[inEvent.rowIndex];
+			this.selectedIndex = inEvent.rowIndex;
+			
+			this.$.morePopupMenu.setItems([
+				{caption: "Play"},
+				{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
+				{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
+				{caption: $L("Move"), components: [
+					{caption: "Move up"},
+					{caption: "Move down"},
+					{caption: "Move to top"},
+					{caption: "Move to bottom"},
+					{caption: "Move to next"},
+				]},
+				{caption: $L("Remove")},
+				/*
+				{caption: $L("Web"), components: [
+					{name: "Google", caption: "Google"},
+					{name: "Wikipedia", caption: "Wikipedia"},
+				]},
+				
+				//download
+				*/
+			]);
+								
+			this.$.morePopupMenu.openAtEvent(inEvent);
+		
+		}
+		
+	},
+	moreSelect: function(inSender, inEvent) {
+		if(inEvent) {
+			if(debug) this.log("moreSelect: "+inEvent.value);
+			
+			switch(inEvent.value) {
+				case "Play":
+					this.nowplayingClick("nowplaying", {rowIndex: this.selectedIndex});
+					break;
+				case "Move":
+					//
+					break;
+				case "Move up":
+					this.nowplayingMoveUp("nowplaying", {rowIndex: this.selectedIndex});
+					break;
+				case "Move down":
+					this.nowplayingMoveDown("nowplaying", {rowIndex: this.selectedIndex});
+					break;
+				case "Move to top":
+					this.nowplayingMoveToTop("nowplaying", {rowIndex: this.selectedIndex});
+					break;
+				case "Move to bottom":
+					this.nowplayingMoveToBottom("nowplaying", {rowIndex: this.selectedIndex});
+					break;
+				case "Move to next":
+					this.nowplayingMoveToNext("nowplaying", {rowIndex: this.selectedIndex});
+					break;
+				case "Remove":
+					this.nowplayingRemove("nowplaying", {rowIndex: this.selectedIndex});
+					break;
+				default: 
+					
+					if(inEvent.value.substring(0,5) == "Album") {
+						this.doUpdateSpinner(true);
+						this.doDataRequest("songsList", "album_songs", "&filter="+this.selectedSong.album_id);
+						this.doViewSelected("songsList");
+					} else if(inEvent.value.substring(0,6) == "Artist") {
+						this.selectedSong.type = "artist";
+						this.selectedSong.songs = "all";
+						this.selectedSong.name = this.selectedSong.artist;
+						this.selectedSong.id = this.selectedSong.artist_id;
+						AmpacheXL.selectedArtist = this.selectedSong;
+						this.doUpdateSpinner(true);
+						this.doDataRequest("albumsList", "artist_albums", "&filter="+this.selectedSong.artist_id);
+						this.doViewSelected("albumsList");
+					} else {
+						this.log("unknown more command: "+inEvent.value);
+					}
+					
+					break;
+			}
+		}
 	},
 	nowplayingMoveUp: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingMoveUp: "+inEvent.rowIndex);
@@ -356,18 +514,7 @@ enyo.kind({
 		var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
 		AmpacheXL.nowplaying.splice(inEvent.rowIndex - 1, 0, row);
 		
-		var currentIndex = -1;
-		for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
-		
-			s = AmpacheXL.nowplaying[i];
-			if(s.id == AmpacheXL.currentSong.id) currentIndex = i;
-		
-		}
-		AmpacheXL.nowplayingIndex = currentIndex+1;
-		
-		this.$.nowplayingVirtualList.refresh();
-		this.doUpdateCounts();
-		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
+		this.finishedMoving();
 		
 	},
 	nowplayingMoveDown: function(inSender, inEvent) {
@@ -376,6 +523,32 @@ enyo.kind({
 		var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
 		AmpacheXL.nowplaying.splice(inEvent.rowIndex + 1, 0, row);
 		
+		this.finishedMoving();
+		
+	},
+	nowplayingMoveToTop: function(inSender, inEvent) {
+		if(debug) this.log("nowplayingMoveToTop: "+inEvent.rowIndex);
+		
+		var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
+		AmpacheXL.nowplaying.splice(0, 0, row);
+		
+		this.finishedMoving();
+		
+	},
+	nowplayingMoveToBottom: function(inSender, inEvent) {
+		if(debug) this.log("nowplayingMoveToBottom: "+inEvent.rowIndex);
+		
+		var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
+		AmpacheXL.nowplaying.push(row);
+		
+		this.finishedMoving();
+		
+	},
+	nowplayingMoveToNext: function(inSender, inEvent) {
+		if(debug) this.log("nowplayingMoveToNext: "+inEvent.rowIndex);
+		
+		var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
+		
 		var currentIndex = -1;
 		for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
 		
@@ -383,21 +556,26 @@ enyo.kind({
 			if(s.id == AmpacheXL.currentSong.id) currentIndex = i;
 		
 		}
-		AmpacheXL.nowplayingIndex = currentIndex+1;
+		AmpacheXL.nowplayingIndex = currentIndex;
 		
-		this.$.nowplayingVirtualList.refresh();
-		this.doUpdateCounts();
-		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
+		AmpacheXL.nowplaying.splice(AmpacheXL.nowplayingIndex+1, 0, row);
+		
+		this.finishedMoving();
 		
 	},
 	nowplayingRemove: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingRemove: "+inEvent.rowIndex);
 		
-		if(AmpacheXL.nowplayingIndex == inEvent.rowIndex+1) {
+		if(AmpacheXL.nowplayingIndex == inEvent.rowIndex) {
 			this.doBannerMessage("You cannot remove the song that is currently playing", true);
 		} else {
 			var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
 		}
+		
+		this.finishedMoving();
+	},
+	finishedMoving: function() {
+		if(debug) this.log("finishedMoving");
 		
 		var currentIndex = -1;
 		for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
@@ -406,12 +584,24 @@ enyo.kind({
 			if(s.id == AmpacheXL.currentSong.id) currentIndex = i;
 		
 		}
-		AmpacheXL.nowplayingIndex = currentIndex+1;
+		AmpacheXL.nowplayingIndex = currentIndex;
 		
 		this.$.nowplayingVirtualList.refresh();
 		this.doUpdateCounts();
 		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
 		
+		enyo.job("getNextSong", enyo.bind(this, "getNextSong"), 5000);
+	},
+	getNextSong: function() {
+		if(debug) this.log("getNextSong");
+		
+		var row = AmpacheXL.nowplaying[AmpacheXL.nowplayingIndex+1];
+		
+		if(row) {
+		
+			this.doQueueNextSong(row);
+		
+		}
 	},
 	
 });

@@ -23,6 +23,7 @@ enyo.depends(
 	
 	"source/commands.js",
 	
+	"source/libraries/scrollervirtuallist.js",
 	"source/libraries/sha256.js",
 	/*"source/libraries/XMLObjectifier.js",*/
 	"source/libraries/Metrix/metrix.js"
