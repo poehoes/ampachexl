@@ -1,0 +1,11 @@
+Todo: 
+
+ - sort lists
+ - videos
+ - coverflow?
+ - help
+ - download
+ - dont update when deactivated
+ - add recent to left menu
+ - bind volume keys to media?
+ 
