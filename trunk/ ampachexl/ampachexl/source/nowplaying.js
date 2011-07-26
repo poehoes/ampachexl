@@ -400,20 +400,25 @@ enyo.kind({
 	nowplayingClick: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingClick: "+inEvent.rowIndex);
 		
-		var row = AmpacheXL.nowplaying[inEvent.rowIndex];
+		if(Math.abs(this.$.nowplayingVirtualList.getScrollTop() - this.listOffset) > 5) {
 		
-		AmpacheXL.nowplayingIndex = inEvent.rowIndex;
-		AmpacheXL.currentSong = row;
+			if(debug) this.log("change in scroller offset is too large: "+Math.abs(this.$.nowplayingVirtualList.getScrollTop() - this.listOffset));
 		
-		if(debug) this.log("nowplayingClick: "+enyo.json.stringify(row));
-		
-		this.doPlaySong(row);
-		
-		this.$.nowplayingVirtualList.refresh();
-		this.doUpdateCounts();
-		
-		enyo.job("getNextSong", enyo.bind(this, "getNextSong"), 5000);
-		
+		} else {
+			var row = AmpacheXL.nowplaying[inEvent.rowIndex];
+			
+			AmpacheXL.nowplayingIndex = inEvent.rowIndex;
+			AmpacheXL.currentSong = row;
+			
+			if(debug) this.log("nowplayingClick: "+enyo.json.stringify(row));
+			
+			this.doPlaySong(row);
+			
+			this.$.nowplayingVirtualList.refresh();
+			this.doUpdateCounts();
+			
+			enyo.job("getNextSong", enyo.bind(this, "getNextSong"), 5000);
+		}
 	},	
 	nowplayingMoreClick: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingMoreClick: "+inEvent.rowIndex+" with offset:"+this.$.nowplayingVirtualList.getScrollTop());

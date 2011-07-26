@@ -338,13 +338,18 @@ enyo.kind({
 	songsClick: function(inSender, inEvent) {
 		if(debug) this.log("songsClick: "+inEvent.rowIndex);
 		
-		this.selectedSong = this.resultsList[inEvent.rowIndex];
-		this.selectedIndex = inEvent.rowIndex;
+		if(Math.abs(this.$.songsVirtualList.getScrollTop() - this.listOffset) > 5) {
 		
-		if(debug) this.log("songsClick: "+enyo.json.stringify(this.selectedSong));
+			if(debug) this.log("change in scroller offset is too large: "+Math.abs(this.$.songsVirtualList.getScrollTop() - this.listOffset));
 		
-		this.songsAction(AmpacheXL.prefsCookie.defaultAction);
-		
+		} else {
+			this.selectedSong = this.resultsList[inEvent.rowIndex];
+			this.selectedIndex = inEvent.rowIndex;
+			
+			if(debug) this.log("songsClick: "+enyo.json.stringify(this.selectedSong));
+			
+			this.songsAction(AmpacheXL.prefsCookie.defaultAction);
+		}
 	}, 
 	songsAction: function(inAction) {
 	

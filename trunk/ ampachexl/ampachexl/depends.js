@@ -21,6 +21,8 @@ enyo.depends(
 		
 	"source/dashboardkind.js",
 	
+	"source/help.js",
+	
 	"source/commands.js",
 	
 	"source/libraries/scrollervirtuallist.js",
