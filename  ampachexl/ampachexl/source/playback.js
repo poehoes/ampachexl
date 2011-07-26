@@ -178,7 +178,12 @@ enyo.kind({
 		} else {
 			if(debug) this.log("is a new song - queue it up");
 			
+			AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex] = "nothing";
+			
 			AmpacheXL.nextSong = inSongObject;
+			
+			AmpacheXL.nextAudioObjectIndex = AmpacheXL.audioObjects.length;
+			AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex] = new Audio();
 			
 			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].pause();
 			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].src = "";
@@ -364,7 +369,7 @@ enyo.kind({
 				
 			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].removeEventListener("progress", enyo.bind(this, "queueProgressEvent"), false);
 			
-			AmpacheXL.currentAudioObjectIndex = AmpacheXL.audioObjects.length+1;
+			AmpacheXL.currentAudioObjectIndex = AmpacheXL.audioObjects.length;
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex] = new Audio();
 			
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("playing", enyo.bind(this, "playingEvent"), false);

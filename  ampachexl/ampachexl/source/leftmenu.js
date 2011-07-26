@@ -105,12 +105,13 @@ enyo.kind({
 			this.$.nowplayingItemCount.setContent((AmpacheXL.nowplayingIndex+1)+"/"+AmpacheXL.nowplaying.length);
 		}	
 		
-		this.$.artistsItemCount.setContent(AmpacheXL.connectResponse.artists);
-		this.$.albumsItemCount.setContent(AmpacheXL.connectResponse.albums);
-		this.$.playlistsItemCount.setContent(AmpacheXL.connectResponse.playlists);
-		this.$.videosItemCount.setContent(AmpacheXL.connectResponse.videos);
-		this.$.songsItemCount.setContent(AmpacheXL.connectResponse.songs);
-		
+		if(AmpacheXL.connectResponse) {
+			this.$.artistsItemCount.setContent(AmpacheXL.connectResponse.artists);
+			this.$.albumsItemCount.setContent(AmpacheXL.connectResponse.albums);
+			this.$.playlistsItemCount.setContent(AmpacheXL.connectResponse.playlists);
+			this.$.videosItemCount.setContent(AmpacheXL.connectResponse.videos);
+			this.$.songsItemCount.setContent(AmpacheXL.connectResponse.songs);
+		}
 	},
 	
 	headerClick: function() {

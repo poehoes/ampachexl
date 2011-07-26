@@ -22,7 +22,7 @@
 enyo.kind({
 	name: "Random",
 	kind: "VFlexBox",
-	className: "Random listContent",
+	className: "Random",
 	
 	events: {
 		onViewSelected: "",
@@ -75,7 +75,7 @@ enyo.kind({
 			if(window.localStorage.getItem("allAlbums")) {
 				AmpacheXL.allAlbums = enyo.json.parse(window.localStorage.getItem("allAlbums"));
 			} else {
-				this.doBannerMessage("You need to load all playlists at least once before using the random feature", true)
+				this.doBannerMessage("You need to load all playlists at least once before using the random feature", true);
 			}
 		}
 		

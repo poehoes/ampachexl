@@ -128,8 +128,8 @@
 }
 
 .playbackTime {
-	margin-left: 2px;
-	margin-right: 2px;
+	margin-left: 4px;
+	margin-right: 4px;
 	font-size: 12px;
 	min-width: 28px;
 }
@@ -261,4 +261,17 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.helpContent {
+	padding: 5px;
+	margin: 5px;
+}
+
+.smallerFont {
+	font-size: 14px;
+}
+
+.Help a {
+	color: #9DC8E7;
 }

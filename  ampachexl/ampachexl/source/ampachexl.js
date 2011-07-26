@@ -63,6 +63,7 @@ enyo.kind({
 			{caption: "Disconnect", onclick: "disconnect"},
 			{caption: "Preferences", onclick: "openPreferences"},
 			{caption: "Help", components: [
+				{caption: "Help", onclick: "openHelp"},
 				{caption: "Open in browser", onclick: "openBrowser"},
 				{caption: "Email Developer", onclick: "emailDeveloper"},
 			]},
@@ -77,7 +78,8 @@ enyo.kind({
 			{content: "<hr />", allowHtml: true},
 			{content: '<a href="http://ampache.org/">Ampache homepage</a>', allowHtml: true, style: "text-align: center; font-size: smaller;"},
 			{content: "<hr />", allowHtml: true},
-			{kind: "Button", caption: "OK", onclick:"closeAboutPopup"}
+			{kind: "Button", caption: "OK", onclick:"closeAboutPopup"},
+			{kind: "Button", caption: "Help", onclick:"openHelp"}
 		]},
 		
 		{name: "bannerMessagePopup", kind: "Popup", scrim: true, onBeforeOpen: "beforeBannerMessageOpen", components: [
@@ -180,6 +182,8 @@ enyo.kind({
 				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onNowplayingUpdated: "nowplayingUpdated"},
 				
 				{name: "videosList", kind: "VideosList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
+				
+				{name: "help", kind: "Help", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
 				
 			]},
 		]},
@@ -325,6 +329,13 @@ enyo.kind({
 		this.$.preferencesPopup.close();
 		
 	},
+	openHelp: function() {
+		if(debug) this.log("openHelp");
+		
+		this.$.rightContent.selectViewByName("help");
+		
+		this.$.aboutPopup.close();
+	},
 	openBrowser: function() {
 		if(debug) this.log("openBrowser") 
 		
@@ -414,6 +425,11 @@ enyo.kind({
 		} else {
 			this.$.rightContent.selectViewByName(inItem);
 		}
+	},
+	previousView: function() {
+		if(debug) this.log("previousView");
+		
+		this.$.rightContent.back();
 	},
 	dataRequest: function(inSender, inView, inMethod, inParameters) {
 		if(debug) this.log("dataRequest: "+inView+" "+inMethod+" "+inParameters);
@@ -538,7 +554,7 @@ enyo.kind({
 	windowDeactivated: function() {
 		if(debug) this.log("windowDeactivated");
 		
-		if((AmpacheXL.prefsCookie.dashboardPlayer)&&(AmpacheXL.currentSong)) this.dashWindow = enyo.windows.openDashboard("dashboard.html", "dashWindowName", AmpacheXL.currentSong, {clickableWhenLocked: true});
+		if((AmpacheXL.prefsCookie.dashboardPlayer)&&(AmpacheXL.connected)) this.dashWindow = enyo.windows.openDashboard("dashboard.html", "dashWindowName", AmpacheXL.currentSong, {clickableWhenLocked: true});
 		
 	},
 	windowParamsChangeHandler: function() {
@@ -649,7 +665,13 @@ enyo.kind({
 				
 				switch(AmpacheXL.prefsCookie.startingPane) {
 					case "random":
-						this.$.rightContent.selectViewByName("random");
+						if(window.localStorage.getItem("allAlbums")) {
+							this.$.rightContent.selectViewByName("random");
+						} else {
+							this.updateSpinner("AmpacheXL", true);
+							this.dataRequest("AmpacheXL", "albumsList", "albums", "");
+							this.$.rightContent.selectViewByName("albumsList");
+						}
 						break;
 					case "artistsList":
 						this.updateSpinner("AmpacheXL", true);
