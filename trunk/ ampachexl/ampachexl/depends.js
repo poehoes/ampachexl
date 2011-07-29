@@ -6,6 +6,8 @@ enyo.depends(
 	"source/leftmenu.js",
 	"source/playback.js",
 	
+	"source/nowplaying.js",
+	
 	"source/hosts.js",
 	
 	"source/random.js",
@@ -13,9 +15,8 @@ enyo.depends(
 	"source/albumslist.js",
 	"source/playlistslist.js",
 	"source/artistslist.js",
+	"source/tagslist.js",
 	"source/songslist.js",
-	
-	"source/nowplaying.js",
 	
 		"source/videoslist.js",
 		

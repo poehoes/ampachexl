@@ -29,10 +29,13 @@ AmpacheXL.prefsCookie;
 AmpacheXL.connected = false;
 
 AmpacheXL.nowplaying = [];
+
 AmpacheXL.allArtists = [];
 AmpacheXL.allAlbums = [];
 AmpacheXL.allPlaylists = [];
-AmpacheXL.allVideos = [];
+AmpacheXL.allTags = [];
+AmpacheXL.allSongs = [];
+//AmpacheXL.allVideos = [];
 
 AmpacheXL.currentSong = {};
 AmpacheXL.nextSong = {};
@@ -54,7 +57,7 @@ enyo.kind({
 		
 		{name: "lockVolumeKeysService", kind: "PalmService", service: "palm://com.palm.audio/media/", method: "lockVolumeKeys", onSuccess: "lockVolumeKeysResponse", onFailure: "lockVolumeKeysFailure"},
 		
-		{name: "ampacheConnectService", kind: "WebService", handleAs: "xml", onSuccess: "ampacheConnectResponse", onFailure: "ampacheConnectFailure"},
+		{name: "ampacheConnectService", kind: "WebService", handleAs: "txt", onSuccess: "ampacheConnectResponse", onFailure: "ampacheConnectFailure"},
 		{name: "dataRequestService", kind: "WebService", handleAs: "txt", onSuccess: "dataRequestResponse", onFailure: "dataRequestFailure"},
 		{name: "pingService", kind: "WebService", handleAs: "xml", onSuccess: "ampachePingResponse", onFailure: "ampachePingFailure"},
 			
@@ -102,10 +105,11 @@ enyo.kind({
 			]},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 				{name: "startingPane", kind: "ListSelector", label: "Starting view after login", onChange: "startingPaneSelect", flex: 1, items: [
-					{caption: "Random", value: "random"},
+					{caption: "Random Album", value: "random"},
 					{caption: "Artists", value: "artistsList"},
 					{caption: "Albums", value: "albumsList"},
 					{caption: "Playlists", value: "playlistsList"},
+					{caption: "Genres", value: "tagsList"},
 				]},
 			]},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
@@ -156,6 +160,7 @@ enyo.kind({
 			{name: "albumsSearch", caption: "Albums", kind: "Button", className: "searchButton", onclick: "searchClick"},
 			{name: "playlistsSearch", caption: "Playlists", kind: "Button", className: "searchButton", onclick: "searchClick"},
 			{name: "songsSearch", caption: "Songs", kind: "Button", className: "searchButton", onclick: "searchClick"},
+			{name: "tagsSearch", caption: "Genres", kind: "Button", className: "searchButton", onclick: "searchClick"},
 			{name: "allSearch", caption: "All of the above", kind: "Button", className: "searchButton", onclick: "searchClick"},
 		]},
 		
@@ -169,19 +174,20 @@ enyo.kind({
 			]},
 			{name: "rightContent", className: "rightContent", kind: "Pane", flex: 1, onSelectView: "rightContentViewSelected", onCreateView: "rightContentViewCreated", transitionKind: "enyo.transitions.Simple", components: [	
 				
-				{name: "hosts", kind: "Hosts", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onAmpacheConnect: "ampacheConnect", onSavePreferences: "savePreferences"},
+				{name: "hosts", kind: "Hosts", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onAmpacheConnect: "ampacheConnect", onSavePreferences: "savePreferences", onPreviousView: "previousView"},
 				
-				{name: "nowplaying", kind: "Nowplaying", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onQueueNextSong: "queueNextSong"},
+				{name: "nowplaying", kind: "Nowplaying", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onQueueNextSong: "queueNextSong", onPreviousView: "previousView"},
 				
-				{name: "random", kind: "Random", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
+				{name: "random", kind: "Random", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
 				
-				{name: "artistsList", kind: "ArtistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
-				{name: "albumsList", kind: "AlbumsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
-				{name: "playlistsList", kind: "PlaylistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
+				{name: "artistsList", kind: "ArtistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
+				{name: "albumsList", kind: "AlbumsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
+				{name: "playlistsList", kind: "PlaylistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
+				{name: "tagsList", kind: "TagsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
 				
-				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onNowplayingUpdated: "nowplayingUpdated"},
+				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onNowplayingUpdated: "nowplayingUpdated", onPreviousView: "previousView"},
 				
-				{name: "videosList", kind: "VideosList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage"},
+				{name: "videosList", kind: "VideosList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
 				
 				{name: "help", kind: "Help", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
 				
@@ -280,7 +286,9 @@ enyo.kind({
 		AmpacheXL.allArtists.length = 0;
 		AmpacheXL.allAlbums.length = 0;
 		AmpacheXL.allPlaylists.length = 0;
-		AmpacheXL.allVideos.length = 0;
+		AmpacheXL.allTags.length = 0;
+		AmpacheXL.allSongs.length = 0;
+		//AmpacheXL.allVideos.length = 0;
 
 		this.updateCounts();
 		this.$.playback.disconnect();
@@ -554,7 +562,7 @@ enyo.kind({
 	windowDeactivated: function() {
 		if(debug) this.log("windowDeactivated");
 		
-		if((AmpacheXL.prefsCookie.dashboardPlayer)&&(AmpacheXL.connected)) this.dashWindow = enyo.windows.openDashboard("dashboard.html", "dashWindowName", AmpacheXL.currentSong, {clickableWhenLocked: true});
+		if((AmpacheXL.prefsCookie.dashboardPlayer)&&(AmpacheXL.currentSong.title)) this.dashWindow = enyo.windows.openDashboard("dashboard.html", "dashWindowName", AmpacheXL.currentSong, {clickableWhenLocked: true});
 		
 	},
 	windowParamsChangeHandler: function() {
@@ -610,7 +618,8 @@ enyo.kind({
 		
 		AmpacheXL.connectResponse = {};
 		
-		var xmlobject = inResponse;
+		var xmlobject = (new DOMParser()).parseFromString(inResponse, "text/xml");
+		//var xmlobject = inResponse;
 		
 		try {
 		
@@ -635,8 +644,8 @@ enyo.kind({
 					
 					if(debug) this.log("finshied most of connection parsing.  now trying tags and api");
 					
-					AmpacheXL.connectResponse.tags = xmlobject.getElementsByTagName("tags")[0].childNodes[0].nodeValue;
 					AmpacheXL.connectResponse.api = xmlobject.getElementsByTagName("api")[0].childNodes[0].nodeValue;
+					AmpacheXL.connectResponse.tags = xmlobject.getElementsByTagName("tags")[0].childNodes[0].nodeValue;
 				} catch(e) {
 					if(debug) this.log(e)
 				}
@@ -663,9 +672,21 @@ enyo.kind({
 				
 				this.updateCounts();
 				
+				if(window.localStorage.getItem("allArtists")) {
+					AmpacheXL.allArtists = enyo.json.parse(window.localStorage.getItem("allArtists"));
+				}
+				
+				if(window.localStorage.getItem("allAlbums")) {
+					AmpacheXL.allAlbums = enyo.json.parse(window.localStorage.getItem("allAlbums"));
+				}
+				
+				if(window.localStorage.getItem("allSongs")) {
+					AmpacheXL.allSongs = enyo.json.parse(window.localStorage.getItem("allSongs"));
+				}
+				
 				switch(AmpacheXL.prefsCookie.startingPane) {
 					case "random":
-						if(window.localStorage.getItem("allAlbums")) {
+						if(AmpacheXL.allAlbums.length > 0) {
 							this.$.rightContent.selectViewByName("random");
 						} else {
 							this.updateSpinner("AmpacheXL", true);
@@ -674,20 +695,43 @@ enyo.kind({
 						}
 						break;
 					case "artistsList":
-						this.updateSpinner("AmpacheXL", true);
-						this.dataRequest("AmpacheXL", "artistsList", "artists", "");
-						this.$.rightContent.selectViewByName("artistsList");
+						if(AmpacheXL.allArtists.length == AmpacheXL.connectResponse.artists) {
+							this.$.rightContent.selectViewByName("artistsList");
+						} else {
+							this.updateSpinner("AmpacheXL", true);
+							this.dataRequest("AmpacheXL", "artistsList", "artists", "");
+							this.$.rightContent.selectViewByName("artistsList");
+						}
 						break;
 					case "albumsList":
-						this.updateSpinner("AmpacheXL", true);
-						this.dataRequest("AmpacheXL", "albumsList", "albums", "");
-						this.$.rightContent.selectViewByName("albumsList");
+						if(AmpacheXL.allAlbums.length == AmpacheXL.connectResponse.albums) {
+							this.$.rightContent.selectViewByName("albumsList");
+						} else {
+							this.updateSpinner("AmpacheXL", true);
+							this.dataRequest("AmpacheXL", "albumsList", "albums", "");
+							this.$.rightContent.selectViewByName("albumsList");
+						}
 						break;
 					case "playlistsList":
 						this.updateSpinner("AmpacheXL", true);
 						this.dataRequest("AmpacheXL", "playlistsList", "playlists", "");
 						this.$.rightContent.selectViewByName("playlistsList");
 						break;
+					case "tagsList":
+						this.updateSpinner("AmpacheXL", true);
+						this.dataRequest("AmpacheXL", "tagsList", "tags", "");
+						this.$.rightContent.selectViewByName("tagsList");
+						break;
+					case "songsList":
+						if(AmpacheXL.allSongs.length == AmpacheXL.connectResponse.songs) {
+							this.$.rightContent.selectViewByName("songsList");
+						} else {
+							this.updateSpinner("AmpacheXL", true);
+							this.dataRequest("AmpacheXL", "songsList", "songs", "&limit="+AmpacheXL.connectResponse.songs);
+							this.$.rightContent.selectViewByName("songsList");
+						}
+						break;
+						
 					//more here
 					default: 
 						this.updateSpinner("AmpacheXL", true);
@@ -845,6 +889,11 @@ enyo.kind({
 				this.updateSpinner("amapchexl", true);
 				this.dataRequest("amapchexl", "songsList", "songs", "&filter="+this.$.searchInput.getValue());
 				this.viewSelected("amapchexl", "songsList");
+				break;
+			case "tagsSearch":
+				this.updateSpinner("amapchexl", true);
+				this.dataRequest("amapchexl", "tagsList", "tags", "&filter="+this.$.searchInput.getValue());
+				this.viewSelected("amapchexl", "tagsList");
 				break;
 			case "allSearch":
 				this.updateSpinner("amapchexl", true);

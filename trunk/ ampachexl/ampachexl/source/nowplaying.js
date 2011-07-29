@@ -33,6 +33,7 @@ enyo.kind({
 		onUpdateCounts: "",
 		onBannerMessage: "",
 		onQueueNextSong: "",
+		onPreviousView: "",
 	},
 	
 	listMode: "play",
@@ -47,6 +48,7 @@ enyo.kind({
 		{name: "nowplayingVirtualList", kind: "ScrollerVirtualList", onSetupRow: "setupNowplayingItem", flex: 1, components: [
 			{name: "nowplayingItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", components: [
 				{name: "nowplayingIndex", onclick2: "nowplayingClick", onmousedown: "nowplayingMousedown", onmouseup: "nowplayingMouseup", className: "listIndex"},
+				{name: "listArt", kind: "Image", onclick2: "songsClick", onmousedown: "songsMousedown", onmouseup: "songsMouseup", className: "listArt"},
 				{kind: "VFlexBox", flex: 1, onclick2: "nowplayingClick", onmousedown: "nowplayingMousedown", onmouseup: "nowplayingMouseup", components: [
 					{name: "nowplayingTitle", className: "title"},
 					{name: "nowplayingArtist", className: "subtitle"},
@@ -64,11 +66,13 @@ enyo.kind({
 		]},
 		
 		{name: "footer", kind: "Toolbar", layoutKind: "HFlexLayout", components: [
+			{name: "backCommandIcon", kind: "Control", className: "backCommandIcon", onclick: "doPreviousView"},
 			{kind: "Spacer"},
 			{name: "shuffleButton", caption: "Shuffle", onclick: "shuffleClick"},
 			{name: "shuffleSpacer", kind: "Spacer"},
 			{name: "editButton", caption: "Edit", onclick: "editClick"},
 			{kind: "Spacer"},
+			{name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
 		]},
 		
 		{name: "morePopupMenu", kind: "PopupSelect", className: "morePopupMenu", scrim: true, onBeforeOpen2: "beforeMoreOpen", onSelect: "moreSelect", onClose: "moreClosed", components: [
@@ -283,7 +287,14 @@ enyo.kind({
 			this.$.nowplayingItem.applyStyle("border-bottom", "none;");
 			
 			this.$.nowplayingIndex.setContent(inIndex+1);
-		
+			
+			if(AmpacheXL.prefsCookie.artOnLists) {
+				this.$.listArt.setSrc(row.art);
+				this.$.listArt.show();
+			} else {
+				this.$.listArt.hide();
+			}
+			
 			this.$.nowplayingTitle.setContent(row.title);
 			this.$.nowplayingArtist.setContent(row.artist);
 			

@@ -32,6 +32,7 @@ enyo.kind({
 		onPlaySong: "",
 		onBannerMessage: "",
 		onNowplayingUpdated: "",
+		onPreviousView: "",
 	},
 	
 	randomAlbums: [],
@@ -56,7 +57,9 @@ enyo.kind({
 		]},
 		
 		{name: "footer", kind: "Toolbar", components: [
-			//
+			{name: "backCommandIcon", kind: "Control", className: "backCommandIcon", onclick: "doPreviousView"},
+			{kind: "Spacer"},
+			{name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
 		]},
 	],
 	
@@ -147,7 +150,7 @@ enyo.kind({
 		
 		if(debug) this.log("selectedAlbum: "+enyo.json.stringify(this.selectedAlbum));
 		
-		this.$.randomSelectorPopup.setItems(["Album: "+this.selectedAlbum.name, "Artist: "+this.selectedAlbum.artist]);
+		this.$.randomSelectorPopup.setItems(["Artist: "+this.selectedAlbum.artist, "Album: "+this.selectedAlbum.name]);
 		this.$.randomSelectorPopup.openAtEvent(inEvent);
 		
 	},
