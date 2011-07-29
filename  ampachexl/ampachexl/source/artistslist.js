@@ -30,6 +30,7 @@ enyo.kind({
 		onUpdateSpinner: "",
 		onOpenWeb: "",
 		onBannerMessage: "",
+		onPreviousView: "",
 	},
 	
 	fullResultsList: [],
@@ -60,9 +61,11 @@ enyo.kind({
 		]},
 		
 		{name: "footer", kind: "Toolbar", layoutKind: "HFlexLayout", components: [
+			{name: "backCommandIcon", kind: "Control", className: "backCommandIcon", onclick: "doPreviousView"},
 			{kind: "Spacer"},
-			{name: "refreshCommandButton", icon: 'images/menu-icon-refresh.png', onclick: "getArtists"},
+			{name: "refreshCommandButton", icon: "images/menu-icon-refresh.png", onclick: "getArtists"},
 			{kind: "Spacer"},
+			{name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
 		]},
 	],
 	
@@ -78,6 +81,16 @@ enyo.kind({
 		
 		if(this.fullResultsList.length == 0) {
 			//this.getArtists();
+			this.fullResultsList = AmpacheXL.allArtists.concat([]);
+			
+			//this.resetArtistsSearch();
+			
+			this.resultsList.length = 0;
+			this.resultsList = this.filterArtists(this.fullResultsList);
+			
+			this.$.headerSubtitle.setContent(this.resultsList.length+" artists");
+			
+			this.$.artistsVirtualList.punt();
 		}
 		
 	},
@@ -151,7 +164,12 @@ enyo.kind({
 		this.fullResultsList.sort(sort_by("name", false));
 		
 		if(this.fullResultsList.length == AmpacheXL.connectResponse.artists) {
+			if(debug) this.log("was all artists, now saving");
+		
 			AmpacheXL.allArtists = this.fullResultsList.concat([]);
+			
+			AmpacheXL.prefsCookie.oldArtistsAuth  = AmpacheXL.connectResponse.auth;
+			window.localStorage.setItem("allArtists", enyo.json.stringify(AmpacheXL.allArtists));
 		}
 		
 		//if(debug) this.log("fullResultsList: "+enyo.json.stringify(this.fullResultsList));

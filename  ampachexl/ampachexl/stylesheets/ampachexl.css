@@ -275,3 +275,16 @@
 .Help a {
 	color: #9DC8E7;
 }
+
+.backCommandIcon {
+	background-image: url("../images/menu-icon-return.png");
+	width: 32px;
+	height: 32px;
+	margin: 9px 0px 9px 2px;
+}
+
+.backCommandIconSpacer {
+	width: 32px;
+	height: 32px;
+	margin: 9px 2px 9px 0px;
+}

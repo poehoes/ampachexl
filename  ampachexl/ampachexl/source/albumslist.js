@@ -30,6 +30,7 @@ enyo.kind({
 		onUpdateSpinner: "",
 		onOpenWeb: "",
 		onBannerMessage: "",
+		onPreviousView: "",
 	},
 	
 	fullResultsList: [],
@@ -61,9 +62,11 @@ enyo.kind({
 		]},
 		
 		{name: "footer", kind: "Toolbar", layoutKind: "HFlexLayout", components: [
+			{name: "backCommandIcon", kind: "Control", className: "backCommandIcon", onclick: "doPreviousView"},
 			{kind: "Spacer"},
-			{name: "refreshCommandButton", icon: 'images/menu-icon-refresh.png', onclick: "getAlbums"},
+			{name: "refreshCommandButton", icon: "images/menu-icon-refresh.png", onclick: "getAlbums"},
 			{kind: "Spacer"},
+			{name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
 		]},
 	],
 	
@@ -77,10 +80,12 @@ enyo.kind({
 		
 		this.resize();
 		
+		this.$.headerTitle.setContent("Albums");
+			
 		if(AmpacheXL.selectedArtist) {
-			this.$.headerTitle.setContent("Albums ["+AmpacheXL.selectedArtist.name+"]");
+			//this.$.headerTitle.setContent("Albums ["+AmpacheXL.selectedArtist.name+"]");
 		} else {
-			this.$.headerTitle.setContent("Albums [All Artists]");
+			//this.$.headerTitle.setContent("Albums [All Artists]");
 			
 			if((this.fullResultsList.length != AmpacheXL.connectResponse.albums)&&(AmpacheXL.allAlbums.length > 0)) {
 				this.fullResultsList = AmpacheXL.allAlbums.concat([]);

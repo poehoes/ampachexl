@@ -51,7 +51,7 @@ enyo.kind({
 			]},
 			
 			{name: "randomItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
-				{name: "randomItemTitle", content: "Random", flex: 1},
+				{name: "randomItemTitle", content: "Random Album", flex: 1},
 				//name: "randomItemCount"},
 			]},
 			
@@ -66,6 +66,10 @@ enyo.kind({
 			{name: "playlistsItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
 				{name: "playlistsItemTitle", content: "Playlists", flex: 1},
 				{name: "playlistsItemCount"},
+			]},
+			{name: "tagsItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+				{name: "tagsItemTitle", content: "Genres", flex: 1},
+				{name: "tagsItemCount"},
 			]},
 			{name: "songsItem", showing: false, kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
 				{name: "songsItemTitle", content: "Songs", flex: 1},
@@ -111,6 +115,7 @@ enyo.kind({
 			this.$.playlistsItemCount.setContent(AmpacheXL.connectResponse.playlists);
 			this.$.videosItemCount.setContent(AmpacheXL.connectResponse.videos);
 			this.$.songsItemCount.setContent(AmpacheXL.connectResponse.songs);
+			if(AmpacheXL.connectResponse.tags) this.$.tagsItemCount.setContent(AmpacheXL.connectResponse.tags);
 		}
 	},
 	
@@ -159,19 +164,28 @@ enyo.kind({
 				}
 				this.doViewSelected("playlistsList");
 				break;
+			case "songsItem":
+				AmpacheXL.selectedAlbum = null;
+				if(AmpacheXL.allSongs.length == 0) {
+					this.doUpdateSpinner(true);
+					this.doDataRequest("songsList", "songs", "&limit="+AmpacheXL.connectResponse.songs);
+				}
+				this.doViewSelected("songsList");
+				break;
+			case "tagsItem":
+				if(AmpacheXL.allTags.length == 0) {
+					this.doUpdateSpinner(true);
+					this.doDataRequest("tagsList", "tags", "");
+				}
+				this.doViewSelected("tagsList");
+				break;
+				
 			case "videosItem":
 				if(AmpacheXL.allVideos.length == 0) {
 					this.doUpdateSpinner(true);
 					this.doDataRequest("videosList", "videos", "");
 				}
 				this.doViewSelected("videosList");
-				break;
-				
-			case "songsItem":
-				AmpacheXL.selectedAlbum = null;
-				this.doUpdateSpinner(true);
-				this.doDataRequest("songsList", "songs", "");
-				this.doViewSelected("songsList");
 				break;
 		};
 		

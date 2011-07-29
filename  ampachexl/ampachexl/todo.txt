@@ -8,4 +8,6 @@ Todo:
  - dont update when deactivated
  - add recent to left menu
  - bind volume keys to media?
+ - save local playlists
+ - all songs
  

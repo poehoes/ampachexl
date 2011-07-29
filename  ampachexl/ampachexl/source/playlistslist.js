@@ -30,6 +30,7 @@ enyo.kind({
 		onUpdateSpinner: "",
 		onOpenWeb: "",
 		onBannerMessage: "",
+		onPreviousView: "",
 	},
 	
 	fullResultsList: [],
@@ -59,9 +60,11 @@ enyo.kind({
 		]},
 		
 		{name: "footer", kind: "Toolbar", layoutKind: "HFlexLayout", components: [
+			{name: "backCommandIcon", kind: "Control", className: "backCommandIcon", onclick: "doPreviousView"},
 			{kind: "Spacer"},
-			{name: "refreshCommandButton", icon: 'images/menu-icon-refresh.png', onclick: "getPlaylists"},
+			{name: "refreshCommandButton", icon: "images/menu-icon-refresh.png", onclick: "getPlaylists"},
 			{kind: "Spacer"},
+			{name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
 		]},
 	],
 	

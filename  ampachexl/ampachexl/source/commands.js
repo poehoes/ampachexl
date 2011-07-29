@@ -35,7 +35,7 @@ var defaultCookie = function() {
 		searchType: 0,
 		dashboardPlayer: true,
 		
-		artOnLists: false,
+		artOnLists: true,
 		
 		albumsSort: 0,
 		artistssSort: 0,
