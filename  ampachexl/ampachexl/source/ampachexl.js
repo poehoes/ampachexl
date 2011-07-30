@@ -35,7 +35,7 @@ AmpacheXL.allAlbums = [];
 AmpacheXL.allPlaylists = [];
 AmpacheXL.allTags = [];
 AmpacheXL.allSongs = [];
-//AmpacheXL.allVideos = [];
+AmpacheXL.allVideos = [];
 
 AmpacheXL.currentSong = {};
 AmpacheXL.nextSong = {};
@@ -90,10 +90,14 @@ enyo.kind({
 			{kind: "Button", caption: "OK", onclick:"closeBannerMessagePopup"}
 		]},
 		
-		{name: "loadingPopup", kind: "Popup", lazy: false, scrim: true, dismissWithClick: true, dismissWithEscape: true, components: [
+		{name: "loadingPopup", kind: "Popup", lazy: true, scrim: true, dismissWithClick: true, dismissWithEscape: true, components: [
 			{kind: "HFlexBox", align: "center", pack: "center", components: [
-				{kind: "SpinnerLarge"},
+				{name: "loadingSpinner", kind: "SpinnerLarge"},
 			]},
+		]},
+		
+		{name: "spinnerScrim", kind: "Scrim", onclick: "scrimClick", layoutKind: "HFlexLayout", align: "center", pack: "center", components: [
+			{name: "scrimSpinner", kind: "SpinnerLarge"},
 		]},
 		
 		{name: "preferencesPopup", kind: "Popup", scrim: true, onBeforeOpen: "beforePreferencesOpen", components: [
@@ -110,6 +114,7 @@ enyo.kind({
 					{caption: "Albums", value: "albumsList"},
 					{caption: "Playlists", value: "playlistsList"},
 					{caption: "Genres", value: "tagsList"},
+					{caption: "Videos", value: "videosList"},
 				]},
 			]},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
@@ -133,9 +138,10 @@ enyo.kind({
 				{content: "Dashboard playback controls", flex: 1},
 				{name: "dashboardPlayer", kind: "ToggleButton", onChange: "dashboardPlayerToggle"},
 			]},
-			{kind: "Item", showing: false, align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+			{kind: "Item", showing: true, align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 				{name: "theme", kind: "ListSelector", label: "Theme", onChange: "themeSelect", flex: 1, items: [
 					{caption: "Dark", value: "dark"},
+					{caption: "Light", value: "light"},
 				]},
 			]},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
@@ -227,6 +233,8 @@ enyo.kind({
 		enyo.setAllowedOrientation(AmpacheXL.prefsCookie.allowedOrientation);	
 		debug = AmpacheXL.prefsCookie.debug;
 		
+		this.addClass(AmpacheXL.prefsCookie.theme);
+		
 		if(window.PalmSystem) this.$.lockVolumeKeysService.call({subscribe: true, foregroundApp: true, parameters: {subscribe: true, foregroundApp: true}});
 		
 		//this.activate();
@@ -288,7 +296,7 @@ enyo.kind({
 		AmpacheXL.allPlaylists.length = 0;
 		AmpacheXL.allTags.length = 0;
 		AmpacheXL.allSongs.length = 0;
-		//AmpacheXL.allVideos.length = 0;
+		AmpacheXL.allVideos.length = 0;
 
 		this.updateCounts();
 		this.$.playback.disconnect();
@@ -316,6 +324,12 @@ enyo.kind({
 		this.$.allowMetrix.setState(AmpacheXL.prefsCookie.allowMetrix);
 		this.$.debug.setState(AmpacheXL.prefsCookie.debug);
 			
+	},
+	themeSelect: function(inSender, inValue, inOldValue) {
+		if(debug) this.log("themeSelect from "+inOldValue+" to "+inValue);
+		
+		this.removeClass(inOldValue);
+		this.addClass(inValue);
 	},
 	saveNewPreferences: function() {
 		if(debug) this.log("saveNewPreferences");
@@ -462,12 +476,21 @@ enyo.kind({
 		if(debug) this.log("updateSpinner: "+inShow);
 		
 		if(inShow) {
-			this.$.loadingPopup.openAtCenter();
-			this.$.spinnerLarge.show();
+			//this.$.loadingPopup.openAtCenter();
+			//this.$.loadingSpinner.show();
+			this.$.spinnerScrim.show();
+			this.$.scrimSpinner.show();
 		} else {
-			this.$.loadingPopup.close();
-			this.$.spinnerLarge.hide();
+			//this.$.loadingPopup.close();
+			//this.$.loadingSpinner.hide();
+			this.$.spinnerScrim.hide();
+			this.$.scrimSpinner.hide();
 		}
+	},
+	scrimClick: function() {
+		if(debug) this.log("scrimClick");
+		
+		this.updateSpinner("amapchexl", false);
 	},
 	playSong: function(inSender, inSongObject) {
 		if(debug) this.log("playSong");
@@ -730,6 +753,11 @@ enyo.kind({
 							this.dataRequest("AmpacheXL", "songsList", "songs", "&limit="+AmpacheXL.connectResponse.songs);
 							this.$.rightContent.selectViewByName("songsList");
 						}
+						break;
+					case "videosList":
+						this.updateSpinner("AmpacheXL", true);
+						this.dataRequest("AmpacheXL", "videosList", "videos", "");
+						this.$.rightContent.selectViewByName("videosList");
 						break;
 						
 					//more here

@@ -101,7 +101,7 @@ enyo.kind({
 		if(row) {
 	
 			row.newArt = row.art;
-			row.newArt = row.newArt.replace(AmpacheXL.prefsCookie.oldAuth, AmpacheXL.connectResponse.auth);
+			row.newArt = row.newArt.replace(AmpacheXL.prefsCookie.oldAlbumsAuth, AmpacheXL.connectResponse.auth);
 	
 			if(row.tracks == 1) {
 				row.tracksText = "1 track";
@@ -115,8 +115,8 @@ enyo.kind({
 					{name: "randomSongArt_"+row.id, kind: "Image", src: row.newArt, className: "randomSongArt"},
 					
 					{kind: "Spacer"},
-					{name: "randomSongAlbum_"+row.id, content: "Album: "+row.name, allowHtml: true, className: "randomSongAlbum truncating"},
 					{name: "randomSongArtist_"+row.id, content: "Artist: "+row.artist, allowHtml: true, className: "randomSongArtist truncating"},
+					{name: "randomSongAlbum_"+row.id, content: "Album: "+row.name, allowHtml: true, className: "randomSongAlbum truncating"},
 					{name: "randomSongTracks_"+row.id, content: row.tracksText, allowHtml: true, className: "randomSongTracks truncating"},
 				
 					{kind: "Spacer"},
