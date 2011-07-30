@@ -218,8 +218,8 @@ enyo.kind({
 		if(row) {
 		
 			//this.setupPlaylistsDivider(inIndex);
-			this.$.playlistsItem.applyStyle("border-top", "1px solid silver;");
-			this.$.playlistsItem.applyStyle("border-bottom", "none;");
+			//this.$.playlistsItem.applyStyle("border-top", "1px solid silver;");
+			//this.$.playlistsItem.applyStyle("border-bottom", "none;");
 			
 			this.$.playlistsTitle.setContent(row.name);
 			
@@ -240,8 +240,8 @@ enyo.kind({
 		var group = this.getPlaylistsGroupName(inIndex);
 		this.$.playlistsDivider.setCaption(group);
 		this.$.playlistsDivider.canGenerate = Boolean(group);
-		this.$.playlistsItem.applyStyle("border-top", Boolean(group) ? "none" : "1px solid silver;");
-		this.$.playlistsItem.applyStyle("border-bottom", "none;");
+		if(Boolean(group)) this.$.playlistsItem.applyStyle("border-top", "none");
+		//this.$.playlistsItem.applyStyle("border-bottom", "none;");
     },
 	getPlaylistsGroupName: function(inIndex) {
 		//if(debug) this.log("getPlaylistsGroupName at index: "+inIndex);

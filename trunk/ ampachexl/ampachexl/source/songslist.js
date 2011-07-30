@@ -283,8 +283,8 @@ enyo.kind({
 		if(row) {
 		
 			//this.setupSongsDivider(inIndex);
-			this.$.songsItem.applyStyle("border-top", "1px solid silver;");
-			this.$.songsItem.applyStyle("border-bottom", "none;");
+			//this.$.songsItem.applyStyle("border-top", "1px solid silver;");
+			//this.$.songsItem.applyStyle("border-bottom", "none;");
 			
 			if(AmpacheXL.prefsCookie.artOnLists) {
 				this.$.listArt.setSrc(row.art);
@@ -309,8 +309,8 @@ enyo.kind({
 		var group = this.getSongsGroupName(inIndex);
 		this.$.songsDivider.setCaption(group);
 		this.$.songsDivider.canGenerate = Boolean(group);
-		this.$.songsItem.applyStyle("border-top", Boolean(group) ? "none" : "1px solid silver;");
-		this.$.songsItem.applyStyle("border-bottom", "none;");
+		if(Boolean(group)) this.$.songsItem.applyStyle("border-top", "none");
+		//this.$.songsItem.applyStyle("border-bottom", "none;");
     },
 	getSongsGroupName: function(inIndex) {
 		//if(debug) this.log("getSongsGroupName at index: "+inIndex);

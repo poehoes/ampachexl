@@ -300,8 +300,8 @@ enyo.kind({
 		var group = this.getTagsGroupName(inIndex);
 		this.$.tagsDivider.setCaption(group);
 		this.$.tagsDivider.canGenerate = Boolean(group);
-		this.$.tagsItem.applyStyle("border-top", Boolean(group) ? "none" : "1px solid silver;");
-		this.$.tagsItem.applyStyle("border-bottom", "none;");
+		if(Boolean(group)) this.$.tagsItem.applyStyle("border-top", "none");
+		//this.$.songsItem.tagsItem("border-bottom", "none;");
     },
 	getTagsGroupName: function(inIndex) {
 		//if(debug) this.log("getTagsGroupName at index: "+inIndex);

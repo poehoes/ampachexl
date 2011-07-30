@@ -113,9 +113,15 @@ enyo.kind({
 			this.$.artistsItemCount.setContent(AmpacheXL.connectResponse.artists);
 			this.$.albumsItemCount.setContent(AmpacheXL.connectResponse.albums);
 			this.$.playlistsItemCount.setContent(AmpacheXL.connectResponse.playlists);
-			this.$.videosItemCount.setContent(AmpacheXL.connectResponse.videos);
 			this.$.songsItemCount.setContent(AmpacheXL.connectResponse.songs);
 			if(AmpacheXL.connectResponse.tags) this.$.tagsItemCount.setContent(AmpacheXL.connectResponse.tags);
+			this.$.videosItemCount.setContent(AmpacheXL.connectResponse.videos);
+			
+			if(parseInt(AmpacheXL.connectResponse.videos) == 0) {
+				this.$.videosItem.hide();
+			} else {
+				this.$.videosItem.show();
+			}
 		}
 	},
 	
@@ -164,6 +170,14 @@ enyo.kind({
 				}
 				this.doViewSelected("playlistsList");
 				break;
+			case "tagsItem":
+				if(AmpacheXL.allTags.length == 0) {
+					this.doUpdateSpinner(true);
+					this.doDataRequest("tagsList", "tags", "");
+				}
+				this.doViewSelected("tagsList");
+				break;
+				
 			case "songsItem":
 				AmpacheXL.selectedAlbum = null;
 				if(AmpacheXL.allSongs.length == 0) {
@@ -171,13 +185,6 @@ enyo.kind({
 					this.doDataRequest("songsList", "songs", "&limit="+AmpacheXL.connectResponse.songs);
 				}
 				this.doViewSelected("songsList");
-				break;
-			case "tagsItem":
-				if(AmpacheXL.allTags.length == 0) {
-					this.doUpdateSpinner(true);
-					this.doDataRequest("tagsList", "tags", "");
-				}
-				this.doViewSelected("tagsList");
 				break;
 				
 			case "videosItem":

@@ -283,8 +283,8 @@ enyo.kind({
 		
 		if(row) {
 		
-			this.$.nowplayingItem.applyStyle("border-top", "1px solid silver;");
-			this.$.nowplayingItem.applyStyle("border-bottom", "none;");
+			//this.$.nowplayingItem.applyStyle("border-top", "1px solid silver;");
+			//this.$.nowplayingItem.applyStyle("border-bottom", "none;");
 			
 			this.$.nowplayingIndex.setContent(inIndex+1);
 			

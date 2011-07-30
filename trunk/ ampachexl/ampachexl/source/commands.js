@@ -29,19 +29,19 @@ var defaultCookie = function() {
 		
 		defaultAction: "queue[]:[]all[]:[]shuffled",
 		nowPlayingEnd: "stop[]:[]straight",
-		theme: "dark",
-		allowedOrientation: "free",
-		recent: 0,
-		searchType: 0,
+		theme: "light",
+		//allowedOrientation: "free",
+		//recent: 0,
+		//searchType: 0,
 		dashboardPlayer: true,
 		
 		artOnLists: true,
 		
-		albumsSort: 0,
-		artistssSort: 0,
-		songsSort: 0,
-		playlistsSort: 0,
-		videosSort: 0,
+		//albumsSort: 0,
+		//artistsSort: 0,
+		//songsSort: 0,
+		//playlistsSort: 0,
+		//videosSort: 0,
 		
 		allowMetrix: true,
 		

@@ -257,8 +257,8 @@ enyo.kind({
 		var group = this.getArtistsGroupName(inIndex);
 		this.$.artistsDivider.setCaption(group);
 		this.$.artistsDivider.canGenerate = Boolean(group);
-		this.$.artistsItem.applyStyle("border-top", Boolean(group) ? "none" : "1px solid silver;");
-		this.$.artistsItem.applyStyle("border-bottom", "none;");
+		if(Boolean(group)) this.$.artistsItem.applyStyle("border-top", "none");
+		//this.$.artistsItem.applyStyle("border-bottom", "none;");
     },
 	getArtistsGroupName: function(inIndex) {
 		//if(debug) this.log("getArtistsGroupName at index: "+inIndex);

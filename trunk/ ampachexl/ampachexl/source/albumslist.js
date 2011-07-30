@@ -181,7 +181,7 @@ enyo.kind({
 		
 			AmpacheXL.allAlbums = this.fullResultsList.concat([]);
 			
-			AmpacheXL.prefsCookie.oldAuth  = AmpacheXL.connectResponse.auth;
+			AmpacheXL.prefsCookie.oldAlbumsAuth  = AmpacheXL.connectResponse.auth;
 			window.localStorage.setItem("allAlbums", enyo.json.stringify(AmpacheXL.allAlbums));
 		}
 		
@@ -261,8 +261,8 @@ enyo.kind({
 		
 			if(AmpacheXL.selectedArtist) {
 				this.$.albumsDivider.canGenerate = false;
-				this.$.albumsItem.applyStyle("border-top", "1px solid silver;");
-				this.$.albumsItem.applyStyle("border-bottom", "none;");
+				//this.$.albumsItem.applyStyle("border-top", "1px solid silver;");
+				//this.$.albumsItem.applyStyle("border-bottom", "none;");
 			} else {
 				this.setupAlbumsDivider(inIndex);
 			}
@@ -284,7 +284,7 @@ enyo.kind({
 			
 				if(AmpacheXL.prefsCookie.artOnLists) {
 					row.newArt = row.art;
-					row.newArt = row.newArt.replace(AmpacheXL.prefsCookie.oldAuth, AmpacheXL.connectResponse.auth);
+					row.newArt = row.newArt.replace(AmpacheXL.prefsCookie.oldAlbumsAuth, AmpacheXL.connectResponse.auth);
 					
 					this.$.listArt.setSrc(row.newArt);
 					this.$.listArt.show();
@@ -314,8 +314,8 @@ enyo.kind({
 		var group = this.getAlbumsGroupName(inIndex);
 		this.$.albumsDivider.setCaption(group);
 		this.$.albumsDivider.canGenerate = Boolean(group);
-		this.$.albumsItem.applyStyle("border-top", Boolean(group) ? "none" : "1px solid silver;");
-		this.$.albumsItem.applyStyle("border-bottom", "none;");
+		if(Boolean(group)) this.$.albumsItem.applyStyle("border-top", "none");
+		//this.$.albumsItem.applyStyle("border-bottom", "none;");
     },
 	getAlbumsGroupName: function(inIndex) {
 		//if(debug) this.log("getAlbumsGroupName at index: "+inIndex);

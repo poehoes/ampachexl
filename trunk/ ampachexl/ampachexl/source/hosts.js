@@ -179,8 +179,8 @@ enyo.kind({
 		
 			//accounts: [{name: "local", url: "http://192.168.1.105/ampache/", username: "ampachexl", password: "ampachexl"}],
 		
-			this.$.hostsItem.applyStyle("border-top", "1px solid silver;");
-			this.$.hostsItem.applyStyle("border-bottom", "none;");
+			//this.$.hostsItem.applyStyle("border-top", "1px solid silver;");
+			//this.$.hostsItem.applyStyle("border-bottom", "none;");
 			
 			this.$.hostsName.setContent(row.name);
 			this.$.hostsUrl.setContent(row.url);
