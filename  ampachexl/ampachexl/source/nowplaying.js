@@ -68,11 +68,18 @@ enyo.kind({
 		{name: "footer", kind: "Toolbar", layoutKind: "HFlexLayout", components: [
 			{name: "backCommandIcon", kind: "Control", className: "backCommandIcon", onclick: "doPreviousView"},
 			{kind: "Spacer"},
-			{name: "shuffleButton", caption: "Shuffle", onclick: "shuffleClick"},
-			{name: "shuffleSpacer", kind: "Spacer"},
+			{name: "sortButton", caption: "Sort", onclick: "sortClick"},
+			{name: "sortSpacer", kind: "Spacer"},
 			{name: "editButton", caption: "Edit", onclick: "editClick"},
 			{kind: "Spacer"},
 			{name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
+		]},
+		
+		{name: "sortPopupMenu", kind: "PopupSelect", className: "sortPopupMenu", onBeforeOpen2: "beforeSortOpen", onSelect: "sortSelect", onClose: "sortClosed", components: [
+			{caption: "Shuffle", value: "shuffle"},
+			{caption: "Artist", value: "artist"},
+			{caption: "Album", value: "album"},
+			{caption: "Track", value: "track"},
 		]},
 		
 		{name: "morePopupMenu", kind: "PopupSelect", className: "morePopupMenu", scrim: true, onBeforeOpen2: "beforeMoreOpen", onSelect: "moreSelect", onClose: "moreClosed", components: [
@@ -97,8 +104,8 @@ enyo.kind({
 		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
 		
 		this.listMode = "play";
-		this.$.shuffleButton.show();
-		this.$.shuffleSpacer.show();
+		this.$.sortButton.show();
+		this.$.sortSpacer.show();
 		this.$.editButton.setCaption("Edit");
 		this.$.footer.render();
 		
@@ -333,6 +340,38 @@ enyo.kind({
 		
 		this.$.nowplayingVirtualList.punt();
 	},
+	sortClick: function(inSender, inEvent) {
+		if(debug) this.log("sortClick");
+		
+		this.$.sortPopupMenu.openAtEvent(inEvent);
+	},
+	sortSelect: function(inSender, inEvent) {
+		if(inEvent) {
+			if(debug) this.log("moreSelect: "+inEvent.value);
+			
+			switch(inEvent.value) {
+				case "shuffle":
+					this.shuffleClick();
+					break;
+				case "artist":
+					AmpacheXL.nowplaying.sort(triple_sort_by("artist", "album", "track", false));
+					this.finishedMoving();
+					break;
+				case "album":
+					AmpacheXL.nowplaying.sort(double_sort_by("album", "track", false));
+					this.finishedMoving();
+					break;
+				case "track":
+					AmpacheXL.nowplaying.sort(sort_by("track", false));
+					this.finishedMoving();
+					break;
+				default: 
+					this.log("unknown sort option: "+inEvent.value);
+					break;
+			}
+		}
+		
+	},
 	shuffleClick: function() {
 		if(debug) this.log("shuffleClick");
 		
@@ -354,18 +393,7 @@ enyo.kind({
 		AmpacheXL.nowplaying.length = 0;
 		AmpacheXL.nowplaying = newSongs;
 		
-		var currentIndex = -1;
-		for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
-		
-			s = AmpacheXL.nowplaying[i];
-			if(s.id == AmpacheXL.currentSong.id) currentIndex = i;
-		
-		}
-		AmpacheXL.nowplayingIndex = currentIndex;
-		
-		this.$.nowplayingVirtualList.punt();
-		this.doUpdateCounts();
-		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
+		this.finishedMoving();
 	},
 	editClick: function() {
 		if(debug) this.log("editClick");
@@ -373,15 +401,15 @@ enyo.kind({
 		switch(this.listMode) {
 			case "play":
 				this.listMode = "edit";
-				//this.$.shuffleButton.hide();
-				//this.$.shuffleSpacer.hide();
+				//this.$.sortButton.hide();
+				//this.$.sortSpacer.hide();
 				this.$.editButton.setCaption("Done");
 				this.$.footer.render();
 				break;
 			case "edit":
 				this.listMode = "play";
-				//this.$.shuffleButton.show();
-				//this.$.shuffleSpacer.show();
+				//this.$.sortButton.show();
+				//this.$.sortSpacer.show();
 				this.$.editButton.setCaption("Edit");
 				this.$.footer.render();
 				break;
@@ -456,7 +484,11 @@ enyo.kind({
 					{caption: "Move to bottom"},
 					{caption: "Move to next"},
 				]},
-				{caption: $L("Remove")},
+				{caption: $L("Remove"), components: [
+					{caption: "Remove single song"},
+					{caption: "Remove all above this"},
+					{caption: "Remove all below this"},
+				]},
 				/*
 				{caption: $L("Web"), components: [
 					{name: "Google", caption: "Google"},
@@ -499,8 +531,28 @@ enyo.kind({
 					this.nowplayingMoveToNext("nowplaying", {rowIndex: this.selectedIndex});
 					break;
 				case "Remove":
+					//
+					break;
+				case "Remove single song":
 					this.nowplayingRemove("nowplaying", {rowIndex: this.selectedIndex});
 					break;
+				case "Remove all above this":
+					if(this.selectedIndex <= AmpacheXL.nowplayingIndex) {
+						AmpacheXL.nowplaying.splice(0, this.selectedIndex);
+						this.finishedMoving();
+					} else {
+						this.doBannerMessage("You cannot remove the song that is currently playing", true);
+					}
+					break;
+				case "Remove all below this":
+					if(this.selectedIndex >= AmpacheXL.nowplayingIndex) {
+						AmpacheXL.nowplaying.length = this.selectedIndex+1;
+						this.finishedMoving();
+					} else {
+						this.doBannerMessage("You cannot remove the song that is currently playing", true);
+					}
+					break;
+					
 				default: 
 					
 					if(inEvent.value.substring(0,5) == "Album") {

@@ -43,14 +43,21 @@ var defaultCookie = function() {
 		//playlistsSort: 0,
 		//videosSort: 0,
 		
+		bannerOnPlayback: true,
+		
 		allowMetrix: true,
 		
 		debug: false,
-		streamDebug: false,
+		//streamDebug: false,
 		
 		version: "unknown",
 		server: "unknown",
 		compatible: "unknown",
+		
+		//future plans
+		lastFM: false, 
+		lastFMusername: "",
+		lastFMpassword: "",
 	};
 	
 	return newCookie;

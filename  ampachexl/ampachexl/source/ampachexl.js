@@ -68,6 +68,7 @@ enyo.kind({
 			{caption: "Help", components: [
 				{caption: "Help", onclick: "openHelp"},
 				{caption: "Open in browser", onclick: "openBrowser"},
+				{caption: "Leave review", onclick: "openCatalog"},
 				{caption: "Email Developer", onclick: "emailDeveloper"},
 			]},
 		]},
@@ -104,7 +105,7 @@ enyo.kind({
 			{name: "preferencesHeader", style: "text-align: center;"},
 			{content: "<hr/>", allowHtml: true},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
-				{content: "Automatically connect to server on app open&nbsp;&nbsp;&nbsp;", allowHtml: true, flex: 1},
+				{content: "Automatically connect to last server&nbsp;&nbsp;&nbsp;", allowHtml: true, flex: 1},
 				{name: "autoLogin", kind: "ToggleButton", onChange: "autoLoginToggle"},
 			]},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
@@ -149,6 +150,10 @@ enyo.kind({
 				{name: "artOnLists", kind: "ToggleButton", onChange: "artOnListsToggle"},
 			]},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+				{content: "Banner message on each track", flex: 1},
+				{name: "bannerOnPlayback", kind: "ToggleButton", onChange: "bannerOnPlaybackToggle"},
+			]},
+			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 				{content: "Usage statitistics with Metrix", flex: 1},
 				{name: "allowMetrix", kind: "ToggleButton", onChange: "allowMetrixToggle"},
 			]},
@@ -186,12 +191,12 @@ enyo.kind({
 				
 				{name: "random", kind: "Random", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
 				
-				{name: "artistsList", kind: "ArtistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
-				{name: "albumsList", kind: "AlbumsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
-				{name: "playlistsList", kind: "PlaylistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
-				{name: "tagsList", kind: "TagsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
+				{name: "artistsList", kind: "ArtistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
+				{name: "albumsList", kind: "AlbumsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
+				{name: "playlistsList", kind: "PlaylistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
+				{name: "tagsList", kind: "TagsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
 				
-				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onNowplayingUpdated: "nowplayingUpdated", onPreviousView: "previousView"},
+				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onNowplayingUpdated: "nowplayingUpdated", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
 				
 				{name: "videosList", kind: "VideosList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
 				
@@ -215,8 +220,11 @@ enyo.kind({
 			if(debug) this.log("we have cookie");
 			AmpacheXL.prefsCookie = enyo.json.parse(AmpacheXL.prefsCookieString);
 			
-			if(AmpacheXL.prefsCookie.allowMetrix) setTimeout(enyo.bind(this,"submitMetrix"),10000);
+			//new settings
+			if(AmpacheXL.prefsCookie.bannerOnPlayback == null) AmpacheXL.prefsCookie.bannerOnPlayback = true;
 			
+			
+			if(AmpacheXL.prefsCookie.allowMetrix) setTimeout(enyo.bind(this,"submitMetrix"),10000);
 			if(AmpacheXL.prefsCookie.autoLogin) setTimeout(enyo.bind(this,"ampacheConnect"),50);
 			
 		} else {
@@ -321,6 +329,7 @@ enyo.kind({
 		this.$.dashboardPlayer.setState(AmpacheXL.prefsCookie.dashboardPlayer);
 		this.$.theme.setValue(AmpacheXL.prefsCookie.theme);
 		this.$.artOnLists.setState(AmpacheXL.prefsCookie.artOnLists);
+		this.$.bannerOnPlayback.setState(AmpacheXL.prefsCookie.bannerOnPlayback);
 		this.$.allowMetrix.setState(AmpacheXL.prefsCookie.allowMetrix);
 		this.$.debug.setState(AmpacheXL.prefsCookie.debug);
 			
@@ -341,6 +350,7 @@ enyo.kind({
 		AmpacheXL.prefsCookie.dashboardPlayer = this.$.dashboardPlayer.getState();
 		AmpacheXL.prefsCookie.theme = this.$.theme.getValue();
 		AmpacheXL.prefsCookie.artOnLists = this.$.artOnLists.getState();
+		AmpacheXL.prefsCookie.bannerOnPlayback = this.$.bannerOnPlayback.getState();
 		AmpacheXL.prefsCookie.allowMetrix = this.$.allowMetrix.getState();
 		AmpacheXL.prefsCookie.debug = this.$.debug.getState();
 		
@@ -362,7 +372,14 @@ enyo.kind({
 		if(debug) this.log("openBrowser") 
 		
 		window.open(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].url);
-	},	
+	},
+	openCatalog: function() {
+		if(debug) this.log("openCatalog");
+		
+		var appInfo = enyo.fetchAppInfo();
+		
+		window.open("http://developer.palm.com/appredirect/?packageid="+appInfo.id);
+	},
 	emailDeveloper: function() {
 		if(debug) this.log("emailDeveloper") 
 		
@@ -652,8 +669,6 @@ enyo.kind({
 				AmpacheXL.connectResponse.success = true;
 				
 				try {
-				
-					//AmpacheXL.prefsCookie.newAuth = xmlobject.getElementsByTagName("auth")[0].childNodes[0].nodeValue;
 				
 					AmpacheXL.connectResponse.auth = xmlobject.getElementsByTagName("auth")[0].childNodes[0].nodeValue;
 					AmpacheXL.connectResponse.update = xmlobject.getElementsByTagName("update")[0].childNodes[0].nodeValue;
