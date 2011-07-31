@@ -31,6 +31,7 @@ enyo.kind({
 		onOpenWeb: "",
 		onBannerMessage: "",
 		onPreviousView: "",
+		onSavePreferences: "",
 	},
 	
 	fullResultsList: [],
@@ -185,6 +186,8 @@ enyo.kind({
 			window.localStorage.setItem("allAlbums", enyo.json.stringify(AmpacheXL.allAlbums));
 		}
 		
+		this.doSavePreferences();
+		
 		if(debug) this.log("AmpacheXL.selectedArtist: "+enyo.json.stringify(AmpacheXL.selectedArtist));
 		
 		if((AmpacheXL.selectedArtist)&&(AmpacheXL.selectedArtist.type == "artist")) {
@@ -286,6 +289,9 @@ enyo.kind({
 					row.newArt = row.art;
 					row.newArt = row.newArt.replace(AmpacheXL.prefsCookie.oldAlbumsAuth, AmpacheXL.connectResponse.auth);
 					
+					//if(debug) this.log("oldAlbumsAuth: "+AmpacheXL.prefsCookie.oldAlbumsAuth+"   auth: "+AmpacheXL.connectResponse.auth);
+					//if(debug) this.log("newArt: "+row.newArt);
+			
 					this.$.listArt.setSrc(row.newArt);
 					this.$.listArt.show();
 				} else {

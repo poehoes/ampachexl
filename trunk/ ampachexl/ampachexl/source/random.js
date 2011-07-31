@@ -103,6 +103,9 @@ enyo.kind({
 			row.newArt = row.art;
 			row.newArt = row.newArt.replace(AmpacheXL.prefsCookie.oldAlbumsAuth, AmpacheXL.connectResponse.auth);
 	
+			if(debug) this.log("oldAlbumsAuth: "+AmpacheXL.prefsCookie.oldAlbumsAuth+"   auth: "+AmpacheXL.connectResponse.auth);
+			if(debug) this.log("newArt: "+row.newArt);
+	
 			if(row.tracks == 1) {
 				row.tracksText = "1 track";
 			} else {

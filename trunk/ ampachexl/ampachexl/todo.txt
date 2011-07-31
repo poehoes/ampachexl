@@ -10,7 +10,9 @@ Todo:
  - bind volume keys to media?
  - save local playlists
  - all songs
- - last.fm
- - preferneces banner on song change
+ - last.fm (http://www.last.fm/api)
+ - preferences banner on song change
  - bluetooth media controls
+ - details view from click on playback
+ 
  

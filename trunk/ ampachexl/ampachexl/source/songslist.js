@@ -168,7 +168,7 @@ enyo.kind({
 						s.album_id = singleSongChildNode.getAttributeNode("id").nodeValue;
 						break;
 					case "track":
-						s.track = singleSongChildNode.childNodes[0].nodeValue;
+						s.track = parseInt(singleSongChildNode.childNodes[0].nodeValue);
 						break;
 					case "time":
 						s.time = singleSongChildNode.childNodes[0].nodeValue;

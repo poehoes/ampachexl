@@ -54,7 +54,7 @@ enyo.kind({
 				{name: "tipsContent", allowHtml: true, className: "smallerFont helpContent"},
 			]},
 			
-			{name: "changelogDrawer", kind: "DividerDrawer", caption: "Changelog", open: false, animate: false, components: [
+			{name: "changelogDrawer", kind: "DividerDrawer", caption: "Changelog", open: true, animate: false, components: [
 				{name: "changelogContent", allowHtml: true, className: "smallerFont helpContent"},
 			]},
 			

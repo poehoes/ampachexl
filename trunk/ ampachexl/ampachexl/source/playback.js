@@ -118,7 +118,7 @@ enyo.kind({
 		
 		this.render();
 		
-		if(window.PalmSystem) this.doBannerMessage(inSongObject.artist+": "+inSongObject.title);
+		if((window.PalmSystem)&&(AmpacheXL.prefsCookie.bannerOnPlayback)) this.doBannerMessage(inSongObject.artist+": "+inSongObject.title);
 		
 		if(inSongObject.url == AmpacheXL.nextSong.url) {
 			
@@ -174,9 +174,9 @@ enyo.kind({
 		if(debug) this.log("queueNextSong for index "+AmpacheXL.nextAudioObjectIndex+": "+enyo.json.stringify(inSongObject));
 		
 		if(inSongObject.url == AmpacheXL.nextSong.url) {
-			if(debug) this.log("we have already queued this song");
+			if(debug) this.log("we have already queued this song at index: "+AmpacheXL.nextAudioObjectIndex);
 		} else {
-			if(debug) this.log("is a new song - queue it up");
+			if(debug) this.log("is a new song - queue it up at index: "+AmpacheXL.audioObjects.length);
 			
 			AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex] = "nothing";
 			
@@ -245,11 +245,15 @@ enyo.kind({
 	pauseClick: function() {
 		if(debug) this.log("pauseClick");
 		
+		clearTimeout(this.startPlayingTimer);
+		
 		//this.$.songSound.audio.pause();
 		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].pause();
 	},
 	playClick: function() {
 		if(debug) this.log("playClick");
+		
+		clearTimeout(this.startPlayingTimer);
 		
 		//this.$.songSound.audio.play();
 		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].play();
@@ -257,10 +261,14 @@ enyo.kind({
 	previousClick: function() {
 		if(debug) this.log("previousClick");
 		
+		clearTimeout(this.startPlayingTimer);
+		
 		this.doPreviousTrack();
 	},
 	nextClick: function() {
 		if(debug) this.log("nextClick");
+		
+		clearTimeout(this.startPlayingTimer);
 		
 		this.doNextTrack();
 	},
