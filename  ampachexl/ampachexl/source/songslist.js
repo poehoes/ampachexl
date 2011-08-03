@@ -33,6 +33,7 @@ enyo.kind({
 		onBannerMessage: "",
 		onNowplayingUpdated: "",
 		onPreviousView: "",
+		onSavePreferences: "",
 	},
 	
 	fullResultsList: [],
@@ -43,7 +44,11 @@ enyo.kind({
 	
 	songsMouseTimer: "",
 	
+	sqlArray: [],
+	
 	components: [
+		{name: "allSongsRequestService", kind: "WebService", handleAs: "txt", onSuccess: "allSongsRequestResponse", onFailure: "allSongsRequestFailure"},
+		
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
 			{name: "headerTitle", kind: "Control", content: "Songs", className: "headerTitle"},
 			{name: "headerSubtitle", kind: "Control", className: "headerSubtitle"},
@@ -198,7 +203,7 @@ enyo.kind({
 		
 		//this.fullResultsList.sort(sort_by("title", false));
 		
-		if((this.fullResultsList.length == AmpacheXL.connectResponse.songs)||(this.fullResultsList.length == 5000)) {
+		/*if((this.fullResultsList.length == AmpacheXL.connectResponse.songs)||(this.fullResultsList.length == 5000)) {
 			if(debug) this.log("was all songs, now saving");
 		
 			AmpacheXL.allSongs = this.fullResultsList.concat([]);
@@ -212,12 +217,47 @@ enyo.kind({
 				this.error(e);
 				window.localStorage.setItem("allSongs", "[]");
 			}
-		}
+		}*/
 		
 		//if(debug) this.log("fullResultsList: "+enyo.json.stringify(this.fullResultsList));
 		
 		this.resetSongsSearch();
 		
+	},
+	allSongs: function() {
+		if(debug) this.log("allSongs AmpacheXL.allSongs.length: "+AmpacheXL.allSongs.length+" AmpacheXL.connectResponse.songs: "+AmpacheXL.connectResponse.songs+" AmpacheXL.prefsCookie.oldSongsCount: "+AmpacheXL.prefsCookie.oldSongsCount);
+		
+		this.fullResultsList.length = 0;
+		this.resultsList.length = 0;
+		
+		if(AmpacheXL.allSongs.length == AmpacheXL.connectResponse.songs) {
+		
+			this.fullResultsList = AmpacheXL.allSongs.concat([]);
+			
+			this.resetSongsSearch();
+		
+		} else if(AmpacheXL.prefsCookie.oldSongsCount == AmpacheXL.connectResponse.songs) {
+			if(debug) this.log("have correct number of saved songs in DB");
+			
+			this.doUpdateSpinner(true);
+			
+			this.resultsList.splice(0,0,{title: "Loading locally saved "+AmpacheXL.connectResponse.songs+" songs", artist: "", album: "", track: AmpacheXL.connectResponse.songs, url: "", art: ""});
+			this.$.songsVirtualList.punt();
+			
+			//html5sql.process("SELECT * FROM songs;", enyo.bind(this, "selectSuccess"), enyo.bind(this, "selectFailure"));
+			//html5sql.process("SELECT * FROM songs;", function(transaction, results) { console.log("results: "+results); enyo.bind(this, "selectSuccess", transaction, results); }, enyo.bind(this, "selectFailure"));
+			//html5sql.process({ "sql": "SELECT * FROM songs; ", "data": [], "success": function(transaction, results) {enyo.bind(this, "selectResults", transaction, results)}}, enyo.bind(this, "selectSuccess"), enyo.bind(this, "selectFailure"));
+			html5sql.database.transaction(function(tx) {    
+				tx.executeSql('SELECT * FROM songs', 
+					[], 
+					enyo.bind(this, "selectResults"), 
+					enyo.bind(this, "selectFailure") 
+				);
+			}.bind(this));
+			
+		} else {
+			this.getSongs();
+		}
 	},
 	
 	
@@ -225,7 +265,132 @@ enyo.kind({
 		if(debug) this.log("getSongs");
 		
 		this.doUpdateSpinner(true);
-		this.doDataRequest("songsList", "songs", "&limit="+AmpacheXL.connectResponse.songs);
+		//this.doDataRequest("songsList", "songs", "&limit="+AmpacheXL.connectResponse.songs);
+		
+		html5sql.process("DELETE FROM songs;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
+		this.sqlArray.length = 0;
+		
+		this.fullResultsList.length = 0;
+		this.resultsList.length = 0;
+		
+		this.$.headerSubtitle.setContent("0 songs");
+		
+		this.$.songsVirtualList.punt();
+		
+		this.resultsList.push({title: "Attempting to get "+AmpacheXL.connectResponse.songs+" songs", artist: "", album: "", track: AmpacheXL.connectResponse.songs, url: "", art: ""});
+		this.$.songsVirtualList.punt();
+			
+		//this.allSongsOffset = 0;
+		this.getSomeSongs(0);
+	},
+	getSomeSongs: function(inOffset) {
+		if(debug) this.log("getSomeSongs at offset "+inOffset);
+		
+		if(AmpacheXL.connectResponse.success) {
+		
+			var requestUrl = AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].url;
+			requestUrl += "/server/xml.server.php?";
+			requestUrl += "auth="+AmpacheXL.connectResponse.auth;
+			requestUrl += "&action=songs";
+			requestUrl += "&limit=1000";
+			requestUrl += "&offset="+inOffset;
+		
+			this.$.allSongsRequestService.setUrl(requestUrl);
+			if(debug) this.log("allSongsRequestService url: "+this.$.allSongsRequestService.getUrl());
+			this.$.allSongsRequestService.call();
+		
+		}
+	},
+	allSongsRequestResponse: function(inSender, inResponse) {
+		//if(debug) this.log("allSongsRequestResponse: "+inResponse);
+		if(debug) this.log("allSongsRequestResponse");
+		
+		var xmlobject = (new DOMParser()).parseFromString(inResponse, "text/xml");
+		
+		var songsNodes, singleSongNode, singleSongChildNode;
+		var s = {};
+		
+		//fix timeout error here - https://developer.palm.com/distribution/viewtopic.php?f=11&t=10561
+		songsNodes = xmlobject.getElementsByTagName("song");
+		for(var i = 0; i < songsNodes.length; i++) {
+			singleSongNode = songsNodes[i];
+			s = {};
+			
+			s.id = singleSongNode.getAttributeNode("id").nodeValue;
+			
+			for(var j = 0; j < singleSongNode.childNodes.length; j++) {
+				singleSongChildNode = singleSongNode.childNodes[j];
+				
+				switch(singleSongChildNode.nodeName) {
+					case "title":
+						s.title = singleSongChildNode.childNodes[0].nodeValue.replace(/"/g,"");
+						break;
+					case "artist":
+						s.artist = singleSongChildNode.childNodes[0].nodeValue.replace(/"/g,"");
+						s.artist_id = singleSongChildNode.getAttributeNode("id").nodeValue;
+						break;
+					case "album":
+						s.album = singleSongChildNode.childNodes[0].nodeValue.replace(/"/g,"");
+						s.album_id = singleSongChildNode.getAttributeNode("id").nodeValue;
+						break;
+					case "track":
+						s.track = parseInt(singleSongChildNode.childNodes[0].nodeValue);
+						break;
+					case "time":
+						s.time = singleSongChildNode.childNodes[0].nodeValue;
+						break;
+					case "url":
+						s.url = singleSongChildNode.childNodes[0].nodeValue;
+						break;
+					case "size":
+						s.size = singleSongChildNode.childNodes[0].nodeValue;
+						break;
+					case "art":
+						s.art = singleSongChildNode.childNodes[0].nodeValue;
+						break;
+				}
+				
+			}
+		
+			s.type = "song";
+			
+			this.fullResultsList.push(s);
+			
+			this.sqlArray.push('INSERT INTO songs (id, title, artist, artist_id, album, album_id, track, time, oldUrl, oldArt) VALUES ('+s.id+', "'+s.title+'", "'+s.artist+'", '+s.artist_id+', "'+s.album+'", '+s.album_id+', '+s.track+', '+s.time+', "'+s.url+'", "'+s.art+'");');
+
+			//if(debug) this.log("added song to list. curent length = "+this.fullResultsList.length);
+		
+		}
+		
+		if(this.fullResultsList.length >= AmpacheXL.connectResponse.songs) {
+			if(debug) this.log("finished getting all songs: "+this.fullResultsList.length);
+			
+			AmpacheXL.allSongs = this.fullResultsList.concat([]);
+			
+			AmpacheXL.prefsCookie.oldSongsAuth  = AmpacheXL.connectResponse.auth;
+			
+			this.doSavePreferences();
+			
+			//if(debug) this.log("about to do sqlArray: "+enyo.json.stringify(this.sqlArray));
+			html5sql.process(this.sqlArray, enyo.bind(this, "insertSuccess"), enyo.bind(this, "insertFailure"));
+		
+			this.resetSongsSearch();
+			
+		} else {
+			if(debug) this.log("got some songs ("+this.fullResultsList.length+") but less than total ("+AmpacheXL.connectResponse.songs+")");
+			
+			if(this.fullResultsList.length == 1) {
+				this.$.headerSubtitle.setContent(this.fullResultsList.length+" song");
+			} else {
+				this.$.headerSubtitle.setContent(this.fullResultsList.length+" songs");
+			}
+			
+			//this.resultsList.push({title: "Loaded "+this.fullResultsList.length+" of "+AmpacheXL.connectResponse.songs+" songs", artist: "", album: "", track: this.fullResultsList.length, url: "", art: ""});
+			this.resultsList.splice(0,0,{title: "Loaded "+this.fullResultsList.length+" of "+AmpacheXL.connectResponse.songs+" songs", artist: "", album: "", track: this.fullResultsList.length, url: "", art: ""});
+			this.$.songsVirtualList.punt();
+			
+			this.getSomeSongs(this.fullResultsList.length);
+		}
 	},
 	resetSongsSearch: function() {
 		if(debug) this.log("resetSongsSearch");
@@ -286,7 +451,7 @@ enyo.kind({
 			//this.$.songsItem.applyStyle("border-top", "1px solid silver;");
 			//this.$.songsItem.applyStyle("border-bottom", "none;");
 			
-			if(AmpacheXL.prefsCookie.artOnLists) {
+			if((row.type == "song")&&(AmpacheXL.prefsCookie.artOnLists)) {
 				this.$.listArt.setSrc(row.art);
 				this.$.listArt.show();
 			} else {
@@ -467,8 +632,8 @@ enyo.kind({
 					{name: "Queue all, shuffled", caption: "Queue all, shuffled"},
 					{name: "Queue single song", caption: "Queue single song"},
 				]},
-				{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
 				{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
+				{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
 				
 				/*
 				{caption: $L("Web"), components: [
@@ -537,6 +702,63 @@ enyo.kind({
 			}
 		}
 	},
+	
+	truncateSuccess: function() {
+		if(debug) this.log("truncateSuccess");
+		
+	},
+	truncateFailure: function() {
+		if(debug) this.error("truncateFailure");
+		
+	},
+	insertSuccess: function() {
+		if(debug) this.log("insertSuccess");
+		
+		AmpacheXL.prefsCookie.oldSongsCount = this.fullResultsList.length;
+		
+		this.doSavePreferences();
+		
+	},
+	insertFailure: function(inError) {
+		if(debug) this.error("insertFailure: "+inError.message);
+		
+	},
+	selectResults: function(transaction, results) {
+		//if(debug) this.log("selectResults: "+enyo.json.stringify(results));
+		if(debug) this.log("selectResults");
+
+		if(debug) this.log("will replace "+AmpacheXL.prefsCookie.oldSongsAuth+" with "+AmpacheXL.connectResponse.auth);
+		
+		for(var i = 0; i < results.rows.length; i++) {
+			var row = results.rows.item(i);
+			
+			row.type = "song";
+			
+			row.url = row.oldUrl.replace(AmpacheXL.prefsCookie.oldSongsAuth, AmpacheXL.connectResponse.auth);
+			row.art = row.oldArt.replace(AmpacheXL.prefsCookie.oldSongsAuth, AmpacheXL.connectResponse.auth);
+
+			//if(debug) this.log("row: "+enyo.json.stringify(row));
+			
+			this.fullResultsList.push(row);
+
+		}
+		
+		AmpacheXL.allSongs.length = 0;
+		AmpacheXL.allSongs = this.fullResultsList.concat([]);
+			
+		this.resetSongsSearch();
+		
+	},
+	selectSuccess: function(results) {
+		if(debug) this.log("selectSuccess");
+		
+	},
+	selectFailure: function(inError) {
+		if(debug) this.error("selectFailure: "+inError.message);
+		
+		this.getSongs();
+	},
+	
 });
 
 

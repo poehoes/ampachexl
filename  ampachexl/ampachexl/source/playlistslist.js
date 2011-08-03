@@ -50,7 +50,7 @@ enyo.kind({
 		]},
 							
 		{name: "playlistsVirtualList", kind: "VirtualList", onSetupRow: "setupPlaylistsItem", flex: 1, components: [
-			//name: "playlistsDivider", kind: "Divider"},
+			{name: "playlistsDivider", kind: "Divider"},
 			{name: "playlistsItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", onclick: "playlistsClick", components: [
 				{kind: "VFlexBox", flex: 1, components: [
 					{name: "playlistsTitle", className: "title"},
@@ -147,6 +147,7 @@ enyo.kind({
 			}
 		
 			s.type = "playlist";
+			s.source = "Server";
 			
 			this.fullResultsList.push(s);
 		
@@ -217,7 +218,7 @@ enyo.kind({
 		
 		if(row) {
 		
-			//this.setupPlaylistsDivider(inIndex);
+			this.setupPlaylistsDivider(inIndex);
 			//this.$.playlistsItem.applyStyle("border-top", "1px solid silver;");
 			//this.$.playlistsItem.applyStyle("border-bottom", "none;");
 			
@@ -249,11 +250,8 @@ enyo.kind({
 		var r0 = this.resultsList[inIndex-1];
 		var r1 = this.resultsList[inIndex];
 		
-		var a = r0 && r0.name.substring(0,1);
-		var b = r1.name.substring(0,1);
-		
-		if(!enyo.g11n.Char.isLetter(a)) a = "#";
-		if(!enyo.g11n.Char.isLetter(b)) b = "#";
+		var a = r0 && r0.source;
+		var b = r1.source;
 		
 		if(inIndex == 0) {
 			return b;

@@ -30,6 +30,7 @@ enyo.kind({
 		onUpdateSpinner: "",
 		onBannerMessage: "",
 		onOpenAppMenu: "",
+		onAllItems: "",
 	},
 		
 	
@@ -40,42 +41,51 @@ enyo.kind({
 		]},
 		
 		{name: "leftMenuScroller", kind: "Scroller", flex: 1, components: [
-			{name: "nowplayingItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+			{name: "nowplayingItem", showing: false, kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+				{name: "nowplayingItemIcon", kind: "Image", src: "images/194-note-2.png", className: "menuIcon"},
 				{name: "nowplayingItemTitle", content: "Now Playing", flex: 1},
 				{name: "nowplayingItemCount"},
 			]},
 			
 			{name: "searchItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+				{name: "searchItemIcon", kind: "Image", src: "images/06-magnify.png", className: "menuIcon"},
 				{name: "searchItemTitle", content: "Search", flex: 1},
 				//name: "searchItemCount"},
 			]},
 			
-			{name: "randomItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+			{name: "randomItem", showing: false, kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+				{name: "randomItemIcon", kind: "Image", src: "images/05-shuffle.png", className: "menuIcon"},
 				{name: "randomItemTitle", content: "Random Album", flex: 1},
 				//name: "randomItemCount"},
 			]},
 			
-			{name: "artistsItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
-				{name: "artistsItemTitle", content: "Artists", flex: 1},
-				{name: "artistsItemCount"},
-			]},
-			{name: "albumsItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
-				{name: "albumsItemTitle", content: "Albums", flex: 1},
-				{name: "albumsItemCount"},
-			]},
-			{name: "playlistsItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
-				{name: "playlistsItemTitle", content: "Playlists", flex: 1},
-				{name: "playlistsItemCount"},
-			]},
-			{name: "tagsItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
-				{name: "tagsItemTitle", content: "Genres", flex: 1},
-				{name: "tagsItemCount"},
-			]},
-			{name: "songsItem", showing: false, kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+			{name: "songsItem", showing: true, kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+				{name: "songsItemIcon", kind: "Image", src: "images/65-note.png", className: "menuIcon"},
 				{name: "songsItemTitle", content: "Songs", flex: 1},
 				{name: "songsItemCount"},
 			]},
-			{name: "videosItem", showing: false, kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+			{name: "albumsItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+				{name: "albumsItemIcon", kind: "Image", src: "images/159-voicemail.png", className: "menuIcon"},
+				{name: "albumsItemTitle", content: "Albums", flex: 1},
+				{name: "albumsItemCount"},
+			]},
+			{name: "artistsItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+				{name: "artistsItemIcon", kind: "Image", src: "images/112-group.png", className: "menuIcon"},
+				{name: "artistsItemTitle", content: "Artists", flex: 1},
+				{name: "artistsItemCount"},
+			]},
+			{name: "tagsItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+				{name: "tagsItemIcon", kind: "Image", src: "images/104-index-cards.png", className: "menuIcon"},
+				{name: "tagsItemTitle", content: "Genres", flex: 1},
+				{name: "tagsItemCount"},
+			]},
+			{name: "playlistsItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+				{name: "playlistsItemIcon", kind: "Image", src: "images/179-notepad.png", className: "menuIcon"},
+				{name: "playlistsItemTitle", content: "Playlists", flex: 1},
+				{name: "playlistsItemCount"},
+			]},
+			{name: "videosItem", showing: true, kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+				{name: "videosItemIcon", kind: "Image", src: "images/46-movie-2.png", className: "menuIcon"},
 				{name: "videosItemTitle", content: "Videos", flex: 1},
 				{name: "videosItemCount"},
 			]},
@@ -105,8 +115,10 @@ enyo.kind({
 		
 		if(AmpacheXL.nowplaying.length == 0) {
 			this.$.nowplayingItemCount.setContent("");
+			this.$.nowplayingItem.hide();
 		} else {
 			this.$.nowplayingItemCount.setContent((AmpacheXL.nowplayingIndex+1)+"/"+AmpacheXL.nowplaying.length);
+			this.$.nowplayingItem.show();
 		}	
 		
 		if(AmpacheXL.connectResponse) {
@@ -149,18 +161,12 @@ enyo.kind({
 				break;
 				
 			case "artistsItem":
-				if(AmpacheXL.allArtists.length == 0) {
-					this.doUpdateSpinner(true);
-					this.doDataRequest("artistsList", "artists", "");
-				}
+				this.doAllItems("artistsList");
 				this.doViewSelected("artistsList");
 				break;
 			case "albumsItem":
 				AmpacheXL.selectedArtist = null;
-				if(AmpacheXL.allAlbums.length == 0) {
-					this.doUpdateSpinner(true);
-					this.doDataRequest("albumsList", "albums", "");
-				}
+				this.doAllItems("albumsList");
 				this.doViewSelected("albumsList");
 				break;
 			case "playlistsItem":
@@ -170,21 +176,17 @@ enyo.kind({
 				}
 				this.doViewSelected("playlistsList");
 				break;
+			case "songsItem":
+				AmpacheXL.selectedAlbum = null;
+				this.doAllItems("songsList");
+				this.doViewSelected("songsList");
+				break;
 			case "tagsItem":
 				if(AmpacheXL.allTags.length == 0) {
 					this.doUpdateSpinner(true);
 					this.doDataRequest("tagsList", "tags", "");
 				}
 				this.doViewSelected("tagsList");
-				break;
-				
-			case "songsItem":
-				AmpacheXL.selectedAlbum = null;
-				if(AmpacheXL.allSongs.length == 0) {
-					this.doUpdateSpinner(true);
-					this.doDataRequest("songsList", "songs", "&limit="+AmpacheXL.connectResponse.songs);
-				}
-				this.doViewSelected("songsList");
 				break;
 				
 			case "videosItem":

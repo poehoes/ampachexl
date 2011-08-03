@@ -118,8 +118,8 @@ enyo.kind({
 					{name: "randomSongArt_"+row.id, kind: "Image", src: row.newArt, className: "randomSongArt"},
 					
 					{kind: "Spacer"},
-					{name: "randomSongArtist_"+row.id, content: "Artist: "+row.artist, allowHtml: true, className: "randomSongArtist truncating"},
 					{name: "randomSongAlbum_"+row.id, content: "Album: "+row.name, allowHtml: true, className: "randomSongAlbum truncating"},
+					{name: "randomSongArtist_"+row.id, content: "Artist: "+row.artist, allowHtml: true, className: "randomSongArtist truncating"},
 					{name: "randomSongTracks_"+row.id, content: row.tracksText, allowHtml: true, className: "randomSongTracks truncating"},
 				
 					{kind: "Spacer"},
@@ -153,7 +153,7 @@ enyo.kind({
 		
 		if(debug) this.log("selectedAlbum: "+enyo.json.stringify(this.selectedAlbum));
 		
-		this.$.randomSelectorPopup.setItems(["Artist: "+this.selectedAlbum.artist, "Album: "+this.selectedAlbum.name]);
+		this.$.randomSelectorPopup.setItems(["Album: "+this.selectedAlbum.name, "Artist: "+this.selectedAlbum.artist, ]);
 		this.$.randomSelectorPopup.openAtEvent(inEvent);
 		
 	},

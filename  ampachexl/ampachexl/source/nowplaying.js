@@ -475,8 +475,8 @@ enyo.kind({
 			
 			this.$.morePopupMenu.setItems([
 				{caption: "Play"},
-				{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
 				{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
+				{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
 				{caption: $L("Move"), components: [
 					{caption: "Move up"},
 					{caption: "Move down"},

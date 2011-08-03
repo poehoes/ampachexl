@@ -55,7 +55,7 @@ enyo.kind({
 	components: [
 		{kind: "ApplicationEvents", onLoad: "appLoaded", onUnload: "appUnloaded", onError: "appError", onWindowActivated: "windowActivated", onWindowDeactivated: "windowDeactivated", onBack: "backHandler", onWindowParamsChange: "windowParamsChangeHandler"},
 		
-		{name: "lockVolumeKeysService", kind: "PalmService", service: "palm://com.palm.audio/media/", method: "lockVolumeKeys", onSuccess: "lockVolumeKeysResponse", onFailure: "lockVolumeKeysFailure"},
+		{name: "lockVolumeKeysService", kind: "PalmService", service: "palm://com.palm.audio/media/", method: "lockVolumeKeys", subscribe: true, foregroundApp: true, onSuccess: "lockVolumeKeysResponse", onFailure: "lockVolumeKeysFailure"},
 		
 		{name: "ampacheConnectService", kind: "WebService", handleAs: "txt", onSuccess: "ampacheConnectResponse", onFailure: "ampacheConnectFailure"},
 		{name: "dataRequestService", kind: "WebService", handleAs: "txt", onSuccess: "dataRequestResponse", onFailure: "dataRequestFailure"},
@@ -91,12 +91,6 @@ enyo.kind({
 			{kind: "Button", caption: "OK", onclick:"closeBannerMessagePopup"}
 		]},
 		
-		{name: "loadingPopup", kind: "Popup", lazy: true, scrim: true, dismissWithClick: true, dismissWithEscape: true, components: [
-			{kind: "HFlexBox", align: "center", pack: "center", components: [
-				{name: "loadingSpinner", kind: "SpinnerLarge"},
-			]},
-		]},
-		
 		{name: "spinnerScrim", kind: "Scrim", onclick: "scrimClick", layoutKind: "HFlexLayout", align: "center", pack: "center", components: [
 			{name: "scrimSpinner", kind: "SpinnerLarge"},
 		]},
@@ -110,11 +104,12 @@ enyo.kind({
 			]},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 				{name: "startingPane", kind: "ListSelector", label: "Starting view after login", onChange: "startingPaneSelect", flex: 1, items: [
-					{caption: "Random Album", value: "random"},
-					{caption: "Artists", value: "artistsList"},
+					//caption: "Random Album", value: "random"},
+					{caption: "Songs", value: "songsList"},
 					{caption: "Albums", value: "albumsList"},
-					{caption: "Playlists", value: "playlistsList"},
+					{caption: "Artists", value: "artistsList"},
 					{caption: "Genres", value: "tagsList"},
+					{caption: "Playlists", value: "playlistsList"},
 					{caption: "Videos", value: "videosList"},
 				]},
 			]},
@@ -167,18 +162,18 @@ enyo.kind({
 		{name: "searchPopup", kind: "Popup", scrim: true, onBeforeOpen: "beforeSearchOpen", onOpen: "searchOpen", showKeyboardWhenOpening: true, components: [
 			{name: "searchHeader", content: "Search", style: "text-align: center;"},
 			{name: "searchInput", kind: "Input", autoCapitalize: "lowercase"},
-			{name: "artistsSearch", caption: "Artists", kind: "Button", className: "searchButton", onclick: "searchClick"},
-			{name: "albumsSearch", caption: "Albums", kind: "Button", className: "searchButton", onclick: "searchClick"},
-			{name: "playlistsSearch", caption: "Playlists", kind: "Button", className: "searchButton", onclick: "searchClick"},
 			{name: "songsSearch", caption: "Songs", kind: "Button", className: "searchButton", onclick: "searchClick"},
+			{name: "albumsSearch", caption: "Albums", kind: "Button", className: "searchButton", onclick: "searchClick"},
+			{name: "artistsSearch", caption: "Artists", kind: "Button", className: "searchButton", onclick: "searchClick"},
 			{name: "tagsSearch", caption: "Genres", kind: "Button", className: "searchButton", onclick: "searchClick"},
+			{name: "playlistsSearch", caption: "Playlists", kind: "Button", className: "searchButton", onclick: "searchClick"},
 			{name: "allSearch", caption: "All of the above", kind: "Button", className: "searchButton", onclick: "searchClick"},
 		]},
 		
 		{name: "mainPane", kind2: "HFlexBox", kind: "SlidingPane", flex: 1, onSelectView: "mainPaneViewSelected", components: [
 			{name: "leftMenu", kind: "SlidingView", className: "leftMenu", width: "300px", layoutKind2: "VFlexLayout", components: [
 				{kind: "VFlexBox", height: "100%", width: "300px", components: [
-					{name: "leftMenuKind", kind: "LeftMenuKind", flex: 1, onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onOpenAppMenu: "openAppMenu"},
+					{name: "leftMenuKind", kind: "LeftMenuKind", flex: 1, onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onOpenAppMenu: "openAppMenu", onAllItems: "allItems"},
 					
 					{name: "playback", kind: "Playback", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPreviousTrack: "previousTrack", onNextTrack: "nextTrack", onBannerMessage: "bannerMessage", onUpdatePlaybackStatus: "updatePlaybackStatus"},
 				]},
@@ -246,6 +241,12 @@ enyo.kind({
 		if(window.PalmSystem) this.$.lockVolumeKeysService.call({subscribe: true, foregroundApp: true, parameters: {subscribe: true, foregroundApp: true}});
 		
 		//this.activate();
+		
+		html5sql.openDatabase("ext:com.thewbman.ampachexl","AmpacheXL Database", 10*1024*1024);
+		//html5sql.changeVersion("","v1", "CREATE TABLE songs (id INTEGER, title TEXT, artist TEXT, artist_id INTEGER, album TEXT, album_id INTEGER, track INTEGER, time INTEGER, oldUrl TEXT, oldArt TEXT)", enyo.bind(this, "changeVersion1Success"), enyo.bind(this, "changeVersion1Failure"));
+		//html5sql.changeVersion("v1","v2", "CREATE TABLE artists (id INTEGER, name TEXT, albums TEXT, songs INTEGER)", enyo.bind(this, "changeVersion2Success"), enyo.bind(this, "changeVersion2Failure"));
+		//html5sql.changeVersion("v2","v3", "CREATE TABLE albums (id INTEGER, name TEXT, artist TEXT, artist_id INTEGER, tracks INTEGER, year TEXT, oldArt TEXT)", enyo.bind(this, "changeVersion1Success"), enyo.bind(this, "changeVersion1Failure"));
+		html5sql.changeVersion("","v3", "CREATE TABLE songs (id INTEGER, title TEXT, artist TEXT, artist_id INTEGER, album TEXT, album_id INTEGER, track INTEGER, time INTEGER, oldUrl TEXT, oldArt TEXT); CREATE TABLE artists (id INTEGER, name TEXT, albums TEXT, songs INTEGER); CREATE TABLE albums (id INTEGER, name TEXT, artist TEXT, artist_id INTEGER, tracks INTEGER, year TEXT, oldArt TEXT)", enyo.bind(this, "changeVersion1Success"), enyo.bind(this, "changeVersion1Failure"));
 		
 	},
 	
@@ -556,6 +557,21 @@ enyo.kind({
 		
 		this.$.playback.queueNextSong(inSong);
 	},
+	allItems: function(inSender, inView) {
+		if(debug) this.log("allItems: "+inView);
+		
+		switch(inView) {
+			case "artistsList":
+				this.$.artistsList.allArtists();
+				break;
+			case "albumsList":
+				this.$.albumsList.allAlbums();
+				break;
+			case "songsList":
+				this.$.songsList.allSongs();
+				break;
+		}
+	},
 	
 	backHandler: function(inSender, e) {
 		if(debug) this.log("backHandler");
@@ -596,7 +612,7 @@ enyo.kind({
 			this.doneFirstActivated = true;
 			
 		} catch(e) {
-			this.error(e);
+			this.log(e);
 		}
 	},
 	windowDeactivated: function() {
@@ -632,7 +648,7 @@ enyo.kind({
 		try {
 			this.dashWindow.close();
 		} catch(e) {
-			this.error(e);
+			this.log(e);
 		}
 	},
 	
@@ -652,7 +668,7 @@ enyo.kind({
 	},
 	ampacheConnectResponse: function(inSender, inResponse) {
 		if(debug) this.log("ampacheConnectResponse");
-		//if(debug) this.log("ampacheConnectResponse: "+inResponse);
+		if(debug) this.log("ampacheConnectResponse: "+inResponse);
 		
 		AmpacheXL.connected = true;
 		
@@ -710,20 +726,25 @@ enyo.kind({
 				
 				this.updateCounts();
 				
+				/*
 				if(window.localStorage.getItem("allArtists")) {
-					AmpacheXL.allArtists = enyo.json.parse(window.localStorage.getItem("allArtists"));
+					//AmpacheXL.allArtists = enyo.json.parse(window.localStorage.getItem("allArtists"));
+					window.localStorage.setItem("allArtists", null);
 				}
 				
 				if(window.localStorage.getItem("allAlbums")) {
-					AmpacheXL.allAlbums = enyo.json.parse(window.localStorage.getItem("allAlbums"));
+					//AmpacheXL.allAlbums = enyo.json.parse(window.localStorage.getItem("allAlbums"));
+					window.localStorage.setItem("allAlbums", null);
 				}
 				
 				if(window.localStorage.getItem("allSongs")) {
-					AmpacheXL.allSongs = enyo.json.parse(window.localStorage.getItem("allSongs"));
+					//AmpacheXL.allSongs = enyo.json.parse(window.localStorage.getItem("allSongs"));
+					window.localStorage.setItem("allSongs", null);
 				}
+				*/
 				
 				switch(AmpacheXL.prefsCookie.startingPane) {
-					case "random":
+					case "random2":
 						if(AmpacheXL.allAlbums.length > 0) {
 							this.$.rightContent.selectViewByName("random");
 						} else {
@@ -732,42 +753,42 @@ enyo.kind({
 							this.$.rightContent.selectViewByName("albumsList");
 						}
 						break;
-					case "artistsList":
-						if(AmpacheXL.allArtists.length == AmpacheXL.connectResponse.artists) {
-							this.$.rightContent.selectViewByName("artistsList");
-						} else {
-							this.updateSpinner("AmpacheXL", true);
-							this.dataRequest("AmpacheXL", "artistsList", "artists", "");
-							this.$.rightContent.selectViewByName("artistsList");
-						}
+					case "songsList":
+						this.allItems("songsList", "songsList");
+						this.$.rightContent.selectViewByName("songsList");
 						break;
 					case "albumsList":
-						if(AmpacheXL.allAlbums.length == AmpacheXL.connectResponse.albums) {
+						/*if(AmpacheXL.allAlbums.length == AmpacheXL.connectResponse.albums) {
 							this.$.rightContent.selectViewByName("albumsList");
 						} else {
 							this.updateSpinner("AmpacheXL", true);
 							this.dataRequest("AmpacheXL", "albumsList", "albums", "");
 							this.$.rightContent.selectViewByName("albumsList");
 						}
+						*/
+						this.allItems("albumsList", "albumsList");
+						this.$.rightContent.selectViewByName("albumsList");
 						break;
-					case "playlistsList":
-						this.updateSpinner("AmpacheXL", true);
-						this.dataRequest("AmpacheXL", "playlistsList", "playlists", "");
-						this.$.rightContent.selectViewByName("playlistsList");
+					case "artistsList":
+						/*if(AmpacheXL.allArtists.length == AmpacheXL.connectResponse.artists) {
+							this.$.rightContent.selectViewByName("artistsList");
+						} else {
+							this.updateSpinner("AmpacheXL", true);
+							this.dataRequest("AmpacheXL", "artistsList", "artists", "");
+							this.$.rightContent.selectViewByName("artistsList");
+						}*/
+						this.allItems("artistsList", "artistsList");
+						this.$.rightContent.selectViewByName("artistsList");
 						break;
 					case "tagsList":
 						this.updateSpinner("AmpacheXL", true);
 						this.dataRequest("AmpacheXL", "tagsList", "tags", "");
 						this.$.rightContent.selectViewByName("tagsList");
 						break;
-					case "songsList":
-						if(AmpacheXL.allSongs.length == AmpacheXL.connectResponse.songs) {
-							this.$.rightContent.selectViewByName("songsList");
-						} else {
-							this.updateSpinner("AmpacheXL", true);
-							this.dataRequest("AmpacheXL", "songsList", "songs", "&limit="+AmpacheXL.connectResponse.songs);
-							this.$.rightContent.selectViewByName("songsList");
-						}
+					case "playlistsList":
+						this.updateSpinner("AmpacheXL", true);
+						this.dataRequest("AmpacheXL", "playlistsList", "playlists", "");
+						this.$.rightContent.selectViewByName("playlistsList");
 						break;
 					case "videosList":
 						this.updateSpinner("AmpacheXL", true);
@@ -775,11 +796,10 @@ enyo.kind({
 						this.$.rightContent.selectViewByName("videosList");
 						break;
 						
-					//more here
 					default: 
-						this.updateSpinner("AmpacheXL", true);
-						this.dataRequest("AmpacheXL", "artistsList", "artists", "");
-						this.$.rightContent.selectViewByName("artistsList");
+						AmpacheXL.prefsCookie.startingPane = "albumsList";
+						this.allItems("albumsList", "albumsList");
+						this.$.rightContent.selectViewByName("albumsList");
 						break;
 				}
 				
@@ -949,6 +969,31 @@ enyo.kind({
 		this.$.searchPopup.close();
 		
 		enyo.keyboard.setManualMode(false);
+		
+	},
+	
+	changeVersion1Success: function() {
+		if(debug) this.log("changeVersion1Success");
+		
+	},
+	changeVersion1Failure: function() {
+		if(debug) this.error("changeVersion1Failure");
+		
+	},
+	changeVersion2Success: function() {
+		if(debug) this.log("changeVersion2Success");
+		
+	},
+	changeVersion2Failure: function() {
+		if(debug) this.error("changeVersion2Failure");
+		
+	},
+	changeVersion3Success: function() {
+		if(debug) this.log("changeVersion3Success");
+		
+	},
+	changeVersion3Failure: function() {
+		if(debug) this.error("changeVersion3Failure");
 		
 	},
 	

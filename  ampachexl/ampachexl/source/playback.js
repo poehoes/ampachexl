@@ -85,6 +85,9 @@ enyo.kind({
 		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex] = new Audio();
 		AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex] = new Audio();
 		
+		//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
+		//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
+		
 		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("playing", enyo.bind(this, "playingEvent"), false);
 		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("pause", enyo.bind(this, "pauseEvent"), false);
 		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("timeupdate", enyo.bind(this, "timeupdateEvent"), false);
@@ -184,6 +187,8 @@ enyo.kind({
 			
 			AmpacheXL.nextAudioObjectIndex = AmpacheXL.audioObjects.length;
 			AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex] = new Audio();
+			
+			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
 			
 			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].pause();
 			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].src = "";
@@ -379,6 +384,8 @@ enyo.kind({
 			
 			AmpacheXL.currentAudioObjectIndex = AmpacheXL.audioObjects.length;
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex] = new Audio();
+			
+			//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
 			
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("playing", enyo.bind(this, "playingEvent"), false);
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("pause", enyo.bind(this, "pauseEvent"), false);
