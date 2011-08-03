@@ -28,6 +28,7 @@ enyo.depends(
 	
 	"source/libraries/scrollervirtuallist.js",
 	"source/libraries/sha256.js",
+	"source/libraries/html5sql.js",
 	/*"source/libraries/XMLObjectifier.js",*/
 	"source/libraries/Metrix/metrix.js"
 );

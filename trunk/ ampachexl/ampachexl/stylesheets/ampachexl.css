@@ -166,10 +166,20 @@
 	border-width: 5px 14px;
 }
 
+.menuItem {
+	padding: 8px 10px;
+	height: 42px;
+	border-bottom: none;
+}
+
+.menuIcon {
+	width: 24px;
+	max-height: 24px;
+	padding-right: 5px;
+}
+
 .dark .menuItem {
 	border-top: 1px solid silver;
-	border-bottom: none;
-	padding: 8px 10px;
 }
 
 .editHost {
@@ -346,8 +356,6 @@
 
 .light .menuItem {
 	border-top: 1px solid #606060;
-	border-bottom: none;
-	padding: 8px 10px;
 }
 
 .light .listItem {

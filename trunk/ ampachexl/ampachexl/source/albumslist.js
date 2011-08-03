@@ -37,6 +37,8 @@ enyo.kind({
 	fullResultsList: [],
 	resultsList: [],
 	
+	sqlArray: [],
+	
 	components: [
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
 			{name: "headerTitle", kind: "Control", content: "Albums", className: "headerTitle"},
@@ -67,6 +69,7 @@ enyo.kind({
 			{kind: "Spacer"},
 			{name: "refreshCommandButton", icon: "images/menu-icon-refresh.png", onclick: "getAlbums"},
 			{kind: "Spacer"},
+			{caption: "Random", onclick: "randomClick"},
 			{name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
 		]},
 	],
@@ -148,10 +151,10 @@ enyo.kind({
 				
 				switch(singleAlbumChildNode.nodeName) {
 					case "name":
-						s.name = singleAlbumChildNode.childNodes[0].nodeValue;
+						s.name = singleAlbumChildNode.childNodes[0].nodeValue.replace(/"/g,"");
 						break;
 					case "artist":
-						s.artist = singleAlbumChildNode.childNodes[0].nodeValue;
+						s.artist = singleAlbumChildNode.childNodes[0].nodeValue.replace(/"/g,"");
 						s.artist_id = singleAlbumChildNode.getAttributeNode("id").nodeValue;
 						break;
 					case "year":
@@ -170,6 +173,8 @@ enyo.kind({
 			s.type = "album";
 			
 			this.fullResultsList.push(s);
+			
+			this.sqlArray.push('INSERT INTO albums (id, name, artist, artist_id, tracks, year, oldArt) VALUES ('+s.id+', "'+s.name+'", "'+s.artist+'", '+s.artist_id+', '+s.tracks+', "'+s.year+'", "'+s.art+'");');
 		
 		}
 		
@@ -179,11 +184,14 @@ enyo.kind({
 		
 		if(this.fullResultsList.length == AmpacheXL.connectResponse.albums) {
 			if(debug) this.log("was all albums, now saving");
+			
+			//if(debug) this.log("about to do sqlArray: "+enyo.json.stringify(this.sqlArray));
+			html5sql.process(this.sqlArray, enyo.bind(this, "insertSuccess"), enyo.bind(this, "insertFailure"));
 		
 			AmpacheXL.allAlbums = this.fullResultsList.concat([]);
 			
 			AmpacheXL.prefsCookie.oldAlbumsAuth  = AmpacheXL.connectResponse.auth;
-			window.localStorage.setItem("allAlbums", enyo.json.stringify(AmpacheXL.allAlbums));
+			//window.localStorage.setItem("allAlbums", enyo.json.stringify(AmpacheXL.allAlbums));
 		}
 		
 		this.doSavePreferences();
@@ -200,9 +208,45 @@ enyo.kind({
 		this.resetAlbumsSearch();
 		
 	},
+	allAlbums: function() {
+		if(debug) this.log("allAlbums AmpacheXL.allAlbums.length: "+AmpacheXL.allAlbums.length+" AmpacheXL.connectResponse.albums: "+AmpacheXL.connectResponse.albums+" AmpacheXL.prefsCookie.oldAlbumsCount: "+AmpacheXL.prefsCookie.oldAlbumsCount);
+		
+		this.fullResultsList.length = 0;
+		this.resultsList.length = 0;
+		
+		if(AmpacheXL.allAlbums.length == AmpacheXL.connectResponse.albums) {
+		
+			this.fullResultsList = AmpacheXL.allAlbums.concat([]);
+			
+			this.resetAlbumsSearch();
+		
+		} else if(AmpacheXL.prefsCookie.oldAlbumsCount == AmpacheXL.connectResponse.albums) {
+			if(debug) this.log("have correct number of saved albums in DB");
+			
+			this.doUpdateSpinner(true);
+			
+			//this.resultsList.splice(0,0,{title: "Loading locally saved "+AmpacheXL.connectResponse.artists+" songs", artist: "", album: "", track: AmpacheXL.connectResponse.albums, url: "", art: ""});
+			//this.$.artistsVirtualList.punt();
+			
+			html5sql.database.transaction(function(tx) {    
+				tx.executeSql('SELECT * FROM albums', 
+					[], 
+					enyo.bind(this, "selectResults"), 
+					enyo.bind(this, "selectFailure") 
+				);
+			}.bind(this));
+			
+		} else {
+			this.getAlbums();
+		}
+	},
+	
 	
 	getAlbums: function() {
 		if(debug) this.log("getAlbums");
+		
+		html5sql.process("DELETE FROM albums;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
+		this.sqlArray.length = 0;
 		
 		this.doUpdateSpinner(true);
 		this.doDataRequest("albumsList", "albums", "");
@@ -384,6 +428,63 @@ enyo.kind({
 			this.doDataRequest("songsList", "album_songs", "&filter="+row.id);
 			this.doViewSelected("songsList");
 		}		
+	},
+	randomClick: function() {
+		if(debug) this.log("randomClick");
+		
+		this.doViewSelected("random");
+	},
+	
+	
+	truncateSuccess: function() {
+		if(debug) this.log("truncateSuccess");
+		
+	},
+	truncateFailure: function() {
+		if(debug) this.error("truncateFailure");
+		
+	},
+	insertSuccess: function() {
+		if(debug) this.log("insertSuccess");
+		
+		AmpacheXL.prefsCookie.oldAlbumsCount = this.fullResultsList.length;
+		
+		this.doSavePreferences();
+		
+	},
+	insertFailure: function(inError) {
+		if(debug) this.error("insertFailure: "+inError.message);
+		
+	},
+	selectResults: function(transaction, results) {
+		//if(debug) this.log("selectResults: "+enyo.json.stringify(results));
+		if(debug) this.log("selectResults");
+
+		for(var i = 0; i < results.rows.length; i++) {
+			var row = results.rows.item(i);
+			//if(debug) this.log("row: "+enyo.json.stringify(row));
+
+			row.type = "album";
+			row.art = row.oldArt.replace(AmpacheXL.prefsCookie.oldAlbumsAuth, AmpacheXL.connectResponse.auth);
+			
+			this.fullResultsList.push(row);
+
+		}
+		
+		AmpacheXL.allAlbums.length = 0;
+		AmpacheXL.allAlbums = this.fullResultsList.concat([]);
+			
+		this.resetAlbumsSearch();
+		
+	},
+	selectSuccess: function(results) {
+		if(debug) this.log("selectSuccess");
+		
+	},
+	selectFailure: function(inError) {
+		if(debug) this.error("selectFailure: "+inError.message);
+		
+		this.getAlbums();
 	},
 	
 });

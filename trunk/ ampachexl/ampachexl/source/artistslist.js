@@ -31,10 +31,13 @@ enyo.kind({
 		onOpenWeb: "",
 		onBannerMessage: "",
 		onPreviousView: "",
+		onSavePreferences: "",
 	},
 	
 	fullResultsList: [],
 	resultsList: [],
+	
+	sqlArray: [],
 	
 	components: [
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
@@ -143,13 +146,13 @@ enyo.kind({
 				
 				switch(singleArtistChildNode.nodeName) {
 					case "name":
-						s.name = singleArtistChildNode.childNodes[0].nodeValue;
+						s.name = singleArtistChildNode.childNodes[0].nodeValue.replace(/"/g,"");
 						break;
 					case "albums":
-						s.albums = singleArtistChildNode.childNodes[0].nodeValue;
+						s.albums = parseInt(singleArtistChildNode.childNodes[0].nodeValue);
 						break;
 					case "songs":
-						s.songs = singleArtistChildNode.childNodes[0].nodeValue;
+						s.songs = parseInt(singleArtistChildNode.childNodes[0].nodeValue);
 						break;
 				}
 				
@@ -158,18 +161,23 @@ enyo.kind({
 			s.type = "artist";
 		
 			this.fullResultsList.push(s);
-		
+			
+			this.sqlArray.push('INSERT INTO artists (id, name, albums, songs) VALUES ('+s.id+', "'+s.name+'", '+s.albums+', '+s.songs+');');
+
 		}
 		
 		this.fullResultsList.sort(sort_by("name", false));
 		
 		if(this.fullResultsList.length == AmpacheXL.connectResponse.artists) {
 			if(debug) this.log("was all artists, now saving");
+			
+			//if(debug) this.log("about to do sqlArray: "+enyo.json.stringify(this.sqlArray));
+			html5sql.process(this.sqlArray, enyo.bind(this, "insertSuccess"), enyo.bind(this, "insertFailure"));
 		
 			AmpacheXL.allArtists = this.fullResultsList.concat([]);
 			
 			AmpacheXL.prefsCookie.oldArtistsAuth  = AmpacheXL.connectResponse.auth;
-			window.localStorage.setItem("allArtists", enyo.json.stringify(AmpacheXL.allArtists));
+			//window.localStorage.setItem("allArtists", enyo.json.stringify(AmpacheXL.allArtists));
 		}
 		
 		//if(debug) this.log("fullResultsList: "+enyo.json.stringify(this.fullResultsList));
@@ -177,9 +185,45 @@ enyo.kind({
 		this.resetArtistsSearch();
 		
 	},
+	allArtists: function() {
+		if(debug) this.log("allArtists AmpacheXL.allArtists.length: "+AmpacheXL.allArtists.length+" AmpacheXL.connectResponse.artists: "+AmpacheXL.connectResponse.artists+" AmpacheXL.prefsCookie.oldArtistsCount: "+AmpacheXL.prefsCookie.oldArtistsCount);
+		
+		this.fullResultsList.length = 0;
+		this.resultsList.length = 0;
+		
+		if(AmpacheXL.allArtists.length == AmpacheXL.connectResponse.songs) {
+		
+			this.fullResultsList = AmpacheXL.allArtists.concat([]);
+			
+			this.resetArtistsSearch();
+		
+		} else if(AmpacheXL.prefsCookie.oldSongsCount == AmpacheXL.connectResponse.songs) {
+			if(debug) this.log("have correct number of saved artists in DB");
+			
+			this.doUpdateSpinner(true);
+			
+			//this.resultsList.splice(0,0,{title: "Loading locally saved "+AmpacheXL.connectResponse.artists+" songs", artist: "", album: "", track: AmpacheXL.connectResponse.songs, url: "", art: ""});
+			//this.$.artistsVirtualList.punt();
+			
+			html5sql.database.transaction(function(tx) {    
+				tx.executeSql('SELECT * FROM artists', 
+					[], 
+					enyo.bind(this, "selectResults"), 
+					enyo.bind(this, "selectFailure") 
+				);
+			}.bind(this));
+			
+		} else {
+			this.getArtists();
+		}
+	},
+	
 	
 	getArtists: function() {
 		if(debug) this.log("getArtists");
+		
+		html5sql.process("DELETE FROM artists;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
+		this.sqlArray.length = 0;
 		
 		this.doUpdateSpinner(true);
 		this.doDataRequest("artistsList", "artists", "");
@@ -318,6 +362,56 @@ enyo.kind({
 		this.doDataRequest("albumsList", "artist_albums", "&filter="+row.id);
 		this.doViewSelected("albumsList");
 				
+	},
+	
+	truncateSuccess: function() {
+		if(debug) this.log("truncateSuccess");
+		
+	},
+	truncateFailure: function() {
+		if(debug) this.error("truncateFailure");
+		
+	},
+	insertSuccess: function() {
+		if(debug) this.log("insertSuccess");
+		
+		AmpacheXL.prefsCookie.oldArtistsCount = this.fullResultsList.length;
+		
+		this.doSavePreferences();
+		
+	},
+	insertFailure: function(inError) {
+		if(debug) this.error("insertFailure: "+inError.message);
+		
+	},
+	selectResults: function(transaction, results) {
+		//if(debug) this.log("selectResults: "+enyo.json.stringify(results));
+		if(debug) this.log("selectResults");
+
+		for(var i = 0; i < results.rows.length; i++) {
+			var row = results.rows.item(i);
+			//if(debug) this.log("row: "+enyo.json.stringify(row));
+
+			row.type = "artist";
+			
+			this.fullResultsList.push(row);
+
+		}
+		
+		AmpacheXL.allArtists.length = 0;
+		AmpacheXL.allArtists = this.fullResultsList.concat([]);
+			
+		this.resetArtistsSearch();
+		
+	},
+	selectSuccess: function(results) {
+		if(debug) this.log("selectSuccess");
+		
+	},
+	selectFailure: function(inError) {
+		if(debug) this.error("selectFailure: "+inError.message);
+		
+		this.getArtists();
 	},
 	
 });
