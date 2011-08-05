@@ -65,9 +65,11 @@ enyo.kind({
 		]},
 		
 		{name: "footer", kind: "Toolbar", components: [
+			{name: "backCommandIcon", kind: "Control", className: "backCommandIcon", onclick: "doPreviousView"},
 			{kind: "Spacer"},
-			{caption: "Go Back", onclick: "backClick"},
+			//caption: "Go Back", onclick: "backClick"},
 			{kind: "Spacer"},
+			{name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
 		]},
 		
 	],

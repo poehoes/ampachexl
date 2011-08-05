@@ -259,6 +259,21 @@ enyo.kind({
 			this.getSongs();
 		}
 	},
+	localplaylistSongs: function(inPlaylistId, inAuth) {
+		if(debug) this.log("localplaylistSongs: "+inPlaylistId+" "+inAuth);
+	
+		this.localPlaylistId = inPlaylistId;
+		this.localPlaylistAuth = inAuth;
+		
+		html5sql.database.transaction(function(tx) {    
+			tx.executeSql('SELECT * FROM localplaylist_songs WHERE playlist_id = ?', 
+				[this.localPlaylistId], 
+				enyo.bind(this, "selectLocalplaylistSongsResults"), 
+				enyo.bind(this, "selectLocalplaylistSongsFailures") 
+			);
+		}.bind(this));
+	
+	},
 	
 	
 	getSongs: function() {
@@ -266,6 +281,8 @@ enyo.kind({
 		
 		this.doUpdateSpinner(true);
 		//this.doDataRequest("songsList", "songs", "&limit="+AmpacheXL.connectResponse.songs);
+		
+		AmpacheXL.prefsCookie.oldSongsCount = 0;
 		
 		html5sql.process("DELETE FROM songs;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
 		this.sqlArray.length = 0;
@@ -718,6 +735,8 @@ enyo.kind({
 		
 		this.doSavePreferences();
 		
+		if(window.PalmSystem) this.doBannerMessage("Finished saving songs");
+		
 	},
 	insertFailure: function(inError) {
 		if(debug) this.error("insertFailure: "+inError.message);
@@ -757,6 +776,41 @@ enyo.kind({
 		if(debug) this.error("selectFailure: "+inError.message);
 		
 		this.getSongs();
+	},
+	
+	selectLocalplaylistSongsResults: function(transaction, results) {
+		//if(debug) this.log("selectLocalplaylistSongsResults");
+		if(debug) this.log("selectLocalplaylistSongsResults: "+enyo.json.stringify(results.rows.item));
+		
+		var playlistSongs = [];
+		
+		for(var i = 0; i < results.rows.length; i++) {
+			var row = results.rows.item(i);
+			//if(debug) this.log("row: "+enyo.json.stringify(row));
+
+			row.type = "song";
+			row.art = row.oldArt.replace(this.localPlaylistAuth, AmpacheXL.connectResponse.auth);
+			row.url = row.oldUrl.replace(this.localPlaylistAuth, AmpacheXL.connectResponse.auth);
+			
+			playlistSongs.push(row);
+
+		}
+		
+		if(debug) this.log("playlistSongs: "+enyo.json.stringify(playlistSongs));
+		
+		this.fullResultsList.length = 0;
+		this.fullResultsList = playlistSongs;
+		
+		this.resetSongsSearch();
+		
+		this.doUpdateSpinner(false);
+	},
+	selectLocalplaylistSongsFailures: function() {
+		if(debug) this.log("selectLocalplaylistSongsFailures");
+		
+		this.doUpdateSpinner(false);
+		
+		this.doBannerMessage("Error getting local playlist songs", true);
 	},
 	
 });

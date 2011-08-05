@@ -28,13 +28,15 @@ AmpacheXL.prefsCookie;
 
 AmpacheXL.connected = false;
 
+AmpacheXL.localPlaylists = [];
+
 AmpacheXL.nowplaying = [];
 
-AmpacheXL.allArtists = [];
-AmpacheXL.allAlbums = [];
-AmpacheXL.allPlaylists = [];
-AmpacheXL.allTags = [];
 AmpacheXL.allSongs = [];
+AmpacheXL.allAlbums = [];
+AmpacheXL.allArtists = [];
+AmpacheXL.allTags = [];
+AmpacheXL.allPlaylists = [];
 AmpacheXL.allVideos = [];
 
 AmpacheXL.currentSong = {};
@@ -53,6 +55,7 @@ enyo.kind({
 	bannerMessageId: "",
 	
 	components: [
+	
 		{kind: "ApplicationEvents", onLoad: "appLoaded", onUnload: "appUnloaded", onError: "appError", onWindowActivated: "windowActivated", onWindowDeactivated: "windowDeactivated", onBack: "backHandler", onWindowParamsChange: "windowParamsChangeHandler"},
 		
 		{name: "lockVolumeKeysService", kind: "PalmService", service: "palm://com.palm.audio/media/", method: "lockVolumeKeys", subscribe: true, foregroundApp: true, onSuccess: "lockVolumeKeysResponse", onFailure: "lockVolumeKeysFailure"},
@@ -104,9 +107,9 @@ enyo.kind({
 			]},
 			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 				{name: "startingPane", kind: "ListSelector", label: "Starting view after login", onChange: "startingPaneSelect", flex: 1, items: [
-					//caption: "Random Album", value: "random"},
 					{caption: "Songs", value: "songsList"},
 					{caption: "Albums", value: "albumsList"},
+					{caption: "Random Album", value: "random"},
 					{caption: "Artists", value: "artistsList"},
 					{caption: "Genres", value: "tagsList"},
 					{caption: "Playlists", value: "playlistsList"},
@@ -188,7 +191,7 @@ enyo.kind({
 				
 				{name: "artistsList", kind: "ArtistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
 				{name: "albumsList", kind: "AlbumsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
-				{name: "playlistsList", kind: "PlaylistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
+				{name: "playlistsList", kind: "PlaylistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences", onUpdateCounts: "updateCounts", onLocalplaylistSongs: "localplaylistSongs"},
 				{name: "tagsList", kind: "TagsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
 				
 				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onNowplayingUpdated: "nowplayingUpdated", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
@@ -219,7 +222,7 @@ enyo.kind({
 			if(AmpacheXL.prefsCookie.bannerOnPlayback == null) AmpacheXL.prefsCookie.bannerOnPlayback = true;
 			
 			
-			if(AmpacheXL.prefsCookie.allowMetrix) setTimeout(enyo.bind(this,"submitMetrix"),10000);
+			if(AmpacheXL.prefsCookie.allowMetrix) setTimeout(enyo.bind(this,"submitMetrix"),60000);
 			if(AmpacheXL.prefsCookie.autoLogin) setTimeout(enyo.bind(this,"ampacheConnect"),50);
 			
 		} else {
@@ -243,10 +246,16 @@ enyo.kind({
 		//this.activate();
 		
 		html5sql.openDatabase("ext:com.thewbman.ampachexl","AmpacheXL Database", 10*1024*1024);
+		html5sql.changeVersion("","v5", "CREATE TABLE songs (id INTEGER, title TEXT, artist TEXT, artist_id INTEGER, album TEXT, album_id INTEGER, track INTEGER, time INTEGER, oldUrl TEXT, oldArt TEXT); CREATE TABLE artists (id INTEGER, name TEXT, albums TEXT, songs INTEGER); CREATE TABLE albums (id INTEGER, name TEXT, artist TEXT, artist_id INTEGER, tracks INTEGER, year TEXT, oldArt TEXT); CREATE TABLE localplaylist_songs (playlist_id INTEGER, id INTEGER, title TEXT, artist TEXT, artist_id INTEGER, album TEXT, album_id INTEGER, track INTEGER, time INTEGER, oldUrl TEXT, oldArt TEXT); CREATE TABLE localplaylists (playlist_id INTEGER PRIMARY KEY, name TEXT, items INTEGER, source TEXT, oldAuth TEXT)", enyo.bind(this, "changeVersion1Success"), enyo.bind(this, "changeVersion1Failure"));
+		
 		//html5sql.changeVersion("","v1", "CREATE TABLE songs (id INTEGER, title TEXT, artist TEXT, artist_id INTEGER, album TEXT, album_id INTEGER, track INTEGER, time INTEGER, oldUrl TEXT, oldArt TEXT)", enyo.bind(this, "changeVersion1Success"), enyo.bind(this, "changeVersion1Failure"));
 		//html5sql.changeVersion("v1","v2", "CREATE TABLE artists (id INTEGER, name TEXT, albums TEXT, songs INTEGER)", enyo.bind(this, "changeVersion2Success"), enyo.bind(this, "changeVersion2Failure"));
 		//html5sql.changeVersion("v2","v3", "CREATE TABLE albums (id INTEGER, name TEXT, artist TEXT, artist_id INTEGER, tracks INTEGER, year TEXT, oldArt TEXT)", enyo.bind(this, "changeVersion1Success"), enyo.bind(this, "changeVersion1Failure"));
-		html5sql.changeVersion("","v3", "CREATE TABLE songs (id INTEGER, title TEXT, artist TEXT, artist_id INTEGER, album TEXT, album_id INTEGER, track INTEGER, time INTEGER, oldUrl TEXT, oldArt TEXT); CREATE TABLE artists (id INTEGER, name TEXT, albums TEXT, songs INTEGER); CREATE TABLE albums (id INTEGER, name TEXT, artist TEXT, artist_id INTEGER, tracks INTEGER, year TEXT, oldArt TEXT)", enyo.bind(this, "changeVersion1Success"), enyo.bind(this, "changeVersion1Failure"));
+		//html5sql.changeVersion("","v3", "CREATE TABLE songs (id INTEGER, title TEXT, artist TEXT, artist_id INTEGER, album TEXT, album_id INTEGER, track INTEGER, time INTEGER, oldUrl TEXT, oldArt TEXT); CREATE TABLE artists (id INTEGER, name TEXT, albums TEXT, songs INTEGER); CREATE TABLE albums (id INTEGER, name TEXT, artist TEXT, artist_id INTEGER, tracks INTEGER, year TEXT, oldArt TEXT)", enyo.bind(this, "changeVersion1Success"), enyo.bind(this, "changeVersion1Failure"));
+		
+		//html5sql.changeVersion("v3","v4", "CREATE TABLE localplaylist_songs (playlist_id INTEGER, id INTEGER, title TEXT, artist TEXT, artist_id INTEGER, album TEXT, album_id INTEGER, track INTEGER, time INTEGER, oldUrl TEXT, oldArt TEXT)", enyo.bind(this, "changeVersion4Success"), enyo.bind(this, "changeVersion4Failure"));
+		//html5sql.changeVersion("v4","v5", "CREATE TABLE localplaylists (playlist_id INTEGER PRIMARY KEY, name TEXT, items INTEGER, source TEXT, oldAuth TEXT)", enyo.bind(this, "changeVersion5Success"), enyo.bind(this, "changeVersion5Failure"));
+		html5sql.changeVersion("v3","v5", "CREATE TABLE localplaylist_songs (playlist_id INTEGER, id INTEGER, title TEXT, artist TEXT, artist_id INTEGER, album TEXT, album_id INTEGER, track INTEGER, time INTEGER, oldUrl TEXT, oldArt TEXT); CREATE TABLE localplaylists (playlist_id INTEGER, name TEXT, items INTEGER, source TEXT, oldAuth TEXT)", enyo.bind(this, "changeVersion5Success"), enyo.bind(this, "changeVersion5Failure"));
 		
 	},
 	
@@ -460,6 +469,8 @@ enyo.kind({
 		
 		this.updateCounts();
 		
+		this.$.searchPopup.close();
+		
 		if(inItem == "searchSelector") {
 			this.$.searchPopup.openAtCenter();
 		} else {
@@ -557,20 +568,29 @@ enyo.kind({
 		
 		this.$.playback.queueNextSong(inSong);
 	},
-	allItems: function(inSender, inView) {
+	allItems: function(inSender, inView, inOther) {
 		if(debug) this.log("allItems: "+inView);
 		
 		switch(inView) {
-			case "artistsList":
-				this.$.artistsList.allArtists();
+			case "songsList":
+				this.$.songsList.allSongs(inOther);
 				break;
 			case "albumsList":
-				this.$.albumsList.allAlbums();
+				this.$.albumsList.allAlbums(inOther);
 				break;
-			case "songsList":
-				this.$.songsList.allSongs();
+			case "artistsList":
+				this.$.artistsList.allArtists(inOther);
 				break;
+			case "playlistsList":
+				this.$.playlistsList.allPlaylists(inOther);
+				break;
+			
 		}
+	},
+	localplaylistSongs: function(inSender, inPlaylistId, inAuth) {
+		if(debug) this.log("localplaylistSongs: "+inPlaylistId+" "+inAuth);
+		
+		this.$.songsList.localplaylistSongs(inPlaylistId, inAuth);
 	},
 	
 	backHandler: function(inSender, e) {
@@ -650,6 +670,10 @@ enyo.kind({
 		} catch(e) {
 			this.log(e);
 		}
+
+		AmpacheXL = {};
+		
+		if(window.PalmSystem) window.close();
 	},
 	
 	lockVolumeKeysResponse: function(inSender, inResponse) {
@@ -668,7 +692,7 @@ enyo.kind({
 	},
 	ampacheConnectResponse: function(inSender, inResponse) {
 		if(debug) this.log("ampacheConnectResponse");
-		if(debug) this.log("ampacheConnectResponse: "+inResponse);
+		//if(debug) this.log("ampacheConnectResponse: "+inResponse);
 		
 		AmpacheXL.connected = true;
 		
@@ -744,14 +768,17 @@ enyo.kind({
 				*/
 				
 				switch(AmpacheXL.prefsCookie.startingPane) {
-					case "random2":
-						if(AmpacheXL.allAlbums.length > 0) {
+					case "random":
+						/*if(AmpacheXL.allAlbums.length > 0) {
 							this.$.rightContent.selectViewByName("random");
 						} else {
 							this.updateSpinner("AmpacheXL", true);
 							this.dataRequest("AmpacheXL", "albumsList", "albums", "");
 							this.$.rightContent.selectViewByName("albumsList");
-						}
+						}*/
+						this.allItems("albumsList", "albumsList", "random");
+						this.$.rightContent.selectViewByName("albumsList");
+						break;
 						break;
 					case "songsList":
 						this.allItems("songsList", "songsList");
@@ -786,8 +813,10 @@ enyo.kind({
 						this.$.rightContent.selectViewByName("tagsList");
 						break;
 					case "playlistsList":
-						this.updateSpinner("AmpacheXL", true);
-						this.dataRequest("AmpacheXL", "playlistsList", "playlists", "");
+						//this.updateSpinner("AmpacheXL", true);
+						//this.dataRequest("AmpacheXL", "playlistsList", "playlists", "");
+						//this.$.rightContent.selectViewByName("playlistsList");
+						setTimeout(enyo.bind(this, "allItems", "playlistsList", "playlistsList"),500);
 						this.$.rightContent.selectViewByName("playlistsList");
 						break;
 					case "videosList":
@@ -821,6 +850,14 @@ enyo.kind({
 			}
 			
 			AmpacheXL.pingInterval = setInterval(enyo.bind(this, "ampachePing"),5000);
+			
+			html5sql.database.transaction(function(tx) {    
+				tx.executeSql('SELECT * FROM localplaylists', 
+					[], 
+					enyo.bind(this, "localplaylistsSelectResults"), 
+					enyo.bind(this, "localplaylistsSelectFailure") 
+				);
+			}.bind(this));
 		
 		} catch(e) {
 		
@@ -891,6 +928,8 @@ enyo.kind({
 		var currentUTC = currentTime.getTime();
 		var timeRemaining = expiresUTC - currentUTC;
 		timeRemaining *= 0.45;
+		
+		timeRemaining = Math.min(timeRemaining, 120);
 		
 		if(debug) this.log("ping session expires "+AmpacheXL.session_expire+" so we will ping in "+parseInt(timeRemaining/1000)+" seconds");
 		
@@ -994,6 +1033,53 @@ enyo.kind({
 	},
 	changeVersion3Failure: function() {
 		if(debug) this.error("changeVersion3Failure");
+		
+	},
+	changeVersion4Success: function() {
+		if(debug) this.log("changeVersion4Success");
+		
+	},
+	changeVersion4Failure: function() {
+		if(debug) this.error("changeVersion4Failure");
+		
+	},
+	changeVersion5Success: function() {
+		if(debug) this.log("changeVersion5Success");
+		
+	},
+	changeVersion5Failure: function() {
+		if(debug) this.error("changeVersion5Failure");
+		
+	},
+	
+	localplaylistsSelectResults: function(transaction, results) {
+		//if(debug) this.log("localplaylistsSelectResults: "+enyo.json.stringify(results));
+		if(debug) this.log("localplaylistsSelectResults");
+
+		var playlists = [];
+		
+		for(var i = 0; i < results.rows.length; i++) {
+			var row = results.rows.item(i);
+			//if(debug) this.log("row: "+enyo.json.stringify(row));
+			
+			//(playlist_id INTEGER PRIMARY KEY, name TEXT, items INTEGER, source TEXT, oldAuth TEXT)
+
+			row.type = "playlist";
+			
+			playlists.push(row);
+
+		}
+		
+		AmpacheXL.localPlaylists.length = 0;
+		AmpacheXL.localPlaylists = playlists;
+		
+		if(debug) this.log("AmpacheXL.localPlaylists: "+enyo.json.stringify(AmpacheXL.localPlaylists));
+		
+		this.updateCounts();
+		
+	},
+	localplaylistsSelectFailure: function(inError) {
+		if(debug) this.error("localplaylistsSelectFailure: "+inError.message);
 		
 	},
 	

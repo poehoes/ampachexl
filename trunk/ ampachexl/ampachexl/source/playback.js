@@ -78,15 +78,15 @@ enyo.kind({
 		
 		//this.render();
 		
-		AmpacheXL.currentAudioObjectIndex = 0;
-		AmpacheXL.nextAudioObjectIndex = 1;
+		AmpacheXL.currentAudioObjectIndex = 1;
+		AmpacheXL.nextAudioObjectIndex = 0;
 		AmpacheXL.audioObjects = [];
 		
 		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex] = new Audio();
 		AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex] = new Audio();
 		
-		//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
-		//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
+		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
+		AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
 		
 		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("playing", enyo.bind(this, "playingEvent"), false);
 		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("pause", enyo.bind(this, "pauseEvent"), false);
@@ -177,11 +177,28 @@ enyo.kind({
 		if(debug) this.log("queueNextSong for index "+AmpacheXL.nextAudioObjectIndex+": "+enyo.json.stringify(inSongObject));
 		
 		if(inSongObject.url == AmpacheXL.nextSong.url) {
+		
 			if(debug) this.log("we have already queued this song at index: "+AmpacheXL.nextAudioObjectIndex);
-		} else {
-			if(debug) this.log("is a new song - queue it up at index: "+AmpacheXL.audioObjects.length);
 			
-			AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex] = "nothing";
+		} else if(false) {
+		
+			if(debug) this.log("is a new song - queue it up at previous index: "+AmpacheXL.nextAudioObjectIndex);
+			
+			AmpacheXL.nextSong = inSongObject;
+			
+			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
+			
+			AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].src = inSongObject.url;
+			
+		} else {
+		
+			if(debug) this.log("is a new song - queue it up at index: "+AmpacheXL.audioObjects.length+" and removing old at "+AmpacheXL.nextAudioObjectIndex);
+			
+			AmpacheXL.audioObjects.splice(AmpacheXL.nextAudioObjectIndex,1);
+
+			if(AmpacheXL.currentAudioObjectIndex > AmpacheXL.nextAudioObjectIndex) {
+				AmpacheXL.currentAudioObjectIndex--;
+			}
 			
 			AmpacheXL.nextSong = inSongObject;
 			

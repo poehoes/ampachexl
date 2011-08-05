@@ -2,14 +2,12 @@ Todo:
 
  - sort lists
  - coverflow?
- - help
  - download
  - dont update when deactivated
  - add recent and random to left menu?
  - bind volume keys to media?
  - save local playlists
  - last.fm (http://www.last.fm/api)
- - preferences banner on song change
  - bluetooth media controls
  - details view from click on playback
  

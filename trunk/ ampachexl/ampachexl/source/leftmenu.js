@@ -124,7 +124,7 @@ enyo.kind({
 		if(AmpacheXL.connectResponse) {
 			this.$.artistsItemCount.setContent(AmpacheXL.connectResponse.artists);
 			this.$.albumsItemCount.setContent(AmpacheXL.connectResponse.albums);
-			this.$.playlistsItemCount.setContent(AmpacheXL.connectResponse.playlists);
+			this.$.playlistsItemCount.setContent(AmpacheXL.localPlaylists.length+"+"+AmpacheXL.connectResponse.playlists);
 			this.$.songsItemCount.setContent(AmpacheXL.connectResponse.songs);
 			if(AmpacheXL.connectResponse.tags) this.$.tagsItemCount.setContent(AmpacheXL.connectResponse.tags);
 			this.$.videosItemCount.setContent(AmpacheXL.connectResponse.videos);
@@ -170,10 +170,7 @@ enyo.kind({
 				this.doViewSelected("albumsList");
 				break;
 			case "playlistsItem":
-				if(AmpacheXL.allPlaylists.length == 0) {
-					this.doUpdateSpinner(true);
-					this.doDataRequest("playlistsList", "playlists", "");
-				}
+				this.doAllItems("playlistsList");
 				this.doViewSelected("playlistsList");
 				break;
 			case "songsItem":
