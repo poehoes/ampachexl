@@ -191,7 +191,7 @@ enyo.kind({
 		this.fullResultsList.length = 0;
 		this.resultsList.length = 0;
 		
-		if(AmpacheXL.allArtists.length == AmpacheXL.connectResponse.songs) {
+		if(AmpacheXL.allArtists.length == AmpacheXL.connectResponse.artists) {
 		
 			this.fullResultsList = AmpacheXL.allArtists.concat([]);
 			
@@ -221,6 +221,8 @@ enyo.kind({
 	
 	getArtists: function() {
 		if(debug) this.log("getArtists");
+		
+		AmpacheXL.prefsCookie.oldArtistsCount = 0;
 		
 		html5sql.process("DELETE FROM artists;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
 		this.sqlArray.length = 0;
@@ -378,6 +380,8 @@ enyo.kind({
 		AmpacheXL.prefsCookie.oldArtistsCount = this.fullResultsList.length;
 		
 		this.doSavePreferences();
+		
+		if(window.PalmSystem) this.doBannerMessage("Finished saving artists");
 		
 	},
 	insertFailure: function(inError) {

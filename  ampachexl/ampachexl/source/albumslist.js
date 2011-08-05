@@ -66,11 +66,12 @@ enyo.kind({
 		
 		{name: "footer", kind: "Toolbar", layoutKind: "HFlexLayout", components: [
 			{name: "backCommandIcon", kind: "Control", className: "backCommandIcon", onclick: "doPreviousView"},
+			{name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
 			{kind: "Spacer"},
 			{name: "refreshCommandButton", icon: "images/menu-icon-refresh.png", onclick: "getAlbums"},
 			{kind: "Spacer"},
 			{caption: "Random", onclick: "randomClick"},
-			{name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
+			//name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
 		]},
 	],
 	
@@ -208,7 +209,7 @@ enyo.kind({
 		this.resetAlbumsSearch();
 		
 	},
-	allAlbums: function() {
+	allAlbums: function(inOther) {
 		if(debug) this.log("allAlbums AmpacheXL.allAlbums.length: "+AmpacheXL.allAlbums.length+" AmpacheXL.connectResponse.albums: "+AmpacheXL.connectResponse.albums+" AmpacheXL.prefsCookie.oldAlbumsCount: "+AmpacheXL.prefsCookie.oldAlbumsCount);
 		
 		this.fullResultsList.length = 0;
@@ -219,9 +220,13 @@ enyo.kind({
 			this.fullResultsList = AmpacheXL.allAlbums.concat([]);
 			
 			this.resetAlbumsSearch();
+			
+			if(inOther == "random") this.doViewSelected("random");
 		
 		} else if(AmpacheXL.prefsCookie.oldAlbumsCount == AmpacheXL.connectResponse.albums) {
 			if(debug) this.log("have correct number of saved albums in DB");
+			
+			if(inOther == "random") this.showRandom = true;
 			
 			this.doUpdateSpinner(true);
 			
@@ -244,6 +249,8 @@ enyo.kind({
 	
 	getAlbums: function() {
 		if(debug) this.log("getAlbums");
+		
+		AmpacheXL.prefsCookie.oldAlbumsCount = 0;
 		
 		html5sql.process("DELETE FROM albums;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
 		this.sqlArray.length = 0;
@@ -451,6 +458,8 @@ enyo.kind({
 		
 		this.doSavePreferences();
 		
+		if(window.PalmSystem) this.doBannerMessage("Finished saving albums");
+		
 	},
 	insertFailure: function(inError) {
 		if(debug) this.error("insertFailure: "+inError.message);
@@ -473,8 +482,10 @@ enyo.kind({
 		
 		AmpacheXL.allAlbums.length = 0;
 		AmpacheXL.allAlbums = this.fullResultsList.concat([]);
-			
+		
 		this.resetAlbumsSearch();
+		
+		if(this.showRandom) this.doViewSelected("random");;
 		
 	},
 	selectSuccess: function(results) {

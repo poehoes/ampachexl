@@ -31,6 +31,8 @@ enyo.kind({
 		onOpenWeb: "",
 		onBannerMessage: "",
 		onPreviousView: "",
+		onUpdateCounts: "",
+		onLocalplaylistSongs: "",
 	},
 	
 	fullResultsList: [],
@@ -51,20 +53,23 @@ enyo.kind({
 							
 		{name: "playlistsVirtualList", kind: "VirtualList", onSetupRow: "setupPlaylistsItem", flex: 1, components: [
 			{name: "playlistsDivider", kind: "Divider"},
-			{name: "playlistsItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", onclick: "playlistsClick", components: [
-				{kind: "VFlexBox", flex: 1, components: [
+			{name: "playlistsItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", components: [
+				{kind: "VFlexBox", flex: 1, onclick: "playlistsClick", components: [
 					{name: "playlistsTitle", className: "title"},
 					{name: "playlistsSongCount", className: "subtitle"},
 				]},
+				{name: "playlistsRemove", kind: "Image", onclick: "playlistsRemove", src: "images/11-x@2x-light.png", className: "playlistsRemove"},
 			]},
+			
 		]},
 		
 		{name: "footer", kind: "Toolbar", layoutKind: "HFlexLayout", components: [
 			{name: "backCommandIcon", kind: "Control", className: "backCommandIcon", onclick: "doPreviousView"},
+			{name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
 			{kind: "Spacer"},
 			{name: "refreshCommandButton", icon: "images/menu-icon-refresh.png", onclick: "getPlaylists"},
 			{kind: "Spacer"},
-			{name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
+			{caption: "New", onclick: "newClick"},
 		]},
 	],
 	
@@ -140,7 +145,7 @@ enyo.kind({
 						s.items = singlePlaylistChildNode.childNodes[0].nodeValue;
 						break;
 					case "type":
-						s.type = singlePlaylistChildNode.childNodes[0].nodeValue;
+						//s.type = singlePlaylistChildNode.childNodes[0].nodeValue;
 						break;
 				}
 				
@@ -153,16 +158,39 @@ enyo.kind({
 		
 		}
 		
-		this.fullResultsList.sort(sort_by("name", false));
-		
 		if(this.fullResultsList.length == AmpacheXL.connectResponse.playlists) {
 			AmpacheXL.allPlaylists = this.fullResultsList.concat([]);
 		}
+		
+		this.fullResultsList.length = 0;
+		this.fullResultsList = AmpacheXL.allPlaylists.concat(AmpacheXL.localPlaylists);
+		
+		this.fullResultsList.sort(double_sort_by("source", "name", false));
 		
 		//if(debug) this.log("fullResultsList: "+enyo.json.stringify(this.fullResultsList));
 		
 		this.resetPlaylistsSearch();
 		
+	},
+	allPlaylists: function() {
+		if(debug) this.log("allArtists AmpacheXL.allPlaylists.length: "+AmpacheXL.allPlaylists.length+" AmpacheXL.connectResponse.playlists: "+AmpacheXL.connectResponse.playlists);
+		
+		this.fullResultsList.length = 0;
+		this.resultsList.length = 0;
+		
+		if(AmpacheXL.allPlaylists.length == AmpacheXL.connectResponse.playlists) {
+		
+			this.fullResultsList = AmpacheXL.allPlaylists.concat(AmpacheXL.localPlaylists);
+		
+			this.fullResultsList.sort(double_sort_by("source", "name", false));
+		
+			this.resetPlaylistsSearch();
+			
+			this.doUpdateCounts();
+		
+		} else {
+			this.getPlaylists();
+		}
 	},
 	
 	getPlaylists: function() {
@@ -183,6 +211,8 @@ enyo.kind({
 	},
 	finishedGettingPlaylists: function() {
 		if(debug) this.log("finishedGettingPlaylists");
+		
+		this.doUpdateCounts();
 		
 		this.resultsList.length = 0;
 		this.resultsList = this.filterPlaylists(this.fullResultsList);
@@ -230,6 +260,11 @@ enyo.kind({
 				this.$.playlistsSongCount.setContent(row.items+" items");
 			}
 			
+			if(row.source == "Local") {
+				this.$.playlistsRemove.show();
+			} else {
+				this.$.playlistsRemove.hide();
+			}
 			
 			return true;
 		
@@ -265,6 +300,11 @@ enyo.kind({
 		
 		this.$.playlistsVirtualList.punt();
 	},
+	newClick: function() {
+		if(debug) this.log("newClick");
+		
+		this.doBannerMessage("To create a new playlist create one from the Now Playing list", true);
+	},
 	playlistsInput: function() {
 		if(debug) this.log("playlistsInput: "+this.$.playlistsSearchInput.getValue());
 		
@@ -294,10 +334,126 @@ enyo.kind({
 		
 		if(debug) this.log("playlistsClick: "+enyo.json.stringify(row));
 		
-		this.doUpdateSpinner(true);
-		this.doDataRequest("songsList", "playlist_songs", "&filter="+row.id);
-		this.doViewSelected("songsList");
-				
+		if(row.source == "Server") {
+		
+			this.doUpdateSpinner(true);
+			this.doDataRequest("songsList", "playlist_songs", "&filter="+row.id);
+			this.doViewSelected("songsList");
+			
+		} else if(row.source == "Local"){
+			this.doUpdateSpinner(true);
+			this.doLocalplaylistSongs(row.playlist_id, row.oldAuth);
+			this.doViewSelected("songsList");
+			
+			/*
+			this.localPlaylistId = row.playlist_id;
+			this.localPlaylistAuth = row.oldAuth;
+			
+			html5sql.database.transaction(function(tx) {    
+				tx.executeSql('SELECT * FROM localplaylist_songs WHERE playlist_id = ?', 
+					[this.localPlaylistId], 
+					enyo.bind(this, "selectLocalplaylistSongsResults"), 
+					enyo.bind(this, "selectLocalplaylistSongsFailures") 
+				);
+			}.bind(this));
+			*/
+		}	
+		
+	},
+	playlistsRemove: function(inSender, inEvent) {
+		if(debug) this.log("playlistsRemove: "+inEvent.rowIndex);
+		
+		this.localPlaylistId = this.resultsList[inEvent.rowIndex].playlist_id;
+		
+		//ask to confirm
+		
+		html5sql.process("DELETE FROM localplaylists WHERE playlist_id = "+this.localPlaylistId+"; DELETE FROM localplaylist_songs WHERE playlist_id = "+this.localPlaylistId, enyo.bind(this, "deletePlaylistSuccess"), enyo.bind(this, "deletePlaylistFailure"));
+		
+	},
+	selectLocalplaylistSongsResults: function(transaction, results) {
+		//if(debug) this.log("selectLocalplaylistSongsResults");
+		if(debug) this.log("selectLocalplaylistSongsResults: "+enyo.json.stringify(results.rows.item));
+		
+		var playlistSongs = [];
+		
+		for(var i = 0; i < results.rows.length; i++) {
+			var row = results.rows.item(i);
+			//if(debug) this.log("row: "+enyo.json.stringify(row));
+
+			row.type = "song";
+			row.art = row.oldArt.replace(this.localPlaylistAuth, AmpacheXL.connectResponse.auth);
+			row.url = row.oldUrl.replace(this.localPlaylistAuth, AmpacheXL.connectResponse.auth);
+			
+			playlistSongs.push(row);
+
+		}
+		
+		if(debug) this.log("playlistSongs: "+enyo.json.stringify(playlistSongs));
+		
+		this.doUpdateSpinner(false);
+	},
+	selectLocalplaylistSongsFailures: function() {
+		if(debug) this.log("selectLocalplaylistSongsFailures");
+		
+		this.doUpdateSpinner(false);
+		
+		this.doBannerMessage("Error getting local playlist songs", true);
+	},
+	deletePlaylistSuccess: function() {
+		if(debug) this.log("deletePlaylistSuccess");
+		
+		this.doBannerMessage("Successfully deleted playlist");
+		
+		html5sql.database.transaction(function(tx) {    
+			tx.executeSql('SELECT * FROM localplaylists', 
+				[], 
+				enyo.bind(this, "localplaylistsSelectResults"), 
+				enyo.bind(this, "localplaylistsSelectFailure") 
+			);
+		}.bind(this));
+	},
+	deletePlaylistFailure: function() {
+		if(debug) this.log("deletePlaylistFailure");
+		
+		this.doBannerMessage("Error deleting playlist", true);
+	},
+	
+	localplaylistsSelectResults: function(transaction, results) {
+		//if(debug) this.log("localplaylistsSelectResults: "+enyo.json.stringify(results));
+		if(debug) this.log("localplaylistsSelectResults");
+
+		var playlists = [];
+		
+		for(var i = 0; i < results.rows.length; i++) {
+			var row = results.rows.item(i);
+			//if(debug) this.log("row: "+enyo.json.stringify(row));
+			
+			//(playlist_id INTEGER PRIMARY KEY, name TEXT, items INTEGER, source TEXT, oldAuth TEXT)
+
+			row.type = "playlist";
+			
+			playlists.push(row);
+
+		}
+		
+		AmpacheXL.localPlaylists.length = 0;
+		AmpacheXL.localPlaylists = playlists;
+		
+		//if(debug) this.log("AmpacheXL.localPlaylists: "+enyo.json.stringify(AmpacheXL.localPlaylists));
+		
+		this.doUpdateCounts();
+		
+		this.fullResultsList.length = 0;
+		this.fullResultsList = AmpacheXL.allPlaylists.concat(AmpacheXL.localPlaylists);
+		
+		this.fullResultsList.sort(double_sort_by("source", "name", false));
+		
+		this.resetPlaylistsSearch();
+		
+	},
+	localplaylistsSelectFailure: function(inError) {
+		if(debug) this.error("localplaylistsSelectFailure: "+inError.message);
+		
 	},
 	
 });

@@ -40,6 +40,13 @@ enyo.kind({
 	nowplayingMouseTimer: "",
 	
 	components: [
+	
+		{name: "savePopup", kind: "Popup", lazy2: false, onBeforeOpen: "beforeSavePopupOpen", onOpen: "savePopupOpen", showKeyboardWhenOpening: true, scrim: true, components: [
+			{content: "Save local playlist", style: "text-align: center; font-size: larger;"},
+			{name: "saveInput", kind: "Input", autoCapitalize: "lowercase"},
+			{kind: "Button", caption: "Save", onclick:"saveNew"},
+		]},
+		
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
 			{name: "headerTitle", kind: "Control", content: "Now Playing", className: "headerTitle"},
 			{name: "headerSubtitle", kind: "Control", className: "headerSubtitle"},
@@ -73,6 +80,7 @@ enyo.kind({
 			{name: "editButton", caption: "Edit", onclick: "editClick"},
 			{kind: "Spacer"},
 			{name: "backCommandIconSpacer", kind: "Control", className: "backCommandIconSpacer"},
+			{name: "saveButton", caption: "Save", onclick: "saveClick"},
 		]},
 		
 		{name: "sortPopupMenu", kind: "PopupSelect", className: "sortPopupMenu", onBeforeOpen2: "beforeSortOpen", onSelect: "sortSelect", onClose: "sortClosed", components: [
@@ -85,6 +93,10 @@ enyo.kind({
 		{name: "morePopupMenu", kind: "PopupSelect", className: "morePopupMenu", scrim: true, onBeforeOpen2: "beforeMoreOpen", onSelect: "moreSelect", onClose: "moreClosed", components: [
 			//
 		]},
+		
+		//name: "savePopupMenu", kind: "PopupSelect", className: "savePopupMenu", scrim: true, onBeforeOpen2: "beforeMoreOpen", onSelect: "saveSelect", onClose: "saveClosed", components: [
+			//
+		//]},
 	],
 	
 	create: function() {
@@ -418,6 +430,42 @@ enyo.kind({
 		this.$.nowplayingVirtualList.refresh();
 		
 	},
+	saveClick: function(inSender, inEvent) {
+		if(debug) this.log("saveClick");
+		
+		//this.$.savePopupMenu.setItems([]);
+		//this.$.savePopupMenu.openAtEvent(inEvent);
+		
+		this.$.savePopup.openAtCenter();
+	},
+	beforeSavePopupOpen: function() {
+		if(debug) this.log("beforeSavePopupOpen");
+	
+		this.$.saveInput.setValue("");
+	},
+	savePopupOpen: function() {
+		if(debug) this.log("savePopupOpen");
+		
+		this.$.saveInput.forceFocusEnableKeyboard();
+	},
+	saveNew: function() {
+		if(debug) this.log("saveNew: "+this.$.saveInput.getValue());
+		
+		var query = 'INSERT INTO localplaylists (name, items, source, oldAuth) VALUES ("'+this.$.saveInput.getValue()+'", '+AmpacheXL.nowplaying.length+', "Local", "'+AmpacheXL.connectResponse.auth+'")';	
+		
+		if(debug) this.log("query: "+query);
+		
+		//html5sql.process(query, enyo.bind(this, "insertLocalplaylistsSuccess"), enyo.bind(this, "insertLocalplaylistsFailure"));
+		
+		html5sql.database.transaction(function(tx) {    
+			tx.executeSql(query, 
+				[], 
+				enyo.bind(this, "insertLocalplaylistsSuccess"), 
+				enyo.bind(this, "insertLocalplaylistsFailure") 
+			);
+		}.bind(this));
+		
+	},
 	nowplayingMousedown: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingMousedown: "+this.$.nowplayingVirtualList.getScrollTop()) 
 		
@@ -670,6 +718,92 @@ enyo.kind({
 			this.doQueueNextSong(row);
 		
 		}
+	},
+	
+	insertLocalplaylistsSuccess: function(transaction, results) {
+		if(debug) this.log("insertLocalplaylistsSuccess: "+enyo.json.stringify(results));
+		
+		if(debug) this.log("insertLocalplaylistsSuccess: "+results.insertId);
+		
+		this.$.savePopup.close();
+		
+		this.doUpdateSpinner(true);
+		
+		var sqlArray = [];
+		var s = {};
+		
+		for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
+			s = {};
+			s = AmpacheXL.nowplaying[i];
+			
+			sqlArray.push('INSERT INTO localplaylist_songs (playlist_id, id, title, artist, artist_id, album, album_id, track, time, oldUrl, oldArt) VALUES ('+results.insertId+', '+s.id+', "'+s.title+'", "'+s.artist+'", '+s.artist_id+', "'+s.album+'", '+s.album_id+', '+s.track+', '+s.time+', "'+s.url+'", "'+s.art+'");');
+			
+		}
+		
+		//if(debug) this.log("about to do sqlArray: "+enyo.json.stringify(this.sqlArray));
+		html5sql.process(sqlArray, enyo.bind(this, "insertLocalplaylistsSongsSuccess"), enyo.bind(this, "insertLocalplaylistsSongsFailure"));
+		
+	},
+	insertLocalplaylistsFailure: function() {
+		if(debug) this.log("insertLocalplaylistsFailure");
+		
+		this.$.savePopup.close();
+		
+		this.doBannerMessage("Error inserting playlist name into local database", true);
+		
+	},
+	insertLocalplaylistsSongsSuccess: function() {
+		if(debug) this.log("insertLocalplaylistsSongsSuccess");
+		
+		this.doUpdateSpinner(false);
+		
+		this.doBannerMessage("Finished saving playlist");
+		
+		html5sql.database.transaction(function(tx) {    
+			tx.executeSql('SELECT * FROM localplaylists', 
+				[], 
+				enyo.bind(this, "localplaylistsSelectResults"), 
+				enyo.bind(this, "localplaylistsSelectFailure") 
+			);
+		}.bind(this));
+	},
+	insertLocalplaylistsSongsFailure: function() {
+		if(debug) this.log("insertLocalplaylistsSongsFailure");
+		
+		this.doUpdateSpinner(false);
+		
+		this.doBannerMessage("Error inserting playlist name into local database", true);
+		
+	},
+	localplaylistsSelectResults: function(transaction, results) {
+		//if(debug) this.log("localplaylistsSelectResults: "+enyo.json.stringify(results));
+		if(debug) this.log("localplaylistsSelectResults");
+
+		var playlists = [];
+		
+		for(var i = 0; i < results.rows.length; i++) {
+			var row = results.rows.item(i);
+			//if(debug) this.log("row: "+enyo.json.stringify(row));
+			
+			//(playlist_id INTEGER PRIMARY KEY, name TEXT, items INTEGER, source TEXT, oldAuth TEXT)
+
+			row.type = "playlist";
+			
+			playlists.push(row);
+
+		}
+		
+		AmpacheXL.localPlaylists.length = 0;
+		AmpacheXL.localPlaylists = playlists;
+		
+		if(debug) this.log("AmpacheXL.localPlaylists: "+enyo.json.stringify(AmpacheXL.localPlaylists));
+		
+		this.doUpdateCounts();
+		
+	},
+	localplaylistsSelectFailure: function(inError) {
+		if(debug) this.error("localplaylistsSelectFailure: "+inError.message);
+		
 	},
 	
 });

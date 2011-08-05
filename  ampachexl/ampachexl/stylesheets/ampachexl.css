@@ -148,7 +148,7 @@
 .dark .searchInputWrapper {
 	border-top: 1px solid silver;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-	min-height: 40px;
+	height: 43px;
 }
 
 .dark .searchInputWrapper .enyo-input-focus {
@@ -372,7 +372,7 @@
 .light .searchInputWrapper {
 	border-top: 1px solid #606060;
 	border-bottom: 1px solid rgba(0,0,0, 0.2);
-	min-height: 40px;
+	height: 43px;
 }
 
 .light .searchInputWrapper .enyo-input-focus {
