@@ -140,6 +140,7 @@ enyo.kind({
 			s = {};
 			
 			s.id = singleArtistNode.getAttributeNode("id").nodeValue;
+			s.artist_id = singleArtistNode.getAttributeNode("id").nodeValue;
 			
 			for(var j = 0; j < singleArtistNode.childNodes.length; j++) {
 				singleArtistChildNode = singleArtistNode.childNodes[j];
@@ -397,6 +398,7 @@ enyo.kind({
 			//if(debug) this.log("row: "+enyo.json.stringify(row));
 
 			row.type = "artist";
+			row.artist_id = row.id;
 			
 			this.fullResultsList.push(row);
 

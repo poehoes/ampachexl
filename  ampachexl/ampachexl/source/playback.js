@@ -1,5 +1,5 @@
 /*
- *   AmapcheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
+ *   AmpacheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
  *   http://code.google.com/p/ampachexl/
  *   Copyright (C) 2011  Wes Brown
  *
@@ -38,10 +38,11 @@ enyo.kind({
 	startPlayingTimer: "",
 	
 	components: [
-		
-		//{name: "leftMenuScroller", kind: "Scroller", flex: 1, components: [
-			
-			
+			/*
+			{name: "sound1", kind: "Sound", src: "media/empty.mp3", audioClass: "media"},
+			{name: "sound2", kind: "Sound", src: "media/empty.mp3", audioClass: "media"},
+			{name: "sound3", kind: "Sound", src: "media/empty.mp3", audioClass: "media"},
+			*/
 			{name: "songArt", kind: "Image"},
 			
 			{name: "songArtist", content: "&nbsp;", allowHtml: true, className: "playbackSongArtist truncating"},
@@ -53,12 +54,7 @@ enyo.kind({
 				{name: "songSlider", kind: "Slider", className: "songSlider", showing: false, position: 0, flex: 1, onChanging: "songSliderChanging", onChange: "songSliderChange", animationPosition: false},
 				{name: "totalTime", className: "playbackTime"},
 			]},
-		//]},
-		
-			//{name: "songSoundWrapper", className: "songSoundWrapper", showing: true, kind: "Item", layoutKind: "HFlexLayout", align: "center", pack: "center", components: [
-				//{name: "songVideo", kind: "Video", src: "", showControls: true, flex: 1, width: "280px", height: "25px"},
-				{name: "songSound", kind: "Sound", src: "", showControls: true, flex: 1, width: "280px", height: "25px"},
-			//]},
+			
 			
 		{name: "footer", kind: "Toolbar", components: [
 			{kind: "Spacer"},
@@ -78,150 +74,52 @@ enyo.kind({
 		
 		//this.render();
 		
+		
+		
+		/*		
+		this.$[AmpacheXL.currentAudioObjectName].play();
+		*/
+		
+		/*
+		AmpacheXL.audioPlayer = new AudioPlayer(this);
+		AmpacheXL.audioPlayer.setNumBuffers(AmpacheXL.numBuffers);
+		AmpacheXL.audioPlayer.setPlaybackHandler(this);
+		*/
+		
+		/*
 		AmpacheXL.currentAudioObjectIndex = 1;
 		AmpacheXL.nextAudioObjectIndex = 0;
 		AmpacheXL.audioObjects = [];
-		
-		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex] = new Audio();
-		AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex] = new Audio();
-		
-		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
-		AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
-		
-		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("playing", enyo.bind(this, "playingEvent"), false);
-		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("pause", enyo.bind(this, "pauseEvent"), false);
-		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("timeupdate", enyo.bind(this, "timeupdateEvent"), false);
-		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("ended", enyo.bind(this, "endedEvent"), false);
-		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("error", enyo.bind(this, "errorEvent"), false);
-		//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("progress", enyo.bind(this, "progressEvent"), false);
-		
-		//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].addEventListener("progress", enyo.bind(this, "queueProgressEvent"), false);
+		*/
 		
 	},
 	
-	playSong: function(inSongObject) {
-		if(debug) this.log("playSong: "+enyo.json.stringify(inSongObject));
+	playSong: function(inSong) {
+		if(debug) this.log("playSong: "+enyo.json.stringify(inSong));
 		
-		clearTimeout(this.startPlayingTimer);
-		
-		AmpacheXL.currentSong = inSongObject;
-		
-		this.$.songSlider.show();
-		this.$.previous.show();
-		this.$.play.hide();
-		this.$.pause.show();
-		this.$.next.show();
-		
-		this.$.songArt.addClass("playbackSongArt");
-		this.$.songArt.setSrc(inSongObject.art);
-		
-		this.$.songArtist.setContent(inSongObject.artist);
-		this.$.songTitle.setContent(inSongObject.title);
-		this.$.songAlbum.setContent(inSongObject.album);
-		
-		this.render();
-		
-		if((window.PalmSystem)&&(AmpacheXL.prefsCookie.bannerOnPlayback)) this.doBannerMessage(inSongObject.artist+": "+inSongObject.title);
-		
-		if(inSongObject.url == AmpacheXL.nextSong.url) {
-			
-			if(debug) this.log("Already have next song queued, so switch indexes from "+AmpacheXL.currentAudioObjectIndex+" to "+AmpacheXL.nextAudioObjectIndex);
-			
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].removeEventListener("playing", enyo.bind(this, "playingEvent"), false);
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].removeEventListener("pause", enyo.bind(this, "pauseEvent"), false);
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].removeEventListener("timeupdate", enyo.bind(this, "timeupdateEvent"), false);
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].removeEventListener("ended", enyo.bind(this, "endedEvent"), false);
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].removeEventListener("error", enyo.bind(this, "errorEvent"), false);
-			//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].removeEventListener("progress", enyo.bind(this, "progressEvent"), false);
-			
-			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].removeEventListener("progress", enyo.bind(this, "queueProgressEvent"), false);
-			
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].pause();
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].src = "";
-			
-			var newIndex = AmpacheXL.currentAudioObjectIndex
-			AmpacheXL.currentAudioObjectIndex = AmpacheXL.nextAudioObjectIndex;
-			AmpacheXL.nextAudioObjectIndex = newIndex;
-			
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("playing", enyo.bind(this, "playingEvent"), false);
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("pause", enyo.bind(this, "pauseEvent"), false);
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("timeupdate", enyo.bind(this, "timeupdateEvent"), false);
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("ended", enyo.bind(this, "endedEvent"), false);
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("error", enyo.bind(this, "errorEvent"), false);
-			//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("progress", enyo.bind(this, "progressEvent"), false);
-			
-			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].addEventListener("progress", enyo.bind(this, "queueProgressEvent"), false);
-			
-			if(AmpacheXL.connected) this.$.play.show();
-			this.$.pause.hide();
-			
-			this.startPlayingTimer = setTimeout(enyo.bind(this, "playingFailed"), 8000);
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].play();
-			
-		} else {
-		
-			if(debug) this.log("Don't have song queued, using existing index at "+AmpacheXL.currentAudioObjectIndex);
-			
-			//remove previous song
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].pause();
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].src = "";
-			
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].src = inSongObject.url;
-			this.startPlayingTimer = setTimeout(enyo.bind(this, "playingFailed"), 8000);
-			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].play();
-		
-		}
 		
 	},
-	queueNextSong: function(inSongObject) {
-		if(debug) this.log("queueNextSong for index "+AmpacheXL.nextAudioObjectIndex+": "+enyo.json.stringify(inSongObject));
-		
-		if(inSongObject.url == AmpacheXL.nextSong.url) {
-		
-			if(debug) this.log("we have already queued this song at index: "+AmpacheXL.nextAudioObjectIndex);
-			
-		} else if(false) {
-		
-			if(debug) this.log("is a new song - queue it up at previous index: "+AmpacheXL.nextAudioObjectIndex);
-			
-			AmpacheXL.nextSong = inSongObject;
-			
-			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
-			
-			AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].src = inSongObject.url;
-			
-		} else {
-		
-			if(debug) this.log("is a new song - queue it up at index: "+AmpacheXL.audioObjects.length+" and removing old at "+AmpacheXL.nextAudioObjectIndex);
-			
-			AmpacheXL.audioObjects.splice(AmpacheXL.nextAudioObjectIndex,1);
-
-			if(AmpacheXL.currentAudioObjectIndex > AmpacheXL.nextAudioObjectIndex) {
-				AmpacheXL.currentAudioObjectIndex--;
-			}
-			
-			AmpacheXL.nextSong = inSongObject;
-			
-			AmpacheXL.nextAudioObjectIndex = AmpacheXL.audioObjects.length;
-			AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex] = new Audio();
-			
-			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
-			
-			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].pause();
-			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].src = "";
-			AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].src = inSongObject.url;
-		}
+	queueNextSong: function(inSong) {
+		if(debug) this.log("queueNextSong for index "+AmpacheXL.nextAudioObjectIndex+": "+enyo.json.stringify(inSong));
 		
 		
 	},
 	disconnect: function() {
 		if(debug) this.log("disconnect");
+		/*
+		this.$[AmpacheXL.currentAudioObjectName].audio.pause();
+		this.$[AmpacheXL.currentAudioObjectName].setSrc("media/empty.mp3");
 		
+		this.$[AmpacheXL.nextAudioObjectName].audio.pause();
+		this.$[AmpacheXL.nextAudioObjectName].setSrc("media/empty.mp3");
+		*/
+		/*
 		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].pause();
 		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].src = "";
 		
 		AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].pause();
 		AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].src = "";
+		*/
 		
 		this.$.songSlider.hide();
 		this.$.previous.hide();
@@ -260,43 +158,82 @@ enyo.kind({
 		this.movingSlider = false;
 		
 		var newTime = parseInt(this.$.songSlider.getPosition()*AmpacheXL.currentSong.time/100);
+		/*
+		this.$[AmpacheXL.currentAudioObjectName].audio.currentTime = newTime;
+		*/
 		
-		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].currentTime = newTime;
+		AmpacheXL.audioPlayer.seek(newTime);
+		
+		//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].currentTime = newTime;
 		
 	},
 	pauseClick: function() {
 		if(debug) this.log("pauseClick");
 		
-		clearTimeout(this.startPlayingTimer);
+		AmpacheXL.audioPlayer.pause();
 		
-		//this.$.songSound.audio.pause();
-		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].pause();
+		//clearTimeout(this.startPlayingTimer);
+		/*
+		this.$[AmpacheXL.currentAudioObjectName].audio.pause();
+		*/
+		
+		//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].pause();
+		
 	},
 	playClick: function() {
 		if(debug) this.log("playClick");
 		
-		clearTimeout(this.startPlayingTimer);
+		AmpacheXL.audioPlayer.play();
 		
-		//this.$.songSound.audio.play();
-		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].play();
+		//clearTimeout(this.startPlayingTimer);
+		
+		/*
+		this.$[AmpacheXL.currentAudioObjectName].play();
+		*/
+		
+		//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].play();
+		
 	},
 	previousClick: function() {
 		if(debug) this.log("previousClick");
 		
-		clearTimeout(this.startPlayingTimer);
+		AmpacheXL.audioPlayer.previous();
 		
-		this.doPreviousTrack();
+		//clearTimeout(this.startPlayingTimer);
+		
+		//this.doPreviousTrack();
 	},
 	nextClick: function() {
 		if(debug) this.log("nextClick");
 		
-		clearTimeout(this.startPlayingTimer);
+		AmpacheXL.audioPlayer.next();
 		
-		this.doNextTrack();
+		//clearTimeout(this.startPlayingTimer);
+		
+		//this.doNextTrack();
 	},
 	
-	playingEvent: function() {
-		if(debug) this.log("playingEvent");
+	playingEvent: function(inSong) {
+		if(debug) this.log("playingEvent: "+enyo.json.stringify(inSong));
+		
+		if(inSong) AmpacheXL.currentSong = inSong;
+		
+		this.$.songSlider.show();
+		this.$.previous.show();
+		this.$.play.hide();
+		this.$.pause.show();
+		this.$.next.show();
+		
+		this.$.songArt.addClass("playbackSongArt");
+		this.$.songArt.setSrc(inSong.art);
+		
+		this.$.songArtist.setContent(inSong.artist);
+		this.$.songTitle.setContent(inSong.title);
+		this.$.songAlbum.setContent(inSong.album);
+		
+		this.render();
+		
+		if((window.PalmSystem)&&(AmpacheXL.prefsCookie.bannerOnPlayback)) this.doBannerMessage(inSong.artist+": "+inSong.title);
 		
 		clearTimeout(this.startPlayingTimer);
 		
@@ -309,21 +246,38 @@ enyo.kind({
 		//this.$.totalTime.setContent(floatToTime(AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].duration));
 		this.$.totalTime.setContent(floatToTime(AmpacheXL.currentSong.time));
 	},
-	timeupdateEvent: function() {
+	timeupdateEvent: function(inCurrentTime) {
+		//if(debug) this.log("timeupdateEvent: "+inCurrentTime);
+		//if(debug) this.log("timeupdateEvent: "+this.$[AmpacheXL.currentAudioObjectName].audio.currentTime);
 		//if(debug) this.log("timeupdateEvent: "+AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].currentTime);
 		
-		if(AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].currentTime > 1) clearTimeout(this.startPlayingTimer);
+		/*
+		if(this.$[AmpacheXL.currentAudioObjectName].audio.currentTime > 1) clearTimeout(this.startPlayingTimer);
 		
 		//var progress = parseInt(100 * (AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].currentTime/AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].duration));
-		var progress = parseInt(100 * (AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].currentTime/AmpacheXL.currentSong.time));
+		var progress = parseInt(100 * (this.$[AmpacheXL.currentAudioObjectName].audio.currentTime/AmpacheXL.currentSong.time));
+		
+		if((!this.movingSlider)&&(AmpacheXL.connected)&&(this.$[AmpacheXL.currentAudioObjectName].audio.currentTime > 1))  {
+			this.$.songSlider.setPosition(progress);
+			this.$.progressTime.setContent(floatToTime(this.$[AmpacheXL.currentAudioObjectName].audio.currentTime));
+		}
+		*/
+		
+		
+		//if(AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].currentTime > 1) clearTimeout(this.startPlayingTimer);
+		
+		var progress = parseInt(100 * (inCurrentTime/AmpacheXL.currentSong.time));
 		
 		if((!this.movingSlider)&&(AmpacheXL.connected))  {
 			this.$.songSlider.setPosition(progress);
-			this.$.progressTime.setContent(floatToTime(AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].currentTime));
+			this.$.progressTime.setContent(floatToTime(inCurrentTime));
 		}
+		
 	},
 	pauseEvent: function() {
-		if(debug) this.log("pauseEvent: "+AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].currentTime);
+		//if(debug) this.log("pauseEvent: "+this.$[AmpacheXL.currentAudioObjectName].audio.currentTime);
+		//if(debug) this.log("pauseEvent: "+AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].currentTime);
+		if(debug) this.log("pauseEvent");
 		
 		if(AmpacheXL.connected) this.$.play.show();
 		this.$.pause.hide();
@@ -340,12 +294,70 @@ enyo.kind({
 		AmpacheXL.currentSong.status = "stopped";
 		setTimeout(enyo.bind(this, "doUpdatePlaybackStatus", 10));
 		
-		this.doNextTrack();
+		if(AmpacheXL.audioPlayer.playList.atPlaylistEnd()) {
+		
+			var actionArray = AmpacheXL.prefsCookie.nowPlayingEnd.split("[]:[]");
+			var playAction = actionArray[0];
+			var playOrder = actionArray[1];
+						
+			if(playAction == "play") {
+				switch(playOrder) {
+					case "shuffled":
+						var newSongs = [], s = {};
+			
+						var originalList = AmpacheXL.nowplaying.concat([]);
+						
+						do {
+						
+							var randomSong = Math.floor(Math.random()*originalList.length);
+								
+							s = originalList.splice(randomSong, 1)[0];
+							newSongs.push(s);
+							
+							//if(debug) this.log("splicing random song at index "+randomSong+": "+enyo.json.stringify(s));
+							
+						} while(originalList.length > 0);
+						
+						AmpacheXL.nowplaying.length = 0;
+						AmpacheXL.nowplaying = newSongs;
+				
+						break;
+					default: 
+						//keep list as is
+						break;
+				}
+				
+				var row = AmpacheXL.nowplaying[0];
+				
+				AmpacheXL.nowplayingIndex = 0;
+				AmpacheXL.currentSong = row;
+				
+				AmpacheXL.audioPlayer.reorderPlayList(AmpacheXL.nowplaying, AmpacheXL.currentSong.id);
+				AmpacheXL.audioPlayer.playTrack(0);
+				
+			} else {
+				//
+			} 
+		
+		}
+		
+		//this.doNextTrack();
 	},
 	errorEvent: function() {
 		if(debug) this.log("errorEvent");
 		
 		clearTimeout(this.startPlayingTimer);
+		/*
+		if(this.$[AmpacheXL.currentAudioObjectName].audio.error) {
+			this.error(this.$[AmpacheXL.currentAudioObjectName].audio.error);
+		
+			this.playingFailed();
+			
+		} else {
+			if(debug) this.log("errorEvent but no .audio.error");
+		}
+		*/
+		
 		
 		if(AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].error) {
 			this.error(AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].error);
@@ -376,42 +388,60 @@ enyo.kind({
 	},
 	
 	playingFailed: function() {
+		//if(debug) this.log("playingFailed at currentAudioObjectName: "+AmpacheXL.currentAudioObjectName);
 		if(debug) this.log("playingFailed at currentAudioObjectIndex: "+AmpacheXL.currentAudioObjectIndex);
 		
 		clearTimeout(this.startPlayingTimer);
 		
+		/*
+		this.$[AmpacheXL.currentAudioObjectName].audio.pause();
+		this.$[AmpacheXL.currentAudioObjectName].setSrc("media/empty.mp3");
+		*/
+		
 		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].pause();
 		AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].src = "";
-			
+		
 		if((AmpacheXL.connected)&&(AmpacheXL.currentSong.url)) {
 		
 			this.doBannerMessage("Error playing file '"+AmpacheXL.currentSong.title+"'");
 			AmpacheXL.currentSong.title = "ERROR: *** "+AmpacheXL.currentSong.title+" ***";
-			AmpacheXL.currentSong.url = null;
-			//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex] = "nothing";
+			//AmpacheXL.currentSong.url = null;
+			
+			/*
+			this.$[AmpacheXL.currentAudioObjectName].audio.removeEventListener("playing", enyo.bind(this, "playingEvent"), false);
+			this.$[AmpacheXL.currentAudioObjectName].audio.removeEventListener("pause", enyo.bind(this, "pauseEvent"), false);
+			this.$[AmpacheXL.currentAudioObjectName].audio.removeEventListener("timeupdate", enyo.bind(this, "timeupdateEvent"), false);
+			this.$[AmpacheXL.currentAudioObjectName].audio.removeEventListener("ended", enyo.bind(this, "endedEvent"), false);
+			this.$[AmpacheXL.currentAudioObjectName].audio.removeEventListener("error", enyo.bind(this, "errorEvent"), false);
+			
+			//switch to sound3?
+			
+			this.$[AmpacheXL.currentAudioObjectName].audio.addEventListener("playing", enyo.bind(this, "playingEvent"), false);
+			this.$[AmpacheXL.currentAudioObjectName].audio.addEventListener("pause", enyo.bind(this, "pauseEvent"), false);
+			this.$[AmpacheXL.currentAudioObjectName].audio.addEventListener("timeupdate", enyo.bind(this, "timeupdateEvent"), false);
+			this.$[AmpacheXL.currentAudioObjectName].audio.addEventListener("ended", enyo.bind(this, "endedEvent"), false);
+			this.$[AmpacheXL.currentAudioObjectName].audio.addEventListener("error", enyo.bind(this, "errorEvent"), false);
+			*/
 			
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].removeEventListener("playing", enyo.bind(this, "playingEvent"), false);
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].removeEventListener("pause", enyo.bind(this, "pauseEvent"), false);
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].removeEventListener("timeupdate", enyo.bind(this, "timeupdateEvent"), false);
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].removeEventListener("ended", enyo.bind(this, "endedEvent"), false);
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].removeEventListener("error", enyo.bind(this, "errorEvent"), false);
-			//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].removeEventListener("progress", enyo.bind(this, "progressEvent"), false);
-				
-			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].removeEventListener("progress", enyo.bind(this, "queueProgressEvent"), false);
+			
 			
 			AmpacheXL.currentAudioObjectIndex = AmpacheXL.audioObjects.length;
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex] = new Audio();
 			
 			//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].setAttribute("x-palm-media-audio-class", "media");
+			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].autoplay = false;
 			
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("playing", enyo.bind(this, "playingEvent"), false);
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("pause", enyo.bind(this, "pauseEvent"), false);
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("timeupdate", enyo.bind(this, "timeupdateEvent"), false);
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("ended", enyo.bind(this, "endedEvent"), false);
 			AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("error", enyo.bind(this, "errorEvent"), false);
-			//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].addEventListener("progress", enyo.bind(this, "progressEvent"), false);
-				
-			//AmpacheXL.audioObjects[AmpacheXL.nextAudioObjectIndex].addEventListener("progress", enyo.bind(this, "queueProgressEvent"), false);
+			
 			
 			if(AmpacheXL.connected) this.$.play.show();
 			this.$.pause.hide();
@@ -420,7 +450,6 @@ enyo.kind({
 		}
 	},
 
+	
 });
 	
-
-//asdf

@@ -1,5 +1,5 @@
 /*
- *   AmapcheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
+ *   AmpacheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
  *   http://code.google.com/p/ampachexl/
  *   Copyright (C) 2011  Wes Brown
  *

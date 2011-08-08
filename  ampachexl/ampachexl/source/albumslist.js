@@ -429,7 +429,7 @@ enyo.kind({
 		this.doUpdateSpinner(true);
 		
 		if(row.isArtist) {
-			this.doDataRequest("songsList", "artist_songs", "&filter="+row.id);
+			this.doDataRequest("songsList", "artist_songs", "&filter="+row.artist_id);
 			this.doViewSelected("songsList");
 		} else {
 			this.doDataRequest("songsList", "album_songs", "&filter="+row.id);

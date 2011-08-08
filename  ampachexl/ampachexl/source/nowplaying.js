@@ -1,5 +1,5 @@
 /*
- *   AmapcheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
+ *   AmpacheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
  *   http://code.google.com/p/ampachexl/
  *   Copyright (C) 2011  Wes Brown
  *
@@ -261,36 +261,48 @@ enyo.kind({
 		
 		if(inPlayAction == "play") {
 			
-			var row = AmpacheXL.nowplaying[0];
-			
-			AmpacheXL.nowplayingIndex = 0;
-			AmpacheXL.currentSong = row;
-			
-			this.doPlaySong(row);
-			
-			this.$.nowplayingVirtualList.refresh();
-			this.doUpdateCounts();
+			//AmpacheXL.audioPlayer.newPlayList(AmpacheXL.nowplaying, false, 0);
+			//AmpacheXL.audioPlayer.play();
 			
 		} else if(AmpacheXL.currentSong.artist) {
 			//are already playing a song, so dont interfere
 			
-			this.$.nowplayingVirtualList.refresh();
-			this.doUpdateCounts();
+			//Playlist will not add duplicated songs so we can enqueue it all
+			//AmpacheXL.audioPlayer.enqueuePlayList(AmpacheXL.nowplaying, false);
+			
+			//this.$.nowplayingVirtualList.refresh();
+			//this.doUpdateCounts();
 			
 		} else {
-		
-			//first addition to playlist
-			var row = AmpacheXL.nowplaying[0];
 			
-			AmpacheXL.nowplayingIndex = 0;
-			AmpacheXL.currentSong = row;
-			
-			this.doPlaySong(row);
-			
-			this.$.nowplayingVirtualList.refresh();
-			this.doUpdateCounts();
+			//AmpacheXL.audioPlayer.newPlayList(AmpacheXL.nowplaying, false, 0);
+			//AmpacheXL.audioPlayer.play();
 			
 		}
+		
+		
+		//AmpacheXL.nowplaying.length = 0;
+		//AmpacheXL.nowplaying = AmpacheXL.audioPlayer.getPlaylist();
+		
+		this.$.nowplayingVirtualList.refresh();
+		this.doUpdateCounts();
+		
+		enyo.job("getNextSong", enyo.bind(this, "getNextSong"), 5000);
+	},
+	updatePlaybackStatus: function() {
+		if(debug) this.log("updatePlaybackStatus");
+		
+		var currentIndex = -1;
+		for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
+		
+			s = AmpacheXL.nowplaying[i];
+			if(s.id == AmpacheXL.currentSong.id) currentIndex = i;
+		
+		}
+		AmpacheXL.nowplayingIndex = currentIndex;
+		
+		this.$.nowplayingVirtualList.refresh();
+		this.doUpdateCounts();
 		
 		enyo.job("getNextSong", enyo.bind(this, "getNextSong"), 5000);
 	},
@@ -451,7 +463,15 @@ enyo.kind({
 	saveNew: function() {
 		if(debug) this.log("saveNew: "+this.$.saveInput.getValue());
 		
-		var query = 'INSERT INTO localplaylists (name, items, source, oldAuth) VALUES ("'+this.$.saveInput.getValue()+'", '+AmpacheXL.nowplaying.length+', "Local", "'+AmpacheXL.connectResponse.auth+'")';	
+		this.newId = 1;
+		
+		for(var i = 0; i < AmpacheXL.localPlaylists.length; i++) {
+			this.newId = Math.max(this.newId, AmpacheXL.localPlaylists[i].playlist_id);
+		}
+		
+		this.newId++;
+		
+		var query = 'INSERT INTO localplaylists (playlist_id, name, items, source, oldAuth) VALUES ('+this.newId+', "'+this.$.saveInput.getValue()+'", '+AmpacheXL.nowplaying.length+', "Local", "'+AmpacheXL.connectResponse.auth+'")';	
 		
 		if(debug) this.log("query: "+query);
 		
@@ -499,7 +519,8 @@ enyo.kind({
 			
 			if(debug) this.log("nowplayingClick: "+enyo.json.stringify(row));
 			
-			this.doPlaySong(row);
+			//this.doPlaySong(row);
+			AmpacheXL.audioPlayer.playTrack(inEvent.rowIndex);
 			
 			this.$.nowplayingVirtualList.refresh();
 			this.doUpdateCounts();
@@ -686,6 +707,7 @@ enyo.kind({
 			this.doBannerMessage("You cannot remove the song that is currently playing", true);
 		} else {
 			var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
+			AmpacheXL.audioPlayer.playList.removeSong(inEvent.rowIndex);
 		}
 		
 		this.finishedMoving();
@@ -703,6 +725,9 @@ enyo.kind({
 		AmpacheXL.nowplayingIndex = currentIndex;
 		
 		this.$.nowplayingVirtualList.refresh();
+		
+		AmpacheXL.audioPlayer.reorderPlayList(AmpacheXL.nowplaying, AmpacheXL.currentSong.id);
+		
 		this.doUpdateCounts();
 		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
 		
@@ -711,11 +736,20 @@ enyo.kind({
 	getNextSong: function() {
 		if(debug) this.log("getNextSong");
 		
+		var currentIndex = -1;
+		for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
+		
+			s = AmpacheXL.nowplaying[i];
+			if(s.id == AmpacheXL.currentSong.id) currentIndex = i;
+		
+		}
+		AmpacheXL.nowplayingIndex = currentIndex;
+		
 		var row = AmpacheXL.nowplaying[AmpacheXL.nowplayingIndex+1];
 		
 		if(row) {
 		
-			this.doQueueNextSong(row);
+			//this.doQueueNextSong(row);
 		
 		}
 	},
@@ -723,7 +757,7 @@ enyo.kind({
 	insertLocalplaylistsSuccess: function(transaction, results) {
 		if(debug) this.log("insertLocalplaylistsSuccess: "+enyo.json.stringify(results));
 		
-		if(debug) this.log("insertLocalplaylistsSuccess: "+results.insertId);
+		if(debug) this.log("insertLocalplaylistsSuccess: "+this.newId);
 		
 		this.$.savePopup.close();
 		
@@ -736,7 +770,7 @@ enyo.kind({
 			s = {};
 			s = AmpacheXL.nowplaying[i];
 			
-			sqlArray.push('INSERT INTO localplaylist_songs (playlist_id, id, title, artist, artist_id, album, album_id, track, time, oldUrl, oldArt) VALUES ('+results.insertId+', '+s.id+', "'+s.title+'", "'+s.artist+'", '+s.artist_id+', "'+s.album+'", '+s.album_id+', '+s.track+', '+s.time+', "'+s.url+'", "'+s.art+'");');
+			sqlArray.push('INSERT INTO localplaylist_songs (playlist_id, id, title, artist, artist_id, album, album_id, track, time, oldUrl, oldArt) VALUES ('+this.newId+', '+s.id+', "'+s.title+'", "'+s.artist+'", '+s.artist_id+', "'+s.album+'", '+s.album_id+', '+s.track+', '+s.time+', "'+s.url+'", "'+s.art+'");');
 			
 		}
 		
