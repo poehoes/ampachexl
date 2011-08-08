@@ -145,10 +145,22 @@
 	margin: -10px 10px;
 }
 
+.searchInputWrapper {
+	height: 43px;
+	padding-topdfd: 15px;
+}
+
+.searchInputWrapper .enyo-input {
+	border-width: 5px 14px 5px 14px;
+}
+
+.searchInputWrapper .enyo-input-input { 
+	margin-top: 5px;
+}
+
 .dark .searchInputWrapper {
 	border-top: 1px solid silver;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-	height: 43px;
 }
 
 .dark .searchInputWrapper .enyo-input-focus {
@@ -160,10 +172,7 @@
 .dark .searchInputWrapper .enyo-input-input {
 	color: #F2F2F2;
 	font-style: italic;
-}
-
-.searchInputWrapper .enyo-input {
-	border-width: 5px 14px;
+	margin-top: -5px;
 }
 
 .menuItem {
@@ -372,7 +381,6 @@
 .light .searchInputWrapper {
 	border-top: 1px solid #606060;
 	border-bottom: 1px solid rgba(0,0,0, 0.2);
-	height: 43px;
 }
 
 .light .searchInputWrapper .enyo-input-focus {

@@ -1,5 +1,5 @@
 /*
- *   AmapcheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
+ *   AmpacheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
  *   http://code.google.com/p/ampachexl/
  *   Copyright (C) 2011  Wes Brown
  *
@@ -41,6 +41,9 @@ AmpacheXL.allVideos = [];
 
 AmpacheXL.currentSong = {};
 AmpacheXL.nextSong = {};
+
+AmpacheXL.numBuffers = 2;
+AmpacheXL.ApacheTimeout = 300;
 
 enyo.kind({
 	name: "AmpacheXL.main",
@@ -257,6 +260,12 @@ enyo.kind({
 		//html5sql.changeVersion("v4","v5", "CREATE TABLE localplaylists (playlist_id INTEGER PRIMARY KEY, name TEXT, items INTEGER, source TEXT, oldAuth TEXT)", enyo.bind(this, "changeVersion5Success"), enyo.bind(this, "changeVersion5Failure"));
 		html5sql.changeVersion("v3","v5", "CREATE TABLE localplaylist_songs (playlist_id INTEGER, id INTEGER, title TEXT, artist TEXT, artist_id INTEGER, album TEXT, album_id INTEGER, track INTEGER, time INTEGER, oldUrl TEXT, oldArt TEXT); CREATE TABLE localplaylists (playlist_id INTEGER, name TEXT, items INTEGER, source TEXT, oldAuth TEXT)", enyo.bind(this, "changeVersion5Success"), enyo.bind(this, "changeVersion5Failure"));
 		
+		
+		AmpacheXL.audioPlayer = new AudioPlayer(this);
+		AmpacheXL.audioPlayer.setNumBuffers(AmpacheXL.numBuffers);
+		AmpacheXL.audioPlayer.setMainHandler(this);
+		AmpacheXL.audioPlayer.setPlaybackHandler(this.$.playback);
+		
 	},
 	
 	activate: function() {
@@ -391,7 +400,7 @@ enyo.kind({
 		window.open("http://developer.palm.com/appredirect/?packageid="+appInfo.id);
 	},
 	emailDeveloper: function() {
-		if(debug) this.log("emailDeveloper") 
+		if(debug) this.log("emailDeveloper"); 
 		
 		var appInfo = enyo.fetchAppInfo();
 		
@@ -427,7 +436,7 @@ enyo.kind({
 	},
 	
 	doBannerMessage: function(inMessage, forcePopup) {
-		this.bannerMessage("amapchexl", inMessage, forcePopup);
+		this.bannerMessage("ampachexl", inMessage, forcePopup);
 	},
 	bannerMessage: function(inSender, inMessage, forcePopup) {
 		if(debug) this.log("bannerMessage: "+inMessage);
@@ -439,7 +448,7 @@ enyo.kind({
 			this.$.bannerMessagePopup.openAtCenter();
 		} else {
 			try {
-				enyo.windows.removeBannerMessage(this.bannerMessageId);
+				//enyo.windows.removeBannerMessage(this.bannerMessageId);
 			} catch(e) {
 				this.error(e);
 			}
@@ -519,16 +528,16 @@ enyo.kind({
 	scrimClick: function() {
 		if(debug) this.log("scrimClick");
 		
-		this.updateSpinner("amapchexl", false);
+		this.updateSpinner("ampachexl", false);
 	},
-	playSong: function(inSender, inSongObject) {
+	playSong: function(inSender, inSong) {
 		if(debug) this.log("playSong");
-		//if(debug) this.log("playSong: "+enyo.json.stringify(inSongObject));
+		//if(debug) this.log("playSong: "+enyo.json.stringify(inSong));
 		
-		this.$.playback.playSong(inSongObject);
+		this.$.playback.playSong(inSong);
 		
 		try {
-			enyo.windows.setWindowParams(this.dashWindow, inSongObject);
+			if(window.PalmSystem) enyo.windows.setWindowParams(this.dashWindow, inSong);
 		} catch(e) {
 			if(debug) this.log(e);
 		}
@@ -536,12 +545,16 @@ enyo.kind({
 	previousTrack: function() {
 		if(debug) this.log("previousTrack");
 		
-		this.$.nowplaying.previousTrack();
+		//this.$.nowplaying.previousTrack();
+		
+		AmpacheXL.audioPlayer.previous();
 	},
 	nextTrack: function() {
 		if(debug) this.log("nextTrack");
 		
-		this.$.nowplaying.nextTrack();
+		//this.$.nowplaying.nextTrack();
+		
+		AmpacheXL.audioPlayer.next();
 	},
 	updateCounts: function() {
 		if(debug) this.log("updateCounts");
@@ -556,8 +569,10 @@ enyo.kind({
 	updatePlaybackStatus: function() {
 		if(debug) this.log("updatePlaybackStatus");
 		
+		this.$.nowplaying.updatePlaybackStatus();
+		
 		try {
-			enyo.windows.setWindowParams(this.dashWindow, AmpacheXL.currentSong);
+			if(window.PalmSystem) enyo.windows.setWindowParams(this.dashWindow, AmpacheXL.currentSong);
 		} catch(e) {
 			if(debug) this.log(e);
 		}
@@ -871,7 +886,7 @@ enyo.kind({
 	ampacheConnectFailure: function(inSender, inResponse) {
 		if(debug) this.log("ampacheConnectFailure");
 		
-		this.bannerMessage("amapchexl", "Failed to connect to AmpacheXL.  Check your settings.", true);
+		this.bannerMessage("ampachexl", "Failed to connect to AmpacheXL.  Check your settings.", true);
 	},
 	
 	ampachePing: function() {
@@ -970,37 +985,37 @@ enyo.kind({
 		
 		switch(inSender.getName()) {
 			case "artistsSearch":
-				this.updateSpinner("amapchexl", true);
-				this.dataRequest("amapchexl", "artistsList", "artists", "&filter="+this.$.searchInput.getValue());
-				this.viewSelected("amapchexl", "artistsList");
+				this.updateSpinner("ampachexl", true);
+				this.dataRequest("ampachexl", "artistsList", "artists", "&filter="+this.$.searchInput.getValue());
+				this.viewSelected("ampachexl", "artistsList");
 				break;
 			case "albumsSearch":
 				AmpacheXL.selectedArtist = {};
 				AmpacheXL.selectedArtist.name = this.$.searchInput.getValue();
 				AmpacheXL.selectedArtist.type = "artistSearch";
-				this.updateSpinner("amapchexl", true);
-				this.dataRequest("amapchexl", "albumsList", "albums", "&filter="+this.$.searchInput.getValue());
-				this.viewSelected("amapchexl", "albumsList");
+				this.updateSpinner("ampachexl", true);
+				this.dataRequest("ampachexl", "albumsList", "albums", "&filter="+this.$.searchInput.getValue());
+				this.viewSelected("ampachexl", "albumsList");
 				break;
 			case "playlistsSearch":
-				this.updateSpinner("amapchexl", true);
-				this.dataRequest("amapchexl", "playlistsList", "playlists", "&filter="+this.$.searchInput.getValue());
-				this.viewSelected("amapchexl", "playlistsList");
+				this.updateSpinner("ampachexl", true);
+				this.dataRequest("ampachexl", "playlistsList", "playlists", "&filter="+this.$.searchInput.getValue());
+				this.viewSelected("ampachexl", "playlistsList");
 				break;
 			case "songsSearch":
-				this.updateSpinner("amapchexl", true);
-				this.dataRequest("amapchexl", "songsList", "songs", "&filter="+this.$.searchInput.getValue());
-				this.viewSelected("amapchexl", "songsList");
+				this.updateSpinner("ampachexl", true);
+				this.dataRequest("ampachexl", "songsList", "songs", "&filter="+this.$.searchInput.getValue());
+				this.viewSelected("ampachexl", "songsList");
 				break;
 			case "tagsSearch":
-				this.updateSpinner("amapchexl", true);
-				this.dataRequest("amapchexl", "tagsList", "tags", "&filter="+this.$.searchInput.getValue());
-				this.viewSelected("amapchexl", "tagsList");
+				this.updateSpinner("ampachexl", true);
+				this.dataRequest("ampachexl", "tagsList", "tags", "&filter="+this.$.searchInput.getValue());
+				this.viewSelected("ampachexl", "tagsList");
 				break;
 			case "allSearch":
-				this.updateSpinner("amapchexl", true);
-				this.dataRequest("amapchexl", "songsList", "search_songs", "&filter="+this.$.searchInput.getValue());
-				this.viewSelected("amapchexl", "songsList");
+				this.updateSpinner("ampachexl", true);
+				this.dataRequest("ampachexl", "songsList", "search_songs", "&filter="+this.$.searchInput.getValue());
+				this.viewSelected("ampachexl", "songsList");
 				break;
 				
 		}
@@ -1076,6 +1091,9 @@ enyo.kind({
 		if(debug) this.log("AmpacheXL.localPlaylists: "+enyo.json.stringify(AmpacheXL.localPlaylists));
 		
 		this.updateCounts();
+		
+		//if(this.currentView == "playlistsList") this.$.playlistsList.updateList();
+		this.$.playlistsList.updateList();
 		
 	},
 	localplaylistsSelectFailure: function(inError) {

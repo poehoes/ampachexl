@@ -1,5 +1,5 @@
 /*
- *   AmapcheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
+ *   AmpacheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
  *   http://code.google.com/p/ampachexl/
  *   Copyright (C) 2011  Wes Brown
  *
@@ -122,11 +122,17 @@ enyo.kind({
 		}	
 		
 		if(AmpacheXL.connectResponse) {
-			this.$.artistsItemCount.setContent(AmpacheXL.connectResponse.artists);
-			this.$.albumsItemCount.setContent(AmpacheXL.connectResponse.albums);
-			this.$.playlistsItemCount.setContent(AmpacheXL.localPlaylists.length+"+"+AmpacheXL.connectResponse.playlists);
 			this.$.songsItemCount.setContent(AmpacheXL.connectResponse.songs);
+			this.$.albumsItemCount.setContent(AmpacheXL.connectResponse.albums);
+			this.$.artistsItemCount.setContent(AmpacheXL.connectResponse.artists);
 			if(AmpacheXL.connectResponse.tags) this.$.tagsItemCount.setContent(AmpacheXL.connectResponse.tags);
+			
+			if(AmpacheXL.connectResponse.playlists == "") {
+				this.$.playlistsItemCount.setContent("");
+			} else {
+				this.$.playlistsItemCount.setContent(AmpacheXL.localPlaylists.length+"+"+AmpacheXL.connectResponse.playlists);
+			}
+			
 			this.$.videosItemCount.setContent(AmpacheXL.connectResponse.videos);
 			
 			if(parseInt(AmpacheXL.connectResponse.videos) == 0) {

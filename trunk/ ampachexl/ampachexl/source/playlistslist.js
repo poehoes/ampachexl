@@ -39,6 +39,12 @@ enyo.kind({
 	resultsList: [],
 	
 	components: [
+		{name: "confirmDeletePopup", kind: "Popup", lazy: true, scrim: true, onBeforeOpen: "beforeConfirmDeleteOpen", components: [
+			{name: "confirmDeletePopupText", style: "text-align: center;"},
+			{kind: "Button", caption: "Yes", className: "enyo-button-negative", onclick:"confirmDeleteClick"},
+			{kind: "Button", caption: "Cancel", onclick:"cancelConfirmDeleteClick"},
+		]},
+		
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
 			{name: "headerTitle", kind: "Control", content: "Playlists", className: "headerTitle"},
 			{name: "headerSubtitle", kind: "Control", className: "headerSubtitle"},
@@ -191,6 +197,20 @@ enyo.kind({
 		} else {
 			this.getPlaylists();
 		}
+	},
+	updateList: function() {
+		if(debug) this.log("updateList");
+		
+		this.fullResultsList.length = 0;
+		this.resultsList.length = 0;
+		
+		this.fullResultsList = AmpacheXL.allPlaylists.concat(AmpacheXL.localPlaylists);
+		
+		this.fullResultsList.sort(double_sort_by("source", "name", false));
+		
+		this.resetPlaylistsSearch();
+			
+		
 	},
 	
 	getPlaylists: function() {
@@ -361,14 +381,31 @@ enyo.kind({
 		
 	},
 	playlistsRemove: function(inSender, inEvent) {
-		if(debug) this.log("playlistsRemove: "+inEvent.rowIndex);
+		if(debug) this.log("playlistsRemove: "+this.resultsList[inEvent.rowIndex].playlist_id);
 		
 		this.localPlaylistId = this.resultsList[inEvent.rowIndex].playlist_id;
+		this.localPlaylist = this.resultsList[inEvent.rowIndex];
 		
-		//ask to confirm
+		this.$.confirmDeletePopup.openAtCenter();
+		
+	},
+	beforeConfirmDeleteOpen: function() {
+		if(debug) this.log("beforeConfirmDeleteOpen");
+		
+		this.$.confirmDeletePopupText.setContent('Are you sure you want to delete to local playlist "'+this.localPlaylist.name+'"?');
+	},
+	confirmDeleteClick: function() {
+		if(debug) this.log("confirmDeleteClick");
 		
 		html5sql.process("DELETE FROM localplaylists WHERE playlist_id = "+this.localPlaylistId+"; DELETE FROM localplaylist_songs WHERE playlist_id = "+this.localPlaylistId, enyo.bind(this, "deletePlaylistSuccess"), enyo.bind(this, "deletePlaylistFailure"));
 		
+		this.$.confirmDeletePopup.close();
+		
+	},
+	cancelConfirmDeleteClick: function() {
+		if(debug) this.log("cancelConfirmDeleteClick");
+		
+		this.$.confirmDeletePopup.close();
 	},
 	selectLocalplaylistSongsResults: function(transaction, results) {
 		//if(debug) this.log("selectLocalplaylistSongsResults");
