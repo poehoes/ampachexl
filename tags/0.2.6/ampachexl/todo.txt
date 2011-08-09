@@ -1,0 +1,13 @@
+Todo: 
+
+ - sort lists
+ - coverflow?
+ - download
+ - dont update when deactivated
+ - add recent and random to left menu?
+ - bind volume keys to media?
+ - last.fm (http://www.last.fm/api)
+ - bluetooth media controls
+ - details view from click on playback
+ 
+ 
