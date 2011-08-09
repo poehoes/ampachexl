@@ -213,6 +213,15 @@ enyo.kind({
 		//this.doNextTrack();
 	},
 	
+	updateTime: function(currentTime, duration, timePercentage, songIndex) {
+		if(debug) this.log("updateTime: "+currentTime+", "+duration+", "+timePercentage+", "+songIndex);
+		
+		if((!this.movingSlider)&&(AmpacheXL.connected))  {
+			this.$.songSlider.setPosition(timePercentage);
+			this.$.progressTime.setContent(floatToTime(currentTime));
+		}
+		
+	},
 	playingEvent: function(inSong) {
 		if(debug) this.log("playingEvent: "+enyo.json.stringify(inSong));
 		
@@ -294,7 +303,8 @@ enyo.kind({
 		AmpacheXL.currentSong.status = "stopped";
 		setTimeout(enyo.bind(this, "doUpdatePlaybackStatus", 10));
 		
-		if(AmpacheXL.audioPlayer.playList.atPlaylistEnd()) {
+		//if(AmpacheXL.audioPlayer.playList.atPlaylistEnd()) {
+		if(AmpacheXL.nowplayingIndex == (AmpacheXL.nowplaying.length-1)) {
 		
 			var actionArray = AmpacheXL.prefsCookie.nowPlayingEnd.split("[]:[]");
 			var playAction = actionArray[0];

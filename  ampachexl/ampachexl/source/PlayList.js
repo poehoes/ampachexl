@@ -119,7 +119,8 @@ PlayList = Class.create({
             });
 			*/
 			
-			this.songs = newSongs;
+			this.songs.length = 0;
+			this.songs = newSongs.concat([]);
         }
 
     },

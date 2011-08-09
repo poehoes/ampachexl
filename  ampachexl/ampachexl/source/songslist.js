@@ -623,6 +623,7 @@ enyo.kind({
 		
 		if((playAction == "play")||(previousLength == 0)) {
 			AmpacheXL.nowplayingIndex = 0;
+			AmpacheXL.currentSong = AmpacheXL.nowplaying[0];
 			AmpacheXL.audioPlayer.newPlayList(AmpacheXL.nowplaying, false, 0);
 			AmpacheXL.audioPlayer.play();
 		} else {
@@ -647,6 +648,9 @@ enyo.kind({
 		
 			this.selectedSong = this.resultsList[inEvent.rowIndex];
 			this.selectedIndex = inEvent.rowIndex;
+			
+			if(debug) this.log("song: "+enyo.json.stringify(this.selectedSong));
+		
 			
 			this.$.morePopupMenu.setItems([
 				{caption: $L("Play"), components: [
