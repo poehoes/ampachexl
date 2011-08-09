@@ -41,8 +41,8 @@ AudioPlayer = Class.create({
     displayBanners: false,
 
     //buffer:null,
-    streamingEvents: ["play", "playing", "pause", "error", "ended", "canplay", "emptied", "timeupdate", "load", "loadstart", "waiting", "progress", "canplaythrough"],
-
+    streamingEvents: ["play", "playing", "pause", "error", "ended", "canplay", "emptied", "load", "loadstart", "waiting", "progress", "canplaythrough"],
+	
     //seeked seeking, "durationchange" "canplaythrough", "abort",  
     //bufferingEvents : ["abort", "error", "ended", "emptied", "load", "loadstart",
     //                   "waiting", "progress", "durationchange", "x-palm-disconnect"],
@@ -191,7 +191,6 @@ AudioPlayer = Class.create({
 		this.mainHandler.doBannerMessage(message);
         
         this.UIStopPlaybackTimer();
-        
         
     },
 
@@ -363,8 +362,8 @@ AudioPlayer = Class.create({
 
 
     moveToPlayer: function(song, autoplay) {
-
-        var player = null;
+	
+		var player = null;
         //var playerIndex =0;
         var reverse = false;
 
@@ -627,7 +626,7 @@ AudioPlayer = Class.create({
     },
 
     setAudioToPlayer: function(audioObj) {
-        audioObj.ampacheType = AudioType.player;
+		audioObj.ampacheType = AudioType.player;
         audioObj.autoplay = true;
         if (audioObj.readyState > audioObj.HAVE_NOTHING) {
             this._seek(0);
@@ -721,7 +720,7 @@ AudioPlayer = Class.create({
     *
     ***************************************************************************/
     play: function() {
-        if (this.bufferMutex === false) {
+		if (this.bufferMutex === false) {
             var timeSinceTCP = this.getCurrentMsSecs() - this.player.tcpActivity;
             if ((this.player.fullyBuffered === false) && (timeSinceTCP > this.tcpTimeout)) { //Socket Timed Out
 				// Mojo.Controller.getAppController().showBanner("Buffer Timeout, Restarting", {
@@ -1126,19 +1125,21 @@ AudioPlayer = Class.create({
         
         
         case "timeupdate":
+			//use UIUpdatePlaybackTime instead
             this.ticksUnchanged = 0;
-			this.playbackHandler.timeupdateEvent(this.player.currentTime);
+			if (this.playbackHandler) this.playbackHandler.timeupdateEvent(this.player.currentTime);
             break;
         case "playing":
             this.ticksUnchanged = 0;
 			this.playbackHandler.playingEvent(this.player.song);
+            this.UIStartPlaybackTimer();
             break;
         case "play":
             if (event.currentTarget.song.amtBuffered !== 0) {
                 this.UIShowPause();
             }
             //this.UIUpdatePlaybackTime();
-            this.UIStartPlaybackTimer();
+            //this.UIStartPlaybackTimer();
             break;
         case "pause":
             this.UIShowPlay();
@@ -1488,6 +1489,10 @@ AudioPlayer = Class.create({
 
             if (this.UIHandler) {
                 this.UIHandler.updateTime(currentTime, duration, this.timePercentage, this.player.song.index - 1);
+            }
+			
+            if (this.playbackHandler) {
+                this.playbackHandler.updateTime(currentTime, duration, this.timePercentage, this.player.song.index - 1);
             }
         }
     },

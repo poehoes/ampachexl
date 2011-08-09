@@ -95,7 +95,8 @@ enyo.kind({
 			if((this.fullResultsList.length != AmpacheXL.connectResponse.albums)&&(AmpacheXL.allAlbums.length > 0)) {
 				this.fullResultsList = AmpacheXL.allAlbums.concat([]);
 				
-				this.resetAlbumsSearch();
+				//this.resetAlbumsSearch();
+				this.$.albumsVirtualList.punt();
 			}
 		}
 		

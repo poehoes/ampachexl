@@ -93,7 +93,7 @@ enyo.kind({
 		]},
 		
 		{name: "bannerMessagePopup", kind: "Popup", scrim: true, onBeforeOpen: "beforeBannerMessageOpen", components: [
-			{name: "bannerMessagePopupText", style: "text-align: center;"},
+			{name: "bannerMessagePopupText", allowHtml: true, style: "text-align: center;"},
 			{kind: "Button", caption: "OK", onclick:"closeBannerMessagePopup"}
 		]},
 		
