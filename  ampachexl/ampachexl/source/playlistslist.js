@@ -383,6 +383,7 @@ enyo.kind({
 	playlistsRemove: function(inSender, inEvent) {
 		if(debug) this.log("playlistsRemove: "+this.resultsList[inEvent.rowIndex].playlist_id);
 		
+		this.localPlaylistIndex = inEvent.rowIndex;
 		this.localPlaylistId = this.resultsList[inEvent.rowIndex].playlist_id;
 		this.localPlaylist = this.resultsList[inEvent.rowIndex];
 		
@@ -397,7 +398,10 @@ enyo.kind({
 	confirmDeleteClick: function() {
 		if(debug) this.log("confirmDeleteClick");
 		
-		html5sql.process("DELETE FROM localplaylists WHERE playlist_id = "+this.localPlaylistId+"; DELETE FROM localplaylist_songs WHERE playlist_id = "+this.localPlaylistId, enyo.bind(this, "deletePlaylistSuccess"), enyo.bind(this, "deletePlaylistFailure"));
+		//html5sql.process("DELETE FROM localplaylists WHERE playlist_id = "+this.localPlaylistId+"; DELETE FROM localplaylist_songs WHERE playlist_id = "+this.localPlaylistId, enyo.bind(this, "deletePlaylistSuccess"), enyo.bind(this, "deletePlaylistFailure"));
+		
+		AmpacheXL.localPlaylists.splice(this.localPlaylistIndex, 1)[0];
+		html5sql.process("DELETE FROM localplaylist_songs WHERE playlist_id = "+this.localPlaylistId, enyo.bind(this, "deletePlaylistSuccess"), enyo.bind(this, "deletePlaylistFailure"));
 		
 		this.$.confirmDeletePopup.close();
 		
@@ -441,6 +445,7 @@ enyo.kind({
 		
 		this.doBannerMessage("Successfully deleted playlist");
 		
+		/*
 		html5sql.database.transaction(function(tx) {    
 			tx.executeSql('SELECT * FROM localplaylists', 
 				[], 
@@ -448,6 +453,16 @@ enyo.kind({
 				enyo.bind(this, "localplaylistsSelectFailure") 
 			);
 		}.bind(this));
+		*/
+		
+		this.doUpdateCounts();
+		
+		this.fullResultsList.length = 0;
+		this.fullResultsList = AmpacheXL.allPlaylists.concat(AmpacheXL.localPlaylists);
+		
+		this.fullResultsList.sort(double_sort_by("source", "name", false));
+		
+		this.resetPlaylistsSearch();
 	},
 	deletePlaylistFailure: function() {
 		if(debug) this.log("deletePlaylistFailure");

@@ -34,6 +34,7 @@ enyo.kind({
 		onNowplayingUpdated: "",
 		onPreviousView: "",
 		onSavePreferences: "",
+		onUpdateCounts: "",
 	},
 	
 	fullResultsList: [],
@@ -627,7 +628,7 @@ enyo.kind({
 			AmpacheXL.audioPlayer.newPlayList(AmpacheXL.nowplaying, false, 0);
 			AmpacheXL.audioPlayer.play();
 		} else {
-			AmpacheXL.audioPlayer.reorderPlayList(AmpacheXL.nowplaying, AmpacheXL.currentSong.id);
+			AmpacheXL.audioPlayer.reorderPlayList(AmpacheXL.nowplaying, AmpacheXL.currentSong, AmpacheXL.currentSong.id);
 		}
 		
 		this.doNowplayingUpdated(playAction);
@@ -662,6 +663,10 @@ enyo.kind({
 					{name: "Queue all", caption: "Queue all"},
 					{name: "Queue all, shuffled", caption: "Queue all, shuffled"},
 					{name: "Queue single song", caption: "Queue single song"},
+				]},
+				{caption: $L("Download"), components: [
+					{caption: "Download single song"},
+					{caption: "Download all"},
 				]},
 				{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
 				{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
@@ -709,6 +714,19 @@ enyo.kind({
 					break;
 				case "Queue single song":
 					this.songsAction("queue[]:[]single[]:[]straight");
+					break;
+				case "Download":
+					//
+					break;
+				case "Download single song":
+					AmpacheXL.downloads.push(this.selectedSong);
+					this.doUpdateCounts();
+					break;
+				case "Download all":
+					for(var i = 0; i < this.resultsList.length; i++) {
+						AmpacheXL.downloads.push(this.resultsList[i]);
+					}
+					this.doUpdateCounts();
 					break;
 				default: 
 					

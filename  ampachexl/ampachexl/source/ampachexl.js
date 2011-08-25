@@ -32,6 +32,8 @@ AmpacheXL.localPlaylists = [];
 
 AmpacheXL.nowplaying = [];
 
+AmpacheXL.downloads = [];
+
 AmpacheXL.allSongs = [];
 AmpacheXL.allAlbums = [];
 AmpacheXL.allArtists = [];
@@ -41,9 +43,12 @@ AmpacheXL.allVideos = [];
 
 AmpacheXL.currentSong = {};
 AmpacheXL.nextSong = {};
+AmpacheXL.currentDownload = {};
 
 AmpacheXL.numBuffers = 2;
 AmpacheXL.ApacheTimeout = 300;
+
+AmpacheXL.windowActivated = true;
 
 enyo.kind({
 	name: "AmpacheXL.main",
@@ -66,6 +71,7 @@ enyo.kind({
 		{name: "ampacheConnectService", kind: "WebService", handleAs: "txt", onSuccess: "ampacheConnectResponse", onFailure: "ampacheConnectFailure"},
 		{name: "dataRequestService", kind: "WebService", handleAs: "txt", onSuccess: "dataRequestResponse", onFailure: "dataRequestFailure"},
 		{name: "pingService", kind: "WebService", handleAs: "xml", onSuccess: "ampachePingResponse", onFailure: "ampachePingFailure"},
+		{name: "lastfmConnectService", kind: "WebService", handleAs: "txt", method: "POST", onSuccess: "lastfmConnectResponse", onFailure: "lastfmConnectFailure"},
 			
 		{kind: "AppMenu", components: [
 			{caption: "About", onclick: "openAbout"},
@@ -73,7 +79,8 @@ enyo.kind({
 			{caption: "Preferences", onclick: "openPreferences"},
 			{caption: "Help", components: [
 				{caption: "Help", onclick: "openHelp"},
-				{caption: "Open in browser", onclick: "openBrowser"},
+				{caption: "Forums (on Precentral)", onclick: "openForums"},
+				{caption: "Open Ampache in browser", onclick: "openBrowser"},
 				{caption: "Leave review", onclick: "openCatalog"},
 				{caption: "Email Developer", onclick: "emailDeveloper"},
 			]},
@@ -101,68 +108,86 @@ enyo.kind({
 			{name: "scrimSpinner", kind: "SpinnerLarge"},
 		]},
 		
-		{name: "preferencesPopup", kind: "Popup", scrim: true, onBeforeOpen: "beforePreferencesOpen", components: [
+		{name: "preferencesPopup", kind: "Popup", className: "preferencesPopup", layoutKind: "VFlexLayout", height: "100%", width: "600px", scrim: true, onBeforeOpen: "beforePreferencesOpen", components: [
 			{name: "preferencesHeader", style: "text-align: center;"},
 			{content: "<hr/>", allowHtml: true},
-			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
-				{content: "Automatically connect to last server&nbsp;&nbsp;&nbsp;", allowHtml: true, flex: 1},
-				{name: "autoLogin", kind: "ToggleButton", onChange: "autoLoginToggle"},
-			]},
-			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
-				{name: "startingPane", kind: "ListSelector", label: "Starting view after login", onChange: "startingPaneSelect", flex: 1, items: [
-					{caption: "Songs", value: "songsList"},
-					{caption: "Albums", value: "albumsList"},
-					{caption: "Random Album", value: "random"},
-					{caption: "Artists", value: "artistsList"},
-					{caption: "Genres", value: "tagsList"},
-					{caption: "Playlists", value: "playlistsList"},
-					{caption: "Videos", value: "videosList"},
+			
+			{kind: "Scroller", flex: 1, components: [
+			
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{content: "Automatically connect to last server&nbsp;&nbsp;&nbsp;", allowHtml: true, flex: 1},
+					{name: "autoLogin", kind: "ToggleButton", onChange: "autoLoginToggle"},
 				]},
-			]},
-			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
-				{name: "defaultAction", kind: "ListSelector", label: "Default Action", onChange: "defaultActionSelect", flex: 1, items: [
-					{caption: "Play all", value: "play[]:[]all[]:[]straight"},
-					{caption: "Play all, shuffled", value: "play[]:[]all[]:[]shuffled"},
-					{caption: "Play single song", value: "play[]:[]single[]:[]straight"},
-					{caption: "Queue all", value: "queue[]:[]all[]:[]straight"},
-					{caption: "Queue all, shuffled", value: "queue[]:[]all[]:[]shuffled"},
-					{caption: "Queue single song", value: "queue[]:[]single[]:[]straight"},
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{name: "startingPane", kind: "ListSelector", label: "Starting view after login", onChange: "startingPaneSelect", flex: 1, items: [
+						{caption: "Songs", value: "songsList"},
+						{caption: "Albums", value: "albumsList"},
+						{caption: "Random Album", value: "random"},
+						{caption: "Artists", value: "artistsList"},
+						{caption: "Genres", value: "tagsList"},
+						{caption: "Playlists", value: "playlistsList"},
+						{caption: "Videos", value: "videosList"},
+					]},
 				]},
-			]},
-			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
-				{name: "nowPlayingEnd", kind: "ListSelector", label: "When playback ends", onChange: "nowPlayingEndSelect", flex: 1, items: [
-					{caption: "Stop", value: "stop[]:[]straight"},
-					{caption: "Play again", value: "play[]:[]straight"},
-					{caption: "Play again, shuffled", value: "play[]:[]shuffled"},
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{name: "defaultAction", kind: "ListSelector", label: "Default Action", onChange: "defaultActionSelect", flex: 1, items: [
+						{caption: "Play all", value: "play[]:[]all[]:[]straight"},
+						{caption: "Play all, shuffled", value: "play[]:[]all[]:[]shuffled"},
+						{caption: "Play single song", value: "play[]:[]single[]:[]straight"},
+						{caption: "Queue all", value: "queue[]:[]all[]:[]straight"},
+						{caption: "Queue all, shuffled", value: "queue[]:[]all[]:[]shuffled"},
+						{caption: "Queue single song", value: "queue[]:[]single[]:[]straight"},
+					]},
 				]},
-			]},
-			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
-				{content: "Dashboard playback controls", flex: 1},
-				{name: "dashboardPlayer", kind: "ToggleButton", onChange: "dashboardPlayerToggle"},
-			]},
-			{kind: "Item", showing: true, align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
-				{name: "theme", kind: "ListSelector", label: "Theme", onChange: "themeSelect", flex: 1, items: [
-					{caption: "Dark", value: "dark"},
-					{caption: "Light", value: "light"},
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{name: "nowPlayingEnd", kind: "ListSelector", label: "When playback ends", onChange: "nowPlayingEndSelect", flex: 1, items: [
+						{caption: "Stop", value: "stop[]:[]straight"},
+						{caption: "Play again", value: "play[]:[]straight"},
+						{caption: "Play again, shuffled", value: "play[]:[]shuffled"},
+					]},
 				]},
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{content: "Dashboard playback controls", flex: 1},
+					{name: "dashboardPlayer", kind: "ToggleButton", onChange: "dashboardPlayerToggle"},
+				]},
+				{kind: "Item", showing: true, align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{name: "theme", kind: "ListSelector", label: "Theme", onChange: "themeSelect", flex: 1, items: [
+						{caption: "Dark", value: "dark"},
+						{caption: "Light", value: "light"},
+					]},
+				]},
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{content: "Show album art on lists", flex: 1},
+					{name: "artOnLists", kind: "ToggleButton", onChange: "artOnListsToggle"},
+				]},
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{content: "Banner message on each track", flex: 1},
+					{name: "bannerOnPlayback", kind: "ToggleButton", onChange: "bannerOnPlaybackToggle"},
+				]},
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{content: "Last.fm", flex: 1},
+					{name: "lastFM", kind: "ToggleButton", onChange: "lastFMToggle"},
+				]},
+				{name: "lastFMusernameItem", showing: false, kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{content: "Last.fm username&nbsp;&nbsp;"},
+					{name: "lastFMusername", kind: "Input", flex: 1, autoCapitalize: "lowercase"},
+				]},
+				{name: "lastFMpasswordItem", showing: false, kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{content: "Last.fm password&nbsp;&nbsp;&nbsp;", allowHtml: true},
+					{name: "lastFMpassword", kind: "PasswordInput", flex: 1},
+				]},
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{content: "Usage statitistics with Metrix", flex: 1},
+					{name: "allowMetrix", kind: "ToggleButton", onChange: "allowMetrixToggle"},
+				]},
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{content: "Debug mode", flex: 1},
+					{name: "debug", kind: "ToggleButton", onChange: "debugToggle"},
+				]},
+			
 			]},
-			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
-				{content: "Show album art on lists", flex: 1},
-				{name: "artOnLists", kind: "ToggleButton", onChange: "artOnListsToggle"},
-			]},
-			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
-				{content: "Banner message on each track", flex: 1},
-				{name: "bannerOnPlayback", kind: "ToggleButton", onChange: "bannerOnPlaybackToggle"},
-			]},
-			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
-				{content: "Usage statitistics with Metrix", flex: 1},
-				{name: "allowMetrix", kind: "ToggleButton", onChange: "allowMetrixToggle"},
-			]},
-			{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
-				{content: "Debug mode", flex: 1},
-				{name: "debug", kind: "ToggleButton", onChange: "debugToggle"},
-			]},
-			{kind: "Button", caption: "Save", onclick:"saveNewPreferences"}
+			
+			{kind: "Button", caption: "Save", onclick:"saveNewPreferences"},
 		]},
 		
 		{name: "searchPopup", kind: "Popup", scrim: true, onBeforeOpen: "beforeSearchOpen", onOpen: "searchOpen", showKeyboardWhenOpening: true, components: [
@@ -190,6 +215,8 @@ enyo.kind({
 				
 				{name: "nowplaying", kind: "Nowplaying", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onQueueNextSong: "queueNextSong", onPreviousView: "previousView"},
 				
+				{name: "downloads", kind: "Downloads", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onQueueNextSong: "queueNextSong", onPreviousView: "previousView"},
+				
 				{name: "random", kind: "Random", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
 				
 				{name: "artistsList", kind: "ArtistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
@@ -197,7 +224,7 @@ enyo.kind({
 				{name: "playlistsList", kind: "PlaylistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences", onUpdateCounts: "updateCounts", onLocalplaylistSongs: "localplaylistSongs"},
 				{name: "tagsList", kind: "TagsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
 				
-				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onNowplayingUpdated: "nowplayingUpdated", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
+				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onNowplayingUpdated: "nowplayingUpdated", onPreviousView: "previousView", onSavePreferences: "savePreferences", onUpdateCounts: "updateCounts"},
 				
 				{name: "videosList", kind: "VideosList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
 				
@@ -212,7 +239,7 @@ enyo.kind({
 		if(debug) this.log("create");
 		this.inherited(arguments);
 		
-		enyo.keyboard.setResizesWindow(false);
+		//enyo.keyboard.setResizesWindow(false);
 		
 		AmpacheXL.Metrix = new Metrix(); 
 		
@@ -227,6 +254,18 @@ enyo.kind({
 			
 			if(AmpacheXL.prefsCookie.allowMetrix) setTimeout(enyo.bind(this,"submitMetrix"),60000);
 			if(AmpacheXL.prefsCookie.autoLogin) setTimeout(enyo.bind(this,"ampacheConnect"),50);
+			
+			if((AmpacheXL.prefsCookie.lastFM)&&(!AmpacheXL.prefsCookie.lastFMkey)) setTimeout(enyo.bind(this,"lastfmConnect"),200);
+			
+			var appInfo = enyo.fetchAppInfo();
+			
+			if(AmpacheXL.prefsCookie.appVersion != appInfo.version) {
+				if(debug) this.log("app had been upgraded from "+AmpacheXL.prefsCookie.appVersion+" to "+appInfo.version);
+				
+				if(AmpacheXL.prefsCookie.appVersion == null) setTimeout(enyo.bind(this, "localplaylistsSelect"), 1500)
+			}
+			
+			AmpacheXL.prefsCookie.appVersion = appInfo.version;
 			
 		} else {
 		
@@ -262,9 +301,6 @@ enyo.kind({
 		
 		
 		AmpacheXL.audioPlayer = new AudioPlayer(this);
-		AmpacheXL.audioPlayer.setNumBuffers(AmpacheXL.numBuffers);
-		AmpacheXL.audioPlayer.setMainHandler(this);
-		AmpacheXL.audioPlayer.setPlaybackHandler(this.$.playback);
 		
 	},
 	
@@ -324,6 +360,8 @@ enyo.kind({
 		AmpacheXL.allTags.length = 0;
 		AmpacheXL.allSongs.length = 0;
 		AmpacheXL.allVideos.length = 0;
+		
+		AmpacheXL.audioPlayer.cleanup();
 
 		this.updateCounts();
 		this.$.playback.disconnect();
@@ -349,8 +387,13 @@ enyo.kind({
 		this.$.theme.setValue(AmpacheXL.prefsCookie.theme);
 		this.$.artOnLists.setState(AmpacheXL.prefsCookie.artOnLists);
 		this.$.bannerOnPlayback.setState(AmpacheXL.prefsCookie.bannerOnPlayback);
+		this.$.lastFM.setState(AmpacheXL.prefsCookie.lastFM);
+		if(AmpacheXL.prefsCookie.lastFMusername) this.$.lastFMusername.setValue(AmpacheXL.prefsCookie.lastFMusername);
+		if(AmpacheXL.prefsCookie.lastFMpassword) this.$.lastFMpassword.setValue(AmpacheXL.prefsCookie.lastFMpassword);
 		this.$.allowMetrix.setState(AmpacheXL.prefsCookie.allowMetrix);
 		this.$.debug.setState(AmpacheXL.prefsCookie.debug);
+		
+		this.lastFMToggle();
 			
 	},
 	themeSelect: function(inSender, inValue, inOldValue) {
@@ -358,6 +401,17 @@ enyo.kind({
 		
 		this.removeClass(inOldValue);
 		this.addClass(inValue);
+	},
+	lastFMToggle: function() {
+		if(debug) this.log("lastFMToggle");
+		
+		if(this.$.lastFM.getState()) {
+			this.$.lastFMusernameItem.show();
+			this.$.lastFMpasswordItem.show();
+		} else {
+			this.$.lastFMusernameItem.hide();
+			this.$.lastFMpasswordItem.hide();
+		}
 	},
 	saveNewPreferences: function() {
 		if(debug) this.log("saveNewPreferences");
@@ -370,6 +424,9 @@ enyo.kind({
 		AmpacheXL.prefsCookie.theme = this.$.theme.getValue();
 		AmpacheXL.prefsCookie.artOnLists = this.$.artOnLists.getState();
 		AmpacheXL.prefsCookie.bannerOnPlayback = this.$.bannerOnPlayback.getState();
+		AmpacheXL.prefsCookie.lastFM = this.$.lastFM.getState();
+		if(this.$.lastFM.getState()) AmpacheXL.prefsCookie.lastFMusername = this.$.lastFMusername.getValue();
+		if(this.$.lastFM.getState()) AmpacheXL.prefsCookie.lastFMpassword = this.$.lastFMpassword.getValue();
 		AmpacheXL.prefsCookie.allowMetrix = this.$.allowMetrix.getState();
 		AmpacheXL.prefsCookie.debug = this.$.debug.getState();
 		
@@ -379,6 +436,8 @@ enyo.kind({
 		this.savePreferences();
 		this.$.preferencesPopup.close();
 		
+		if((AmpacheXL.prefsCookie.lastFM)&&(!AmpacheXL.prefsCookie.lastFMkey)) this.lastfmConnect();
+		
 	},
 	openHelp: function() {
 		if(debug) this.log("openHelp");
@@ -386,6 +445,11 @@ enyo.kind({
 		this.$.rightContent.selectViewByName("help");
 		
 		this.$.aboutPopup.close();
+	},
+	openForums: function() {
+		if(debug) this.log("openForums") 
+		
+		window.open("http://forums.precentral.net/webos-apps/288747-announcing-ampachexl-touchpad.html");
 	},
 	openBrowser: function() {
 		if(debug) this.log("openBrowser") 
@@ -560,6 +624,7 @@ enyo.kind({
 		if(debug) this.log("updateCounts");
 		
 		this.$.leftMenuKind.updateCounts();
+		this.$.downloads.updateCounts();
 	},
 	nowplayingUpdated: function(inSender, inPlayAction) {
 		if(debug) this.log("nowplayingUpdated: "+inPlayAction) 
@@ -576,6 +641,13 @@ enyo.kind({
 		} catch(e) {
 			if(debug) this.log(e);
 		}
+		
+		
+		var expiresUTC = Date.parse(AmpacheXL.session_expire);
+		var currentTime = new Date();
+		var currentUTC = currentTime.getTime();
+		
+		if(expiresUTC < currentUTC) this.ampachePing();
 		
 	},
 	queueNextSong: function(inSender, inSong) {
@@ -640,7 +712,11 @@ enyo.kind({
 	windowActivated: function() {
 		if(debug) this.log("windowActivated");
 		
+		AmpacheXL.windowActivated = true;
+		
 		try {
+			AmpacheXL.audioPlayer.UIStartPlaybackTimer();
+			
 			//if(this.doneFirstActivated) enyo.windows.setWindowParams(this.dashWindow, {close: true});
 			if(this.doneFirstActivated) this.dashWindow.close();
 			
@@ -653,7 +729,11 @@ enyo.kind({
 	windowDeactivated: function() {
 		if(debug) this.log("windowDeactivated");
 		
+		AmpacheXL.windowActivated = false;
+		
 		if((AmpacheXL.prefsCookie.dashboardPlayer)&&(AmpacheXL.currentSong.title)) this.dashWindow = enyo.windows.openDashboard("dashboard.html", "dashWindowName", AmpacheXL.currentSong, {clickableWhenLocked: true});
+		
+		//AmpacheXL.audioPlayer.UIStopPlaybackTimer();
 		
 	},
 	windowParamsChangeHandler: function() {
@@ -678,7 +758,11 @@ enyo.kind({
 	appUnloaded: function() {
 		if(debug) this.log("appUnloaded");
 		
-		this.disconnect();
+		try {
+			this.disconnect();
+		} catch(e) {
+			this.log(e);
+		}
 		
 		try {
 			this.dashWindow.close();
@@ -712,6 +796,11 @@ enyo.kind({
 		AmpacheXL.connected = true;
 		
 		AmpacheXL.connectResponse = {};
+		
+		AmpacheXL.audioPlayer.initialize();
+		AmpacheXL.audioPlayer.setNumBuffers(AmpacheXL.numBuffers);
+		AmpacheXL.audioPlayer.setMainHandler(this);
+		AmpacheXL.audioPlayer.setPlaybackHandler(this.$.playback);
 		
 		var xmlobject = (new DOMParser()).parseFromString(inResponse, "text/xml");
 		//var xmlobject = inResponse;
@@ -781,6 +870,11 @@ enyo.kind({
 					window.localStorage.setItem("allSongs", null);
 				}
 				*/
+				
+				if(window.localStorage.getItem("localPlaylists")) {
+					AmpacheXL.localPlaylists = enyo.json.parse(window.localStorage.getItem("localPlaylists"));
+					//window.localStorage.setItem("localPlaylists", null);
+				}
 				
 				switch(AmpacheXL.prefsCookie.startingPane) {
 					case "random":
@@ -866,13 +960,6 @@ enyo.kind({
 			
 			AmpacheXL.pingInterval = setInterval(enyo.bind(this, "ampachePing"),5000);
 			
-			html5sql.database.transaction(function(tx) {    
-				tx.executeSql('SELECT * FROM localplaylists', 
-					[], 
-					enyo.bind(this, "localplaylistsSelectResults"), 
-					enyo.bind(this, "localplaylistsSelectFailure") 
-				);
-			}.bind(this));
 		
 		} catch(e) {
 		
@@ -887,6 +974,41 @@ enyo.kind({
 		if(debug) this.log("ampacheConnectFailure");
 		
 		this.bannerMessage("ampachexl", "Failed to connect to AmpacheXL.  Check your settings.", true);
+	},
+	
+	lastfmConnect: function() {
+		if(debug) this.log("lastfmConnect");
+		
+		var url = "http://ws.audioscrobbler.com/2.0/";
+		var secret = "ab3e2bdb8a9c8faced63b61fae1f842c";
+		
+		var params = {};
+		params.api_key = "5b3c5775a14bc5dd0182b8b2965b62ac";
+		params.method = "auth.getMobileSession";
+		params.username = AmpacheXL.prefsCookie.lastFMusername;
+		params.authToken = MD5_hexhash(AmpacheXL.prefsCookie.lastFMusername.toLowerCase()+MD5_hexhash(AmpacheXL.prefsCookie.lastFMpassword));
+		
+		params.api_sig = MD5_hexhash("api_key"+params.api_key+"authToken"+params.authToken+"method"+params.method+"username"+params.username+secret);
+		
+		this.$.lastfmConnectService.setUrl(url);
+		if(debug) this.log("lastfmConnectService url: "+this.$.lastfmConnectService.getUrl()+enyo.json.stringify(params));
+		this.$.lastfmConnectService.call(params);
+		
+	},
+	lastfmConnectResponse: function(inSender, inResponse) {
+		//if(debug) this.log("lastfmConnectResponse");
+		if(debug) this.log("lastfmConnectResponse: "+inResponse);
+		
+		var xmlobject = (new DOMParser()).parseFromString(inResponse, "text/xml");
+		
+		var keyNode = xmlobject.getElementsByTagName("key")[0];
+		AmpacheXL.prefsCookie.lastFMkey = keyNode.childNodes[0].nodeValue;
+		
+		this.savePreferences();
+		
+	},
+	lastfmConnectFailure: function(inSender, inResponse) {
+		if(debug) this.error("lastfmConnectFailure");
 	},
 	
 	ampachePing: function() {
@@ -1067,6 +1189,18 @@ enyo.kind({
 		
 	},
 	
+	localplaylistsSelect: function() {
+		if(debug) this.log("localplaylistsSelect");
+		
+		html5sql.database.transaction(function(tx) {    
+			tx.executeSql('SELECT * FROM localplaylists', 
+				[], 
+				enyo.bind(this, "localplaylistsSelectResults"), 
+				enyo.bind(this, "localplaylistsSelectFailure") 
+			);
+		}.bind(this));
+				
+	},
 	localplaylistsSelectResults: function(transaction, results) {
 		//if(debug) this.log("localplaylistsSelectResults: "+enyo.json.stringify(results));
 		if(debug) this.log("localplaylistsSelectResults");
@@ -1089,6 +1223,8 @@ enyo.kind({
 		AmpacheXL.localPlaylists = playlists;
 		
 		if(debug) this.log("AmpacheXL.localPlaylists: "+enyo.json.stringify(AmpacheXL.localPlaylists));
+		
+		window.localStorage.setItem("localPlaylists", enyo.json.stringify(AmpacheXL.localPlaylists));
 		
 		this.updateCounts();
 		

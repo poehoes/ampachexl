@@ -2,12 +2,12 @@ Todo:
 
  - sort lists
  - coverflow?
- - download
- - dont update when deactivated
  - add recent and random to left menu?
  - bind volume keys to media?
- - last.fm (http://www.last.fm/api)
+ - last.fm error handling
  - bluetooth media controls
  - details view from click on playback
+ - show "loading" when starting playback
+ - status and errors during login
  
  

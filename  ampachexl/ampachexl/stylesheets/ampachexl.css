@@ -219,15 +219,22 @@
 	font-style: italic;
 }
 
-.nowplayingMoveUp {
+.nowplayingMoveUp{
 	max-height: 30px;
 }
 
-.nowplayingMoveDown {
+.downloadsMoveUp {
+	margin-left: 5px;
 	max-height: 30px;
 }
 
-.nowplayingRemove {
+.nowplayingMoveDown,
+.downloadsMoveDown {
+	max-height: 30px;
+}
+
+.nowplayingRemove,
+.downloadsRemove {
 	max-height: 30px;
 }
 
@@ -311,6 +318,10 @@
 	width: 32px;
 	height: 32px;
 	margin: 9px 2px 9px 0px;
+}
+
+.preferencesPopup .enyo-input-input {
+	text-align: right;
 }
 
 
