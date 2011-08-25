@@ -20,7 +20,7 @@
 
 var STALL_RETRY_TIME = "20000";
 
-var PLAYBACK_TIMERTICK = 1000;
+var PLAYBACK_TIMERTICK = 300;
 //var TCP_TIMEOUT = 120 * 1000; //in secs
 var AudioType = {
     "pool": 0,
@@ -42,6 +42,7 @@ AudioPlayer = Class.create({
 
     //buffer:null,
     streamingEvents: ["play", "playing", "pause", "error", "ended", "canplay", "emptied", "load", "loadstart", "waiting", "progress", "canplaythrough"],
+	// "timeupdate", 
 	
     //seeked seeking, "durationchange" "canplaythrough", "abort",  
     //bufferingEvents : ["abort", "error", "ended", "emptied", "load", "loadstart",
@@ -92,7 +93,7 @@ AudioPlayer = Class.create({
         //audioObj.song = this.blankSong;
         this.setAudioToBuffer(audioObj);
 
-        audioObj.setAttribute("x-palm-media-audio-class", "media");
+        //audioObj.setAttribute("x-palm-media-audio-class", "media");
 
         audioObj.isSong = function(song) {
             return (audioObj.song === song) ? true: false;
@@ -332,7 +333,7 @@ AudioPlayer = Class.create({
         }
         while (this.bufferMutex === true) {
 
-}
+		}
 
     },
 
@@ -482,25 +483,29 @@ AudioPlayer = Class.create({
     },
 
     bufferNextSong: function(lastSongLoaded) {
+		//console.log("bufferNextSong: "+enyo.json.stringify(lastSongLoaded));
         //Check if the song is alreay in an object
         //this.waitForBufferMutex();
         this.bufferMutex = true;
 
         var song = this.playList.peekNextSong(lastSongLoaded);
         var index = 0;
-
-        if ((song !== null) &&
-            (this.player.fullyBuffered === true) &&
-            (AmpacheMobile.webos.networkAvailable()===true))
-        {
-            
+		
+		//console.log("bufferNextSong song: "+enyo.json.stringify(song));
+        
+		//buffering new seems to pause current when using media audio class
+        if ((false)&&(song !== null)&&((this.player.fullyBuffered === true)||(this.player.song.amtBuffered >= 100))) {
+            //console.log("trying to buffer next song: "+enyo.json.stringify(song));
+			
             var buffered = false;
             var buffer = null;
             //Is Song Already Buffered
             buffer = this.getBufferedSong(song);
 
             if (buffer !== null) {
-                buffered = true;
+                //console.log("already buffered; buffer !== null");
+				
+				buffered = true;
 
                 //Check if we have enough data to seek
                 if (buffer.readyState > buffer.HAVE_NOTHING) {
@@ -517,7 +522,10 @@ AudioPlayer = Class.create({
             }
 
             if (buffered === false) {
+                //console.log("buffered === false");
+				
                 if (this.bufferPool.length !== 0) {
+					console.log("this.bufferPool.length !== 0");
                     buffer = this.bufferPool.pop();
                     buffer.song = song;
                     this.audioBuffers.push(buffer);
@@ -577,7 +585,8 @@ AudioPlayer = Class.create({
                     this.bufferNextSong(song);
                 }
             }
-        }
+			
+        } 
         this.bufferMutex = false;
     },
 
@@ -659,14 +668,14 @@ AudioPlayer = Class.create({
     enqueuePlayList: function(newPlayList, _shuffleOn) {
         if (this.playList) {
             this.playList.enqueueSongs(newPlayList, _shuffleOn);
-            this.bufferNextSong(AmpacheXL.audioPlayer.player.song);
+            this.bufferNextSong(this.player.song);
         }
     },
 
-    reorderPlayList: function(newPlayList, currentId, _shuffleOn) {
+    reorderPlayList: function(newPlayList, currentSong, currentId, _shuffleOn) {
         if (this.playList) {
             this.playList.reorderPlayList(newPlayList, currentId, _shuffleOn);
-            this.bufferNextSong(AmpacheXL.audioPlayer.player.song);
+            this.bufferNextSong(currentSong);
         }
     },
 	
@@ -980,7 +989,7 @@ AudioPlayer = Class.create({
     },
 
     logAudioEvent: function(source, event) {
-        console.info(source + " AudioEvent: " + event.type+", Player " + event.currentTarget.name+", Song: " + event.currentTarget.song.title);
+        console.log(source + " AudioEvent: " + event.type+", Player " + event.currentTarget.name+", Song: " + event.currentTarget.song.title);
     },
 
     handleAudioEvents: function(event) {
@@ -1008,8 +1017,8 @@ AudioPlayer = Class.create({
         case "error":
             //Received error buffer is no longer valid throw it away and resort the available buffer stack
             this.recoverStalledBuffers();
-            Mojo.Controller.errorDialog("Buffering Error");
-            this.mainHandler.doBannerMessage("Buffering Error");
+            //Mojo.Controller.errorDialog("Buffering Error");
+            //this.mainHandler.doBannerMessage("Buffering Error");
 
             break;
         case "loadstart":
@@ -1100,6 +1109,8 @@ AudioPlayer = Class.create({
             }
             break;
         case "ended":
+			this.playbackHandler.endedEvent(this.player.song);
+			
             this.UIShowSpinner(false);
             this.UIStopPlaybackTimer();
             if (this.playList.repeat === RepeatModeType.repeat_song) {
@@ -1107,8 +1118,6 @@ AudioPlayer = Class.create({
             } else {
                 this.next(false);
             }
-			
-			this.playbackHandler.endedEvent();
 
             break;
             //case "durationchange":
@@ -1445,6 +1454,9 @@ AudioPlayer = Class.create({
             }
             var duration = 0;
             var currentTime = 0;
+			//var end = 0;
+			
+			//end = this.player.buffered.end(0);
 
             if (this.player.readyState !== this.player.HAVE_NOTHING) {
                 currentTime = Number(this.player.currentTime);
@@ -1453,13 +1465,16 @@ AudioPlayer = Class.create({
             if (this.player.duration) {
 
                 duration = Number(this.player.duration);
-            }
+            } 
+			
             if ((duration === 0)&&(this.player.song)) {
                 duration = Number(this.player.song.time);
             }
 
             this.timePercentage = (currentTime / duration) * 100;
-
+			
+			//this.player.amtBuffered = (end/duration) * 100;
+			
             if(this.StallDetection===true)
             {
                 
@@ -1492,7 +1507,7 @@ AudioPlayer = Class.create({
             }
 			
             if (this.playbackHandler) {
-                this.playbackHandler.updateTime(currentTime, duration, this.timePercentage, this.player.song.index - 1);
+                this.playbackHandler.updateTime(currentTime, duration, this.timePercentage, this.player.song.amtBuffered, this.player.song.index - 1);
             }
         }
     },
@@ -1501,6 +1516,10 @@ AudioPlayer = Class.create({
         if (this.UIHandler) {
 
             this.UIHandler.updateBuffering(start, end, index, primary);
+        }
+			
+        if (this.playbackHandler) {
+            //this.playbackHandler.updateBuffering(start, end, index, primary);
         }
     },
 
@@ -1524,9 +1543,10 @@ AudioPlayer = Class.create({
 
         var primary = (this.player === audioObj);
 
+        audioObj.song.amtBuffered = endPercentage * 100;
+		
         this.UIPrintBuffered(startPercentage, endPercentage, audioObj.song.index - 1, primary);
 
-        audioObj.song.amtBuffered = endPercentage * 100;
 
     },
 
@@ -1686,5 +1706,5 @@ AudioPlayer = Class.create({
         }
         this.playList = null;
         this.hasPlayList = false;
-    }
+    },
 });

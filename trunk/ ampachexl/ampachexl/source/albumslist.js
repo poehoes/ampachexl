@@ -1,5 +1,5 @@
 /*
- *   AmapcheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
+ *   AmpacheXL - A webOS app for Ampache written in the enyo framework and designed for use on a tablet. 
  *   http://code.google.com/p/ampachexl/
  *   Copyright (C) 2011  Wes Brown
  *
@@ -87,6 +87,7 @@ enyo.kind({
 		
 		this.$.headerTitle.setContent("Albums");
 			
+		/*	
 		if(AmpacheXL.selectedArtist) {
 			//this.$.headerTitle.setContent("Albums ["+AmpacheXL.selectedArtist.name+"]");
 		} else {
@@ -99,6 +100,7 @@ enyo.kind({
 				this.$.albumsVirtualList.punt();
 			}
 		}
+		*/
 		
 	},
 	resize: function() {
@@ -215,7 +217,7 @@ enyo.kind({
 		
 		this.fullResultsList.length = 0;
 		this.resultsList.length = 0;
-		
+			
 		if(AmpacheXL.allAlbums.length == AmpacheXL.connectResponse.albums) {
 		
 			this.fullResultsList = AmpacheXL.allAlbums.concat([]);
@@ -243,6 +245,8 @@ enyo.kind({
 			}.bind(this));
 			
 		} else {
+			this.doUpdateSpinner(true);
+			
 			this.getAlbums();
 		}
 	},
@@ -253,10 +257,11 @@ enyo.kind({
 		
 		AmpacheXL.prefsCookie.oldAlbumsCount = 0;
 		
+		this.doUpdateSpinner(true);
+		
 		html5sql.process("DELETE FROM albums;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
 		this.sqlArray.length = 0;
 		
-		this.doUpdateSpinner(true);
 		this.doDataRequest("albumsList", "albums", "");
 	},
 	resetAlbumsSearch: function() {
@@ -327,7 +332,7 @@ enyo.kind({
 				this.$.listArt.hide();
 				
 				this.$.albumsTitle.setContent("All Albums");	
-				this.$.albumsArtist.setContent(row.name);
+				this.$.albumsArtist.setContent(row.artist);
 				
 				if(row.songs == 1) {
 					this.$.albumsSongCount.setContent("1 track");
@@ -480,6 +485,8 @@ enyo.kind({
 			this.fullResultsList.push(row);
 
 		}
+		
+		this.fullResultsList.sort(sort_by("name", false));
 		
 		AmpacheXL.allAlbums.length = 0;
 		AmpacheXL.allAlbums = this.fullResultsList.concat([]);

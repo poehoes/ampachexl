@@ -39,6 +39,8 @@ enyo.kind({
 	listMode: "play",
 	nowplayingMouseTimer: "",
 	
+	listOffset: 0, 
+	
 	components: [
 	
 		{name: "savePopup", kind: "Popup", lazy2: false, onBeforeOpen: "beforeSavePopupOpen", onOpen: "savePopupOpen", showKeyboardWhenOpening: true, scrim: true, components: [
@@ -55,7 +57,7 @@ enyo.kind({
 		{name: "nowplayingVirtualList", kind: "ScrollerVirtualList", onSetupRow: "setupNowplayingItem", flex: 1, components: [
 			{name: "nowplayingItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", components: [
 				{name: "nowplayingIndex", onclick2: "nowplayingClick", onmousedown: "nowplayingMousedown", onmouseup: "nowplayingMouseup", className: "listIndex"},
-				{name: "listArt", kind: "Image", onclick2: "songsClick", onmousedown: "songsMousedown", onmouseup: "songsMouseup", className: "listArt"},
+				{name: "listArt", kind: "Image", onclick2: "songsClick", onmousedown: "nowplayingMousedown", onmouseup: "nowplayingMouseup", className: "listArt"},
 				{kind: "VFlexBox", flex: 1, onclick2: "nowplayingClick", onmousedown: "nowplayingMousedown", onmouseup: "nowplayingMouseup", components: [
 					{name: "nowplayingTitle", className: "title"},
 					{name: "nowplayingArtist", className: "subtitle"},
@@ -107,11 +109,18 @@ enyo.kind({
 	activate: function() {
 		if(debug) this.log("activate");
 		
+		this.doUpdateSpinner(false);
+		
+		this.listOffset = Math.max(0, AmpacheXL.nowplayingIndex-5);
+		this.$.nowplayingVirtualList.punt();
+		
+		/*
 		if(AmpacheXL.nowplaying.length < 15) {
 			this.$.nowplayingVirtualList.punt();
 		} else {
 			this.$.nowplayingVirtualList.refresh();
 		}
+		*/
 		
 		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
 		
@@ -310,14 +319,16 @@ enyo.kind({
 	setupNowplayingItem: function(inSender, inIndex) {
 		//if(debug) this.log("setupNowplayingItem: "+inIndex);
 		
-		var row = AmpacheXL.nowplaying[inIndex];
+		var newIndex = inIndex + this.listOffset;
+		
+		var row = AmpacheXL.nowplaying[newIndex];
 		
 		if(row) {
 		
 			//this.$.nowplayingItem.applyStyle("border-top", "1px solid silver;");
 			//this.$.nowplayingItem.applyStyle("border-bottom", "none;");
 			
-			this.$.nowplayingIndex.setContent(inIndex+1);
+			this.$.nowplayingIndex.setContent(newIndex+1);
 			
 			if(AmpacheXL.prefsCookie.artOnLists) {
 				this.$.listArt.setSrc(row.art);
@@ -362,6 +373,8 @@ enyo.kind({
 	headerClick: function() {
 		if(debug) this.log("headerClick");
 		
+		this.listOffset = 0;
+		
 		this.$.nowplayingVirtualList.punt();
 	},
 	sortClick: function(inSender, inEvent) {
@@ -371,7 +384,9 @@ enyo.kind({
 	},
 	sortSelect: function(inSender, inEvent) {
 		if(inEvent) {
-			if(debug) this.log("moreSelect: "+inEvent.value);
+			if(debug) this.log("sortSelect: "+inEvent.value);
+			
+			this.listOffset = 0;
 			
 			switch(inEvent.value) {
 				case "shuffle":
@@ -458,10 +473,14 @@ enyo.kind({
 	savePopupOpen: function() {
 		if(debug) this.log("savePopupOpen");
 		
+		//enyo.keyboard.forceShow(0);
+		
 		this.$.saveInput.forceFocusEnableKeyboard();
 	},
 	saveNew: function() {
 		if(debug) this.log("saveNew: "+this.$.saveInput.getValue());
+		
+		enyo.keyboard.setManualMode(false);
 		
 		this.newId = 1;
 		
@@ -471,6 +490,8 @@ enyo.kind({
 		
 		this.newId++;
 		
+		
+		/*
 		var query = 'INSERT INTO localplaylists (playlist_id, name, items, source, oldAuth) VALUES ('+this.newId+', "'+this.$.saveInput.getValue()+'", '+AmpacheXL.nowplaying.length+', "Local", "'+AmpacheXL.connectResponse.auth+'")';	
 		
 		if(debug) this.log("query: "+query);
@@ -484,13 +505,26 @@ enyo.kind({
 				enyo.bind(this, "insertLocalplaylistsFailure") 
 			);
 		}.bind(this));
+		*/
+		
+		var s = {};
+		s.type = "playlist";
+		s.playlist_id = this.newId;
+		s.name = this.$.saveInput.getValue();	
+		s.items = AmpacheXL.nowplaying.length;
+		s.source = "Local";
+		s.oldAuth = AmpacheXL.connectResponse.auth;
+		
+		AmpacheXL.localPlaylists.push(s);
+		
+		this.insertLocalplaylistsSuccess();
 		
 	},
 	nowplayingMousedown: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingMousedown: "+this.$.nowplayingVirtualList.getScrollTop()) 
 		
 		this.newClick = true;
-		this.listOffset = this.$.nowplayingVirtualList.getScrollTop();
+		this.listScroll = this.$.nowplayingVirtualList.getScrollTop();
 		this.nowplayingMouseTimer = setTimeout(enyo.bind(this, "nowplayingMoreClick", inSender, inEvent), 500);
 		
 	},
@@ -507,20 +541,23 @@ enyo.kind({
 	nowplayingClick: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingClick: "+inEvent.rowIndex);
 		
-		if(Math.abs(this.$.nowplayingVirtualList.getScrollTop() - this.listOffset) > 5) {
+		if(Math.abs(this.$.nowplayingVirtualList.getScrollTop() - this.listScroll) > 5) {
 		
-			if(debug) this.log("change in scroller offset is too large: "+Math.abs(this.$.nowplayingVirtualList.getScrollTop() - this.listOffset));
+			if(debug) this.log("change in scroller offset is too large: "+Math.abs(this.$.nowplayingVirtualList.getScrollTop() - this.listScroll));
 		
 		} else {
-			var row = AmpacheXL.nowplaying[inEvent.rowIndex];
+		
+			var newIndex = inEvent.rowIndex + this.listOffset;
+		
+			var row = AmpacheXL.nowplaying[newIndex];
 			
-			AmpacheXL.nowplayingIndex = inEvent.rowIndex;
+			AmpacheXL.nowplayingIndex = newIndex;
 			AmpacheXL.currentSong = row;
 			
 			if(debug) this.log("nowplayingClick: "+enyo.json.stringify(row));
 			
 			//this.doPlaySong(row);
-			AmpacheXL.audioPlayer.playTrack(inEvent.rowIndex);
+			AmpacheXL.audioPlayer.playTrack(newIndex);
 			
 			this.$.nowplayingVirtualList.refresh();
 			this.doUpdateCounts();
@@ -533,14 +570,17 @@ enyo.kind({
 		
 		this.newClick = false;
 		
-		if(Math.abs(this.$.nowplayingVirtualList.getScrollTop() - this.listOffset) > 5) {
+		if(Math.abs(this.$.nowplayingVirtualList.getScrollTop() - this.listScroll) > 5) {
 		
-			if(debug) this.log("change in scroller offset is too large: "+Math.abs(this.$.nowplayingVirtualList.getScrollTop() - this.listOffset));
+			if(debug) this.log("change in scroller offset is too large: "+Math.abs(this.$.nowplayingVirtualList.getScrollTop() - this.listScroll));
 		
 		} else {
 		
-			this.selectedSong = AmpacheXL.nowplaying[inEvent.rowIndex];
-			this.selectedIndex = inEvent.rowIndex;
+			var newIndex = inEvent.rowIndex + this.listOffset;
+		
+			this.selectedSong = AmpacheXL.nowplaying[newIndex];
+			this.selectedIndex = newIndex;
+			this.selectedOffsetIndex = inEvent.rowIndex;
 			
 			this.$.morePopupMenu.setItems([
 				{caption: "Play"},
@@ -552,6 +592,10 @@ enyo.kind({
 					{caption: "Move to top"},
 					{caption: "Move to bottom"},
 					{caption: "Move to next"},
+				]},
+				{caption: $L("Download"), components: [
+					{caption: "Download single song"},
+					{caption: "Download all"},
 				]},
 				{caption: $L("Remove"), components: [
 					{caption: "Remove single song"},
@@ -579,31 +623,44 @@ enyo.kind({
 			
 			switch(inEvent.value) {
 				case "Play":
-					this.nowplayingClick("nowplaying", {rowIndex: this.selectedIndex});
+					this.nowplayingClick("nowplaying", {rowIndex: this.selectedOffsetIndex});
 					break;
 				case "Move":
 					//
 					break;
 				case "Move up":
-					this.nowplayingMoveUp("nowplaying", {rowIndex: this.selectedIndex});
+					this.nowplayingMoveUp("nowplaying", {rowIndex: this.selectedOffsetIndex});
 					break;
 				case "Move down":
-					this.nowplayingMoveDown("nowplaying", {rowIndex: this.selectedIndex});
+					this.nowplayingMoveDown("nowplaying", {rowIndex: this.selectedOffsetIndex});
 					break;
 				case "Move to top":
-					this.nowplayingMoveToTop("nowplaying", {rowIndex: this.selectedIndex});
+					this.nowplayingMoveToTop("nowplaying", {rowIndex: this.selectedOffsetIndex});
 					break;
 				case "Move to bottom":
-					this.nowplayingMoveToBottom("nowplaying", {rowIndex: this.selectedIndex});
+					this.nowplayingMoveToBottom("nowplaying", {rowIndex: this.selectedOffsetIndex});
 					break;
 				case "Move to next":
-					this.nowplayingMoveToNext("nowplaying", {rowIndex: this.selectedIndex});
+					this.nowplayingMoveToNext("nowplaying", {rowIndex: this.selectedOffsetIndex});
+					break;
+				case "Download":
+					//
+					break;
+				case "Download single song":
+					AmpacheXL.downloads.push(this.selectedSong);
+					this.doUpdateCounts();
+					break;
+				case "Download all":
+					for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
+						AmpacheXL.downloads.push(AmpacheXL.nowplaying[i]);
+					}
+					this.doUpdateCounts();
 					break;
 				case "Remove":
 					//
 					break;
 				case "Remove single song":
-					this.nowplayingRemove("nowplaying", {rowIndex: this.selectedIndex});
+					this.nowplayingRemove("nowplaying", {rowIndex: this.selectedOffsetIndex});
 					break;
 				case "Remove all above this":
 					if(this.selectedIndex <= AmpacheXL.nowplayingIndex) {
@@ -648,8 +705,10 @@ enyo.kind({
 	nowplayingMoveUp: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingMoveUp: "+inEvent.rowIndex);
 		
-		var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
-		AmpacheXL.nowplaying.splice(inEvent.rowIndex - 1, 0, row);
+		var newIndex = inEvent.rowIndex + this.listOffset;
+			
+		var row = AmpacheXL.nowplaying.splice(newIndex, 1)[0];
+		AmpacheXL.nowplaying.splice(newIndex - 1, 0, row);
 		
 		this.finishedMoving();
 		
@@ -657,8 +716,10 @@ enyo.kind({
 	nowplayingMoveDown: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingMoveDown: "+inEvent.rowIndex);
 		
-		var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
-		AmpacheXL.nowplaying.splice(inEvent.rowIndex + 1, 0, row);
+		var newIndex = inEvent.rowIndex + this.listOffset;
+		
+		var row = AmpacheXL.nowplaying.splice(newIndex, 1)[0];
+		AmpacheXL.nowplaying.splice(newIndex + 1, 0, row);
 		
 		this.finishedMoving();
 		
@@ -666,7 +727,9 @@ enyo.kind({
 	nowplayingMoveToTop: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingMoveToTop: "+inEvent.rowIndex);
 		
-		var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
+		var newIndex = inEvent.rowIndex + this.listOffset;
+		
+		var row = AmpacheXL.nowplaying.splice(newIndex, 1)[0];
 		AmpacheXL.nowplaying.splice(0, 0, row);
 		
 		this.finishedMoving();
@@ -675,7 +738,9 @@ enyo.kind({
 	nowplayingMoveToBottom: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingMoveToBottom: "+inEvent.rowIndex);
 		
-		var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
+		var newIndex = inEvent.rowIndex + this.listOffset;
+		
+		var row = AmpacheXL.nowplaying.splice(newIndex, 1)[0];
 		AmpacheXL.nowplaying.push(row);
 		
 		this.finishedMoving();
@@ -684,7 +749,9 @@ enyo.kind({
 	nowplayingMoveToNext: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingMoveToNext: "+inEvent.rowIndex);
 		
-		var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
+		var newIndex = inEvent.rowIndex + this.listOffset;
+		
+		var row = AmpacheXL.nowplaying.splice(newIndex, 1)[0];
 		
 		var currentIndex = -1;
 		for(var i = 0; i < AmpacheXL.nowplaying.length; i++) {
@@ -703,10 +770,12 @@ enyo.kind({
 	nowplayingRemove: function(inSender, inEvent) {
 		if(debug) this.log("nowplayingRemove: "+inEvent.rowIndex);
 		
-		if(AmpacheXL.nowplayingIndex == inEvent.rowIndex) {
+		var newIndex = inEvent.rowIndex + this.listOffset;
+		
+		if(AmpacheXL.nowplayingIndex == newIndex) {
 			this.doBannerMessage("You cannot remove the song that is currently playing", true);
 		} else {
-			var row = AmpacheXL.nowplaying.splice(inEvent.rowIndex, 1)[0];
+			var row = AmpacheXL.nowplaying.splice(newIndex, 1)[0];
 			AmpacheXL.audioPlayer.playList.removeSong(inEvent.rowIndex);
 		}
 		
@@ -726,7 +795,7 @@ enyo.kind({
 		
 		this.$.nowplayingVirtualList.refresh();
 		
-		AmpacheXL.audioPlayer.reorderPlayList(AmpacheXL.nowplaying, AmpacheXL.currentSong.id);
+		AmpacheXL.audioPlayer.reorderPlayList(AmpacheXL.nowplaying, AmpacheXL.currentSong, AmpacheXL.currentSong.id);
 		
 		this.doUpdateCounts();
 		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
@@ -755,7 +824,7 @@ enyo.kind({
 	},
 	
 	insertLocalplaylistsSuccess: function(transaction, results) {
-		if(debug) this.log("insertLocalplaylistsSuccess: "+enyo.json.stringify(results));
+		//if(debug) this.log("insertLocalplaylistsSuccess: "+enyo.json.stringify(results));
 		
 		if(debug) this.log("insertLocalplaylistsSuccess: "+this.newId);
 		
@@ -793,6 +862,7 @@ enyo.kind({
 		
 		this.doBannerMessage("Finished saving playlist");
 		
+		/*
 		html5sql.database.transaction(function(tx) {    
 			tx.executeSql('SELECT * FROM localplaylists', 
 				[], 
@@ -800,6 +870,11 @@ enyo.kind({
 				enyo.bind(this, "localplaylistsSelectFailure") 
 			);
 		}.bind(this));
+		*/
+		
+		if(debug) this.log("AmpacheXL.localPlaylists: "+enyo.json.stringify(AmpacheXL.localPlaylists));
+		
+		this.doUpdateCounts();
 	},
 	insertLocalplaylistsSongsFailure: function() {
 		if(debug) this.log("insertLocalplaylistsSongsFailure");

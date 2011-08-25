@@ -404,6 +404,8 @@ enyo.kind({
 
 		}
 		
+		this.fullResultsList.sort(sort_by("name", false));
+		
 		AmpacheXL.allArtists.length = 0;
 		AmpacheXL.allArtists = this.fullResultsList.concat([]);
 			

@@ -38,6 +38,10 @@ enyo.kind({
 	startPlayingTimer: "",
 	
 	components: [
+	
+			{name: "lastfmUpdateService", kind: "WebService", handleAs: "txt", method: "POST", onSuccess: "lastfmUpdateResponse", onFailure: "lastfmUpdateFailure"},
+			{name: "lastfmScrobbleService", kind: "WebService", handleAs: "txt", method: "POST", onSuccess: "lastfmScrobbleResponse", onFailure: "lastfmScrobbleFailure"},
+		
 			/*
 			{name: "sound1", kind: "Sound", src: "media/empty.mp3", audioClass: "media"},
 			{name: "sound2", kind: "Sound", src: "media/empty.mp3", audioClass: "media"},
@@ -51,7 +55,7 @@ enyo.kind({
 			
 			{name: "songTimeWrapper", kind: "HFlexBox", className: "songTimeWrapper", align: "center", pack: "center", components: [
 				{name: "progressTime", className: "playbackTime"},
-				{name: "songSlider", kind: "Slider", className: "songSlider", showing: false, position: 0, flex: 1, onChanging: "songSliderChanging", onChange: "songSliderChange", animationPosition: false},
+				{name: "songSlider", kind: "ProgressSlider", className: "songSlider", showing: false, position: 0, barPosition: 0, flex: 1, onChanging: "songSliderChanging", onChange: "songSliderChange", animationPosition: false},
 				{name: "totalTime", className: "playbackTime"},
 			]},
 			
@@ -213,14 +217,20 @@ enyo.kind({
 		//this.doNextTrack();
 	},
 	
-	updateTime: function(currentTime, duration, timePercentage, songIndex) {
-		if(debug) this.log("updateTime: "+currentTime+", "+duration+", "+timePercentage+", "+songIndex);
+	updateTime: function(currentTime, duration, timePercentage, amtBuffered, songIndex) {
+		//if(debug) this.log("updateTime: "+currentTime+", "+duration+", "+timePercentage+", "+amtBuffered+", "+songIndex);
 		
 		if((!this.movingSlider)&&(AmpacheXL.connected))  {
 			this.$.songSlider.setPosition(timePercentage);
+			this.$.songSlider.setBarPosition(amtBuffered);
 			this.$.progressTime.setContent(floatToTime(currentTime));
 		}
 		
+	},
+	updateBuffering: function(start, end, index, primary) {
+		if(debug) this.log("updateBuffering: "+start+", "+end+", "+index+", "+primary);
+		
+		if(primary) this.$.songSlider.setBarPosition(end*100);
 	},
 	playingEvent: function(inSong) {
 		if(debug) this.log("playingEvent: "+enyo.json.stringify(inSong));
@@ -240,6 +250,8 @@ enyo.kind({
 		this.$.songTitle.setContent(inSong.title);
 		this.$.songAlbum.setContent(inSong.album);
 		
+		this.$.songSlider.setBarPosition(inSong.amtBuffered);
+		
 		this.render();
 		
 		if((window.PalmSystem)&&(AmpacheXL.prefsCookie.bannerOnPlayback)) this.doBannerMessage(inSong.artist+": "+inSong.title);
@@ -254,9 +266,28 @@ enyo.kind({
 		
 		//this.$.totalTime.setContent(floatToTime(AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].duration));
 		this.$.totalTime.setContent(floatToTime(AmpacheXL.currentSong.time));
+		
+		if((AmpacheXL.prefsCookie.lastFM)&&(!AmpacheXL.prefsCookie.lastFMkey)) {
+			//lastfm track.updateNowPlaying
+			var url = "http://ws.audioscrobbler.com/2.0/";
+			var secret = "ab3e2bdb8a9c8faced63b61fae1f842c";
+			
+			var params = {};
+			params.api_key = "5b3c5775a14bc5dd0182b8b2965b62ac";
+			params.method = "track.updateNowPlaying";
+			params.track = inSong.title;
+			params.artist = inSong.artist;
+			params.sk = AmpacheXL.prefsCookie.lastFMkey;
+			
+			params.api_sig = MD5_hexhash("api_key"+params.api_key+"artist"+params.artist+"method"+params.method+"sk"+params.sk+"track"+params.track+secret);
+			
+			this.$.lastfmUpdateService.setUrl(url);
+			if(debug) this.log("lastfmUpdateService url: "+this.$.lastfmUpdateService.getUrl()+enyo.json.stringify(params));
+			this.$.lastfmUpdateService.call(params);
+		}
 	},
 	timeupdateEvent: function(inCurrentTime) {
-		//if(debug) this.log("timeupdateEvent: "+inCurrentTime);
+		if(debug) this.log("timeupdateEvent: "+inCurrentTime);
 		//if(debug) this.log("timeupdateEvent: "+this.$[AmpacheXL.currentAudioObjectName].audio.currentTime);
 		//if(debug) this.log("timeupdateEvent: "+AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].currentTime);
 		
@@ -294,7 +325,7 @@ enyo.kind({
 		AmpacheXL.currentSong.status = "paused";
 		setTimeout(enyo.bind(this, "doUpdatePlaybackStatus", 10));
 	},
-	endedEvent: function() {
+	endedEvent: function(inSong) {
 		if(debug) this.log("endedEvent");
 		
 		if(AmpacheXL.connected) this.$.play.show();
@@ -342,7 +373,7 @@ enyo.kind({
 				AmpacheXL.nowplayingIndex = 0;
 				AmpacheXL.currentSong = row;
 				
-				AmpacheXL.audioPlayer.reorderPlayList(AmpacheXL.nowplaying, AmpacheXL.currentSong.id);
+				AmpacheXL.audioPlayer.reorderPlayList(AmpacheXL.nowplaying, AmpacheXL.currentSong, AmpacheXL.currentSong.id);
 				AmpacheXL.audioPlayer.playTrack(0);
 				
 			} else {
@@ -352,6 +383,27 @@ enyo.kind({
 		}
 		
 		//this.doNextTrack();
+		
+		
+		if((AmpacheXL.prefsCookie.lastFM)&&(!AmpacheXL.prefsCookie.lastFMkey)) {
+			//lastfm track.scrobble	
+			var url = "http://ws.audioscrobbler.com/2.0/";
+			var secret = "ab3e2bdb8a9c8faced63b61fae1f842c";
+			
+			var params = {};
+			params.api_key = "5b3c5775a14bc5dd0182b8b2965b62ac";
+			params.method = "track.scrobble";
+			params.timestamp = getAmpacheTime();
+			params.track = inSong.title;
+			params.artist = inSong.artist;
+			params.sk = AmpacheXL.prefsCookie.lastFMkey;
+			
+			params.api_sig = MD5_hexhash("api_key"+params.api_key+"artist"+params.artist+"method"+params.method+"sk"+params.sk+"timestamp"+params.timestamp+"track"+params.track+secret);
+			
+			this.$.lastfmScrobbleService.setUrl(url);
+			if(debug) this.log("lastfmScrobbleService url: "+this.$.lastfmScrobbleService.getUrl()+enyo.json.stringify(params));
+			this.$.lastfmScrobbleService.call(params);
+		}
 	},
 	errorEvent: function() {
 		if(debug) this.log("errorEvent");
@@ -460,6 +512,24 @@ enyo.kind({
 		}
 	},
 
+	
+	
+	lastfmUpdateResponse: function(inSender, inResponse) {
+		//if(debug) this.log("lastfmUpdateResponse");
+		if(debug) this.log("lastfmUpdateResponse: "+inResponse);
+		
+	},
+	lastfmUpdateFailure: function(inSender, inResponse) {
+		if(debug) this.log("lastfmUpdateFailure");
+	},
+	lastfmScrobbleResponse: function(inSender, inResponse) {
+		//if(debug) this.log("lastfmScrobbleResponse");
+		if(debug) this.log("lastfmScrobbleResponse: "+inResponse);
+		
+	},
+	lastfmScrobbleFailure: function(inSender, inResponse) {
+		if(debug) this.log("lastfmScrobbleFailure");
+	},
 	
 });
 	

@@ -444,20 +444,25 @@ PlayList = Class.create({
             searchIndex = song.index;
             nextSong = null;
     
+			//console.log("peekNextSong song.title: "+song.title);
+			//console.log("peekNextSong song: "+enyo.json.stringify(song));
+			//console.log("this.repeat: "+this.repeat);
+			//console.log("peekNextSong this.songs: "+enyo.json.stringify(this.songs));
+			//console.log("peekNextSong this.songs.length: "+this.songs.length);
     
             switch (this.repeat) {
-            case RepeatModeType.repeat_song:
-            case RepeatModeType.no_repeat:
-                if (searchIndex != this.songs.length) {
-                    return this.songs[searchIndex];
-                } else {
-                    return null;
-                }
-                
-                break;
-            case RepeatModeType.repeat_forever:
-                return this.songs[searchIndex % this.songs.length];
-                break;
+				case RepeatModeType.repeat_song:
+				case RepeatModeType.no_repeat:
+					if (searchIndex != this.songs.length) {
+						return this.songs[searchIndex];
+					} else {
+						return null;
+					}
+					
+					break;
+				case RepeatModeType.repeat_forever:
+					return this.songs[searchIndex % this.songs.length];
+					break;
             }
         }
 

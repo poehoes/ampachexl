@@ -52,7 +52,7 @@ enyo.kind({
 			{name: "usernameInput", kind: "Input", autoCapitalize: "lowercase"},
 			{kind: "Divider", caption: "Password"},
 			{name: "passwordInput", kind: "PasswordInput", autoCapitalize: "lowercase"},
-			{kind: "Button", caption: "Save", onclick:"saveNew"},
+			{kind: "Button", caption: "Save", content: "Save", onclick:"saveNew"},
 		]},
 		
 		{name: "deletePopup", kind: "Popup", scrim: true, components: [
@@ -100,6 +100,8 @@ enyo.kind({
 		
 		this.$.hostsVirtualList.punt();
 		
+		this.doUpdateSpinner(false);
+		
 		//this.$.headerSubtitle.setContent(AmpacheXL.hosts.length+" items");
 		
 	},
@@ -119,6 +121,8 @@ enyo.kind({
 	},
 	beforeEditPopupOpen: function() {
 		if(debug) this.log("beforeEditPopupOpen");
+		
+		//enyo.keyboard.forceShow(0);
 		
 		this.$.nameInput.setValue(this.selectedHost.name);
 		this.$.urlInput.setValue(this.selectedHost.url);
@@ -163,7 +167,7 @@ enyo.kind({
 		this.doSavePreferences();
 		
 		if(this.$.urlInput.getValue().toUpperCase().indexOf("AMPACHE") < 0) {
-			this.doBannerMessage("The URL you entered did not include 'ampache'.  The URL needs to include the approprite Ampache directory for your system.", true);
+			this.doBannerMessage("The URL you entered did not include 'ampache'.  The URL needs to include the approprite Ampache directory for your system, which in most (but not all) cases has 'ampache' in it.", true);
 		} else if(this.$.urlInput.getValue().toUpperCase().indexOf("HTTP") < 0) {
 			this.doBannerMessage("The URL you entered did not include the leading 'http' or 'https'.  You need to include that part of the URL.", true);
 		} 

@@ -172,6 +172,7 @@ enyo.kind({
 				row.type = "artist";
 				row.songs = "all";
 				row.id = row.artist_id;
+				row.name = row.artist;
 				AmpacheXL.selectedArtist = row;
 				this.doUpdateSpinner(true);
 				this.doDataRequest("albumsList", "artist_albums", "&filter="+row.artist_id);

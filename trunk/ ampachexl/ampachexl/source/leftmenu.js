@@ -47,6 +47,12 @@ enyo.kind({
 				{name: "nowplayingItemCount"},
 			]},
 			
+			{name: "downloadsItem", showing: false, kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+				{name: "downloadsItemIcon", kind: "Image", src: "images/57-download.png", className: "menuIcon"},
+				{name: "downloadsItemTitle", content: "Downloads", flex: 1},
+				{name: "downloadsItemCount"},
+			]},
+			
 			{name: "searchItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
 				{name: "searchItemIcon", kind: "Image", src: "images/06-magnify.png", className: "menuIcon"},
 				{name: "searchItemTitle", content: "Search", flex: 1},
@@ -121,6 +127,14 @@ enyo.kind({
 			this.$.nowplayingItem.show();
 		}	
 		
+		if(AmpacheXL.downloads.length == 0) {
+			this.$.downloadsItemCount.setContent("");
+			this.$.downloadsItem.hide();
+		} else {
+			this.$.downloadsItemCount.setContent(AmpacheXL.downloads.length);
+			this.$.downloadsItem.show();
+		}	
+		
 		if(AmpacheXL.connectResponse) {
 			this.$.songsItemCount.setContent(AmpacheXL.connectResponse.songs);
 			this.$.albumsItemCount.setContent(AmpacheXL.connectResponse.albums);
@@ -156,6 +170,10 @@ enyo.kind({
 		switch(inSender.getName()) {
 			case "nowplayingItem":
 				this.doViewSelected("nowplaying");
+				break;
+				
+			case "downloadsItem":
+				this.doViewSelected("downloads");
 				break;
 				
 			case "searchItem":

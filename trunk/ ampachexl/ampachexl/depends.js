@@ -8,6 +8,8 @@ enyo.depends(
 	
 	"source/nowplaying.js",
 	
+	"source/downloads.js",
+	
 	"source/hosts.js",
 	
 	"source/random.js",
@@ -28,6 +30,7 @@ enyo.depends(
 	
 	"source/libraries/scrollervirtuallist.js",
 	"source/libraries/sha256.js",
+	"source/libraries/md5.js",
 	"source/libraries/html5sql.js",
 	"source/libraries/prototype.js",
 	/*"source/libraries/XMLObjectifier.js",*/
