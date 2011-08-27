@@ -107,7 +107,8 @@ var html5sql = (function () {
 					if (typeof sqlInput[i]         !== "object"   ||
 					    typeof sqlInput[i].sql     !== "string"   ||
 					    typeof sqlInput[i].success !== "function" ||
-						!$.isArray(sqlInput[i].data)) {
+						false) {
+						/*!$.isArray(sqlInput[i].data)) {*/
 						throw new Error("Malformed sql object");
 					}
 				}
