@@ -35,6 +35,8 @@ enyo.kind({
 		onLocalplaylistSongs: "",
 	},
 	
+	activeView: false,
+	
 	fullResultsList: [],
 	resultsList: [],
 	
@@ -87,12 +89,19 @@ enyo.kind({
 	activate: function() {
 		if(debug) this.log("activate");
 		
+		this.activeView = true;
+		
 		this.resize();
 		
 		if(this.fullResultsList.length == 0) {
 			//this.getPlaylists();
 		}
 		
+	},
+	deactivate: function() {
+		if(debug) this.log("deactivate");
+		
+		this.activeView = false;
 	},
 	resize: function() {
 		if(debug) this.log("resize");

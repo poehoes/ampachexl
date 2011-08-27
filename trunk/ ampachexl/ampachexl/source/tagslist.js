@@ -33,6 +33,8 @@ enyo.kind({
 		onPreviousView: "",
 	},
 	
+	activeView: false,
+	
 	fullResultsList: [],
 	resultsList: [],
 	
@@ -83,10 +85,17 @@ enyo.kind({
 	activate: function(inMode) {
 		if(debug) this.log("activate");
 		
+		this.activeView = true;
+		
 		this.resize();
 		
 		this.$.headerTitle.setContent("Genres");
 		
+	},
+	deactivate: function() {
+		if(debug) this.log("deactivate");
+		
+		this.activeView = false;
 	},
 	resize: function() {
 		if(debug) this.log("resize");

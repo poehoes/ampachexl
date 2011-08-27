@@ -120,6 +120,7 @@ enyo.kind({
 				]},
 				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 					{name: "startingPane", kind: "ListSelector", label: "Starting view after login", onChange: "startingPaneSelect", flex: 1, items: [
+						{caption: "None", value: "nowplaying"},
 						{caption: "Songs", value: "songsList"},
 						{caption: "Albums", value: "albumsList"},
 						{caption: "Random Album", value: "random"},
@@ -127,6 +128,14 @@ enyo.kind({
 						{caption: "Genres", value: "tagsList"},
 						{caption: "Playlists", value: "playlistsList"},
 						{caption: "Videos", value: "videosList"},
+					]},
+				]},
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{name: "limitCount", kind: "ListSelector", label: "Data request limit", onChange: "limitCountSelect", flex: 1, items: [
+						{caption: "100", value: 100},
+						{caption: "300", value: 300},
+						{caption: "1000", value: 1000},
+						{caption: "3000", value: 3000},
 					]},
 				]},
 				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
@@ -267,6 +276,8 @@ enyo.kind({
 			
 			AmpacheXL.prefsCookie.appVersion = appInfo.version;
 			
+			if(!AmpacheXL.prefsCookie.limitCount) AmpacheXL.prefsCookie.limitCount = 300;
+			
 		} else {
 		
 			if(debug) this.log("we don't have cookie");
@@ -381,6 +392,7 @@ enyo.kind({
 		
 		this.$.autoLogin.setState(AmpacheXL.prefsCookie.autoLogin);
 		this.$.startingPane.setValue(AmpacheXL.prefsCookie.startingPane);
+		this.$.limitCount.setValue(AmpacheXL.prefsCookie.limitCount);
 		this.$.defaultAction.setValue(AmpacheXL.prefsCookie.defaultAction);
 		this.$.nowPlayingEnd.setValue(AmpacheXL.prefsCookie.nowPlayingEnd);
 		this.$.dashboardPlayer.setState(AmpacheXL.prefsCookie.dashboardPlayer);
@@ -418,6 +430,7 @@ enyo.kind({
 		
 		AmpacheXL.prefsCookie.autoLogin = this.$.autoLogin.getState();
 		AmpacheXL.prefsCookie.startingPane = this.$.startingPane.getValue();
+		AmpacheXL.prefsCookie.limitCount = this.$.limitCount.getValue();
 		AmpacheXL.prefsCookie.defaultAction = this.$.defaultAction.getValue();
 		AmpacheXL.prefsCookie.nowPlayingEnd = this.$.nowPlayingEnd.getValue();
 		AmpacheXL.prefsCookie.dashboardPlayer = this.$.dashboardPlayer.getState();
@@ -497,6 +510,9 @@ enyo.kind({
 		
 		this.updateCounts();
 		this.$[inView.name].activate();
+		
+		try{ this.$[inPreviousView.name].deactivate();}
+		catch(e) { this.log(e); };
 	},
 	
 	doBannerMessage: function(inMessage, forcePopup) {
@@ -877,6 +893,9 @@ enyo.kind({
 				}
 				
 				switch(AmpacheXL.prefsCookie.startingPane) {
+					case "nowplaying":
+						this.$.rightContent.selectViewByName("nowplaying");
+						break;
 					case "random":
 						/*if(AmpacheXL.allAlbums.length > 0) {
 							this.$.rightContent.selectViewByName("random");

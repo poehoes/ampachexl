@@ -37,6 +37,8 @@ enyo.kind({
 		onUpdateCounts: "",
 	},
 	
+	activeView: false,
+	
 	fullResultsList: [],
 	resultsList: [],
 	
@@ -100,6 +102,8 @@ enyo.kind({
 	activate: function() {
 		if(debug) this.log("activate");
 		
+		this.activeView = true;
+		
 		if(this.fullResultsList.length == 0) {
 			//this.getSongs();
 			this.fullResultsList = AmpacheXL.allSongs.concat([]);
@@ -116,6 +120,11 @@ enyo.kind({
 			this.$.headerSubtitle.setContent("All Artists");
 		}
 		*/
+	},
+	deactivate: function() {
+		if(debug) this.log("deactivate");
+		
+		this.activeView = false;
 	},
 	resize: function() {
 		if(debug) this.log("resize");
@@ -147,6 +156,15 @@ enyo.kind({
 		
 		var xmlobject = (new DOMParser()).parseFromString(inResponse, "text/xml");
 		
+		var errorNodes, singleErrorNode;
+		errorNodes = xmlobject.getElementsByTagName("error");
+		for(var i = 0; i < errorNodes.length; i++) {
+			singleErrorNode = errorNodes[i];
+			
+			this.doBannerMessage("Error: "+singleErrorNode.childNodes[0].nodeValue, true);
+			
+		}
+		
 		var songsNodes, singleSongNode, singleSongChildNode;
 		var s = {};
 		
@@ -158,35 +176,46 @@ enyo.kind({
 			
 			s.id = singleSongNode.getAttributeNode("id").nodeValue;
 			
+			s.title = "[Unknown (Broken)]";
+			s.artist = "[Unknown (Broken)]";
+			s.artist_id = -1;
+			s.album = "[Unknown (Broken)]";
+			s.album_id = -1;
+			s.url = "[Unknown (Broken)]";
+			s.track = 0;
+			s.time = 0;
+			s.size = 0;
+			s.art = "[Unknown (Broken)]";
+			
 			for(var j = 0; j < singleSongNode.childNodes.length; j++) {
 				singleSongChildNode = singleSongNode.childNodes[j];
 				
 				switch(singleSongChildNode.nodeName) {
 					case "title":
-						s.title = singleSongChildNode.childNodes[0].nodeValue;
+						if(singleSongChildNode.childNodes[0]) s.title = singleSongChildNode.childNodes[0].nodeValue;
 						break;
 					case "artist":
-						s.artist = singleSongChildNode.childNodes[0].nodeValue;
+						if(singleSongChildNode.childNodes[0]) s.artist = singleSongChildNode.childNodes[0].nodeValue;
 						s.artist_id = singleSongChildNode.getAttributeNode("id").nodeValue;
 						break;
 					case "album":
-						s.album = singleSongChildNode.childNodes[0].nodeValue;
+						if(singleSongChildNode.childNodes[0]) s.album = singleSongChildNode.childNodes[0].nodeValue;
 						s.album_id = singleSongChildNode.getAttributeNode("id").nodeValue;
 						break;
 					case "track":
-						s.track = parseInt(singleSongChildNode.childNodes[0].nodeValue);
+						if(singleSongChildNode.childNodes[0]) s.track = parseInt(singleSongChildNode.childNodes[0].nodeValue);
 						break;
 					case "time":
-						s.time = singleSongChildNode.childNodes[0].nodeValue;
+						if(singleSongChildNode.childNodes[0]) s.time = singleSongChildNode.childNodes[0].nodeValue;
 						break;
 					case "url":
-						s.url = singleSongChildNode.childNodes[0].nodeValue;
+						if(singleSongChildNode.childNodes[0]) s.url = singleSongChildNode.childNodes[0].nodeValue;
 						break;
 					case "size":
-						s.size = singleSongChildNode.childNodes[0].nodeValue;
+						if(singleSongChildNode.childNodes[0]) s.size = singleSongChildNode.childNodes[0].nodeValue;
 						break;
 					case "art":
-						s.art = singleSongChildNode.childNodes[0].nodeValue;
+						if(singleSongChildNode.childNodes[0]) s.art = singleSongChildNode.childNodes[0].nodeValue;
 						break;
 				}
 				
@@ -310,7 +339,7 @@ enyo.kind({
 			requestUrl += "/server/xml.server.php?";
 			requestUrl += "auth="+AmpacheXL.connectResponse.auth;
 			requestUrl += "&action=songs";
-			requestUrl += "&limit=1000";
+			requestUrl += "&limit="+AmpacheXL.prefsCookie.limitCount;
 			requestUrl += "&offset="+inOffset;
 		
 			this.$.allSongsRequestService.setUrl(requestUrl);
@@ -325,6 +354,15 @@ enyo.kind({
 		
 		var xmlobject = (new DOMParser()).parseFromString(inResponse, "text/xml");
 		
+		var errorNodes, singleErrorNode;
+		errorNodes = xmlobject.getElementsByTagName("error");
+		for(var i = 0; i < errorNodes.length; i++) {
+			singleErrorNode = errorNodes[i];
+			
+			this.doBannerMessage("Error: "+singleErrorNode.childNodes[0].nodeValue, true);
+			
+		}
+		
 		var songsNodes, singleSongNode, singleSongChildNode;
 		var s = {};
 		
@@ -336,41 +374,54 @@ enyo.kind({
 			
 			s.id = singleSongNode.getAttributeNode("id").nodeValue;
 			
+			s.title = "[Unknown (Broken)]";
+			s.artist = "[Unknown (Broken)]";
+			s.artist_id = -1;
+			s.album = "[Unknown (Broken)]";
+			s.album_id = -1;
+			s.url = "[Unknown (Broken)]";
+			s.track = 0;
+			s.time = 0;
+			s.size = 0;
+			s.art = "[Unknown (Broken)]";
+			
 			for(var j = 0; j < singleSongNode.childNodes.length; j++) {
 				singleSongChildNode = singleSongNode.childNodes[j];
 				
 				switch(singleSongChildNode.nodeName) {
 					case "title":
-						s.title = singleSongChildNode.childNodes[0].nodeValue.replace(/"/g,"");
+						if(singleSongChildNode.childNodes[0]) s.title = singleSongChildNode.childNodes[0].nodeValue.replace(/"/g,"");
 						break;
 					case "artist":
-						s.artist = singleSongChildNode.childNodes[0].nodeValue.replace(/"/g,"");
+						if(singleSongChildNode.childNodes[0]) s.artist = singleSongChildNode.childNodes[0].nodeValue.replace(/"/g,"");
 						s.artist_id = singleSongChildNode.getAttributeNode("id").nodeValue;
 						break;
 					case "album":
-						s.album = singleSongChildNode.childNodes[0].nodeValue.replace(/"/g,"");
+						if(singleSongChildNode.childNodes[0]) s.album = singleSongChildNode.childNodes[0].nodeValue.replace(/"/g,"");
 						s.album_id = singleSongChildNode.getAttributeNode("id").nodeValue;
 						break;
 					case "track":
-						s.track = parseInt(singleSongChildNode.childNodes[0].nodeValue);
+						if(singleSongChildNode.childNodes[0]) s.track = parseInt(singleSongChildNode.childNodes[0].nodeValue);
 						break;
 					case "time":
-						s.time = singleSongChildNode.childNodes[0].nodeValue;
+						if(singleSongChildNode.childNodes[0]) s.time = singleSongChildNode.childNodes[0].nodeValue;
 						break;
 					case "url":
-						s.url = singleSongChildNode.childNodes[0].nodeValue;
+						if(singleSongChildNode.childNodes[0]) s.url = singleSongChildNode.childNodes[0].nodeValue;
 						break;
 					case "size":
-						s.size = singleSongChildNode.childNodes[0].nodeValue;
+						if(singleSongChildNode.childNodes[0]) s.size = singleSongChildNode.childNodes[0].nodeValue;
 						break;
 					case "art":
-						s.art = singleSongChildNode.childNodes[0].nodeValue;
+						if(singleSongChildNode.childNodes[0]) s.art = singleSongChildNode.childNodes[0].nodeValue;
 						break;
 				}
 				
 			}
 		
 			s.type = "song";
+			
+			//if(debug) this.log("adding song: "+enyo.json.stringify(s));
 			
 			this.fullResultsList.push(s);
 			
@@ -407,7 +458,8 @@ enyo.kind({
 			this.resultsList.splice(0,0,{title: "Loaded "+this.fullResultsList.length+" of "+AmpacheXL.connectResponse.songs+" songs", artist: "", album: "", track: this.fullResultsList.length, url: "", art: ""});
 			this.$.songsVirtualList.punt();
 			
-			this.getSomeSongs(this.fullResultsList.length);
+			//if(this.fullResultsList.length < 10) this.getSomeSongs(this.fullResultsList.length);
+			if(this.activeView) this.getSomeSongs(this.fullResultsList.length);
 		}
 	},
 	resetSongsSearch: function() {

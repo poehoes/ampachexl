@@ -34,12 +34,16 @@ enyo.kind({
 		onSavePreferences: "",
 	},
 	
+	activeView: false,
+	
 	fullResultsList: [],
 	resultsList: [],
 	
 	sqlArray: [],
 	
 	components: [
+		{name: "allArtistsRequestService", kind: "WebService", handleAs: "txt", onSuccess: "allArtistsRequestResponse", onFailure: "allArtistsRequestFailure"},
+		
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
 			{name: "headerTitle", kind: "Control", content: "Artists", className: "headerTitle"},
 			{name: "headerSubtitle", kind: "Control", className: "headerSubtitle"},
@@ -80,6 +84,8 @@ enyo.kind({
 	activate: function() {
 		if(debug) this.log("activate");
 		
+		this.activeView = true;
+		
 		this.resize();
 		
 		if(this.fullResultsList.length == 0) {
@@ -96,6 +102,11 @@ enyo.kind({
 			this.$.artistsVirtualList.punt();
 		}
 		
+	},
+	deactivate: function() {
+		if(debug) this.log("deactivate");
+		
+		this.activeView = false;
 	},
 	resize: function() {
 		if(debug) this.log("resize");
@@ -142,18 +153,22 @@ enyo.kind({
 			s.id = singleArtistNode.getAttributeNode("id").nodeValue;
 			s.artist_id = singleArtistNode.getAttributeNode("id").nodeValue;
 			
+			s.name = "[Unknown (Broken)]";
+			s.albums = 0;
+			s.songs = 0;
+				
 			for(var j = 0; j < singleArtistNode.childNodes.length; j++) {
 				singleArtistChildNode = singleArtistNode.childNodes[j];
 				
 				switch(singleArtistChildNode.nodeName) {
 					case "name":
-						s.name = singleArtistChildNode.childNodes[0].nodeValue.replace(/"/g,"");
+						if(singleArtistChildNode.childNodes[0]) s.name = singleArtistChildNode.childNodes[0].nodeValue.replace(/"/g,"");
 						break;
 					case "albums":
-						s.albums = parseInt(singleArtistChildNode.childNodes[0].nodeValue);
+						if(singleArtistChildNode.childNodes[0]) s.albums = parseInt(singleArtistChildNode.childNodes[0].nodeValue);
 						break;
 					case "songs":
-						s.songs = parseInt(singleArtistChildNode.childNodes[0].nodeValue);
+						if(singleArtistChildNode.childNodes[0]) s.songs = parseInt(singleArtistChildNode.childNodes[0].nodeValue);
 						break;
 				}
 				
@@ -198,13 +213,13 @@ enyo.kind({
 			
 			this.resetArtistsSearch();
 		
-		} else if(AmpacheXL.prefsCookie.oldSongsCount == AmpacheXL.connectResponse.songs) {
+		} else if(AmpacheXL.prefsCookie.oldArtistsCount == AmpacheXL.connectResponse.artists) {
 			if(debug) this.log("have correct number of saved artists in DB");
 			
 			this.doUpdateSpinner(true);
 			
-			//this.resultsList.splice(0,0,{title: "Loading locally saved "+AmpacheXL.connectResponse.artists+" songs", artist: "", album: "", track: AmpacheXL.connectResponse.songs, url: "", art: ""});
-			//this.$.artistsVirtualList.punt();
+			this.resultsList.splice(0,0,{name: "Loading locally saved "+AmpacheXL.connectResponse.artists+" artists", artist: "", album: "", albums: AmpacheXL.connectResponse.artists, songs: 0, url: "", art: ""});
+			this.$.artistsVirtualList.punt();
 			
 			html5sql.database.transaction(function(tx) {    
 				tx.executeSql('SELECT * FROM artists', 
@@ -229,7 +244,135 @@ enyo.kind({
 		this.sqlArray.length = 0;
 		
 		this.doUpdateSpinner(true);
-		this.doDataRequest("artistsList", "artists", "");
+		
+		this.fullResultsList.length = 0;
+		this.resultsList.length = 0;
+		
+		this.$.headerSubtitle.setContent("0 artists");
+		
+		this.resultsList.push({name: "Attempting to get "+AmpacheXL.connectResponse.artists+" artists", artist: "", album: "", albums: AmpacheXL.connectResponse.artists, songs: 0, track: AmpacheXL.connectResponse.artists, url: "", art: ""});
+		this.$.artistsVirtualList.punt();
+			
+		//this.allSongsOffset = 0;
+		this.getSomeArtists(0);
+	},
+	getSomeArtists: function(inOffset) {
+		if(debug) this.log("getSomeArtists at offset "+inOffset);
+		
+		if(AmpacheXL.connectResponse.success) {
+		
+			var requestUrl = AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].url;
+			requestUrl += "/server/xml.server.php?";
+			requestUrl += "auth="+AmpacheXL.connectResponse.auth;
+			requestUrl += "&action=artists";
+			requestUrl += "&limit="+AmpacheXL.prefsCookie.limitCount;
+			requestUrl += "&offset="+inOffset;
+		
+			this.$.allArtistsRequestService.setUrl(requestUrl);
+			if(debug) this.log("allArtistsRequestService url: "+this.$.allArtistsRequestService.getUrl());
+			this.$.allArtistsRequestService.call();
+		
+		}
+	},
+	allArtistsRequestResponse: function(inSender, inResponse) {
+		//if(debug) this.log("allArtistsRequestResponse: "+inResponse);
+		if(debug) this.log("allArtistsRequestResponse");
+		
+		/*
+		<artist id="12039">
+			<name>Metallica</name>
+			<albums># of Albums</albums>
+			<songs># of Songs</songs>
+			<tag id="2481" count="2">Rock & Roll</tag>
+			<tag id="2482" count="1">Rock</tag>
+			<tag id="2483" count="1">Roll</tag>
+			<preciserating>3</preciserating>
+			<rating>2.9</rating>
+		</artist>
+		*/
+		
+		var xmlobject = (new DOMParser()).parseFromString(inResponse, "text/xml");
+		
+		var errorNodes, singleErrorNode;
+		errorNodes = xmlobject.getElementsByTagName("error");
+		for(var i = 0; i < errorNodes.length; i++) {
+			singleErrorNode = errorNodes[i];
+			
+			this.doBannerMessage("Error: "+singleErrorNode.childNodes[0].nodeValue, true);
+			
+		}
+		
+		var artistNodes, singleArtistNode, singleArtistChildNode;
+		var s = {};
+		
+		artistsNodes = xmlobject.getElementsByTagName("artist");
+		for(var i = 0; i < artistsNodes.length; i++) {
+			singleArtistNode = artistsNodes[i];
+			s = {};
+			
+			s.id = singleArtistNode.getAttributeNode("id").nodeValue;
+			s.artist_id = singleArtistNode.getAttributeNode("id").nodeValue;
+			
+			s.name = "[Unknown (Broken)]";
+			s.albums = 0;
+			s.songs = 0;
+				
+			for(var j = 0; j < singleArtistNode.childNodes.length; j++) {
+				singleArtistChildNode = singleArtistNode.childNodes[j];
+				
+				switch(singleArtistChildNode.nodeName) {
+					case "name":
+						if(singleArtistChildNode.childNodes[0]) s.name = singleArtistChildNode.childNodes[0].nodeValue.replace(/"/g,"");
+						break;
+					case "albums":
+						if(singleArtistChildNode.childNodes[0]) s.albums = parseInt(singleArtistChildNode.childNodes[0].nodeValue);
+						break;
+					case "songs":
+						if(singleArtistChildNode.childNodes[0]) s.songs = parseInt(singleArtistChildNode.childNodes[0].nodeValue);
+						break;
+				}
+				
+			}
+			
+			s.type = "artist";
+		
+			this.fullResultsList.push(s);
+			
+			this.sqlArray.push('INSERT INTO artists (id, name, albums, songs) VALUES ('+s.id+', "'+s.name+'", '+s.albums+', '+s.songs+');');
+
+		}
+		
+		this.fullResultsList.sort(sort_by("name", false));
+		
+		if(this.fullResultsList.length >= AmpacheXL.connectResponse.artists) {
+			if(debug) this.log("finished getting all artists: "+this.fullResultsList.length);
+			
+			AmpacheXL.allArtists = this.fullResultsList.concat([]);
+			
+			AmpacheXL.prefsCookie.oldArtistsAuth  = AmpacheXL.connectResponse.auth;
+			
+			this.doSavePreferences();
+			
+			//if(debug) this.log("about to do sqlArray: "+enyo.json.stringify(this.sqlArray));
+			html5sql.process(this.sqlArray, enyo.bind(this, "insertSuccess"), enyo.bind(this, "insertFailure"));
+		
+			this.resetArtistsSearch();
+			
+		} else {
+			if(debug) this.log("got some artists ("+this.fullResultsList.length+") but less than total ("+AmpacheXL.connectResponse.artists+")");
+			
+			if(this.fullResultsList.length == 1) {
+				this.$.headerSubtitle.setContent(this.fullResultsList.length+" artist");
+			} else {
+				this.$.headerSubtitle.setContent(this.fullResultsList.length+" artists");
+			}
+			
+			//this.resultsList.push({title: "Loaded "+this.fullResultsList.length+" of "+AmpacheXL.connectResponse.artists+" songs", artist: "", album: "", track: this.fullResultsList.length, url: "", art: ""});
+			this.resultsList.splice(0,0,{name: "Loaded "+this.fullResultsList.length+" of "+AmpacheXL.connectResponse.artists+" artists", artist: "", album: "", albums: this.fullResultsList.length, songs: 0, url: "", art: ""});
+			this.$.artistsVirtualList.punt();
+			
+			if(this.activeView) this.getSomeArtists(this.fullResultsList.length);
+		}
 	},
 	resetArtistsSearch: function() {
 		if(debug) this.log("resetArtistsSearch");

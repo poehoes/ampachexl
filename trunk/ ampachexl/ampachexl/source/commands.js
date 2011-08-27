@@ -54,10 +54,11 @@ var defaultCookie = function() {
 		server: "unknown",
 		compatible: "unknown",
 		
-		//future plans
 		lastFM: false, 
 		lastFMusername: "",
 		lastFMpassword: "",
+		
+		limitCount: 1000,
 	};
 	
 	return newCookie;

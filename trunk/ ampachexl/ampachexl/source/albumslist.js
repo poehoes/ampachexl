@@ -34,12 +34,16 @@ enyo.kind({
 		onSavePreferences: "",
 	},
 	
+	activeView: false,
+	
 	fullResultsList: [],
 	resultsList: [],
 	
 	sqlArray: [],
 	
 	components: [
+		{name: "allAlbumsRequestService", kind: "WebService", handleAs: "txt", onSuccess: "allAlbumsRequestResponse", onFailure: "allAlbumsRequestFailure"},
+		
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
 			{name: "headerTitle", kind: "Control", content: "Albums", className: "headerTitle"},
 			{name: "headerSubtitle", kind: "Control", className: "headerSubtitle"},
@@ -83,6 +87,8 @@ enyo.kind({
 	activate: function(inMode) {
 		if(debug) this.log("activate");
 		
+		this.activeView = true;
+		
 		this.resize();
 		
 		this.$.headerTitle.setContent("Albums");
@@ -103,6 +109,11 @@ enyo.kind({
 		*/
 		
 	},
+	deactivate: function() {
+		if(debug) this.log("deactivate");
+		
+		this.activeView = false;
+	},
 	resize: function() {
 		if(debug) this.log("resize");
 		
@@ -110,6 +121,8 @@ enyo.kind({
 	},
 	dataRequestResponse: function(inResponse) {
 		if(debug) this.log("dataRequestResponse");
+		
+		this.sqlArray.length = 0;
 		
 		/*
 		<album id="2910">
@@ -150,25 +163,32 @@ enyo.kind({
 			
 			s.id = singleAlbumNode.getAttributeNode("id").nodeValue;
 			
+			s.name = "[Unknown (Broken)]";
+			s.artist = "[Unknown (Broken)]";
+			s.artist_id = -1;
+			s.year = 0;
+			s.tracks = 0;
+			s.art = "[Unknown (Broken)]";
+			
 			for(var j = 0; j < singleAlbumNode.childNodes.length; j++) {
 				singleAlbumChildNode = singleAlbumNode.childNodes[j];
 				
 				switch(singleAlbumChildNode.nodeName) {
 					case "name":
-						s.name = singleAlbumChildNode.childNodes[0].nodeValue.replace(/"/g,"");
+						if(singleAlbumChildNode.childNodes[0]) s.name = singleAlbumChildNode.childNodes[0].nodeValue.replace(/"/g,"");
 						break;
 					case "artist":
-						s.artist = singleAlbumChildNode.childNodes[0].nodeValue.replace(/"/g,"");
+						if(singleAlbumChildNode.childNodes[0]) s.artist = singleAlbumChildNode.childNodes[0].nodeValue.replace(/"/g,"");
 						s.artist_id = singleAlbumChildNode.getAttributeNode("id").nodeValue;
 						break;
 					case "year":
-						s.year = singleAlbumChildNode.childNodes[0].nodeValue;
+						if(singleAlbumChildNode.childNodes[0]) s.year = singleAlbumChildNode.childNodes[0].nodeValue;
 						break;
 					case "tracks":
-						s.tracks = singleAlbumChildNode.childNodes[0].nodeValue;
+						if(singleAlbumChildNode.childNodes[0]) s.tracks = singleAlbumChildNode.childNodes[0].nodeValue;
 						break;
 					case "art":
-						s.art = singleAlbumChildNode.childNodes[0].nodeValue;
+						if(singleAlbumChildNode.childNodes[0]) s.art = singleAlbumChildNode.childNodes[0].nodeValue;
 						break;
 				}
 				
@@ -233,6 +253,9 @@ enyo.kind({
 			
 			this.doUpdateSpinner(true);
 			
+			this.resultsList.splice(0,0,{name: "Loading locally saved "+AmpacheXL.connectResponse.albums+" albums", artist: "", album: "", tracks: AmpacheXL.connectResponse.songs, url: "", art: ""});
+			this.$.albumsVirtualList.punt();
+			
 			//this.resultsList.splice(0,0,{title: "Loading locally saved "+AmpacheXL.connectResponse.artists+" songs", artist: "", album: "", track: AmpacheXL.connectResponse.albums, url: "", art: ""});
 			//this.$.artistsVirtualList.punt();
 			
@@ -255,14 +278,161 @@ enyo.kind({
 	getAlbums: function() {
 		if(debug) this.log("getAlbums");
 		
-		AmpacheXL.prefsCookie.oldAlbumsCount = 0;
-		
 		this.doUpdateSpinner(true);
+		
+		AmpacheXL.prefsCookie.oldAlbumsCount = 0;
 		
 		html5sql.process("DELETE FROM albums;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
 		this.sqlArray.length = 0;
 		
-		this.doDataRequest("albumsList", "albums", "");
+		this.fullResultsList.length = 0;
+		this.resultsList.length = 0;
+		
+		this.$.headerSubtitle.setContent("0 albums");
+		
+		this.$.albumsVirtualList.punt();
+		
+		this.resultsList.push({name: "Attempting to get "+AmpacheXL.connectResponse.albums+" albums", artist: "", album: "", tracks: AmpacheXL.connectResponse.albums, track: AmpacheXL.connectResponse.albums, url: "", art: ""});
+		this.$.albumsVirtualList.punt();
+			
+		//this.allSongsOffset = 0;
+		this.getSomeAlbums(0);
+	},
+	getSomeAlbums: function(inOffset) {
+		if(debug) this.log("getSomeAlbums at offset "+inOffset);
+		
+		if(AmpacheXL.connectResponse.success) {
+		
+			var requestUrl = AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].url;
+			requestUrl += "/server/xml.server.php?";
+			requestUrl += "auth="+AmpacheXL.connectResponse.auth;
+			requestUrl += "&action=albums";
+			requestUrl += "&limit="+AmpacheXL.prefsCookie.limitCount;
+			requestUrl += "&offset="+inOffset;
+		
+			this.$.allAlbumsRequestService.setUrl(requestUrl);
+			if(debug) this.log("allAlbumsRequestService url: "+this.$.allAlbumsRequestService.getUrl());
+			this.$.allAlbumsRequestService.call();
+		
+		}
+	},
+	allAlbumsRequestResponse: function(inSender, inResponse) {
+		//if(debug) this.log("allAlbumsRequestResponse: "+inResponse);
+		if(debug) this.log("allAlbumsRequestResponse");
+		
+		var xmlobject = (new DOMParser()).parseFromString(inResponse, "text/xml");
+		
+		var songsNodes, singleSongNode, singleSongChildNode;
+		var s = {};
+		
+		
+		/*
+		<album id="2910">
+				<name>Back in Black</name>
+				<artist id="129348">AC/DC</artist>
+				<year>1984</year>
+				<tracks>12</tracks>
+				<disk>1</disk>
+				<tag id="2481" count="2">Rock & Roll</tag>
+				<tag id="2482" count="1">Rock</tag>
+				<tag id="2483" count="1">Roll</tag>
+				<art>http://localhost/image.php?id=129348</art>
+				<preciserating>3</preciserating>
+				<rating>2.9</rating>
+		</album>
+		*/
+		
+		var xmlobject = (new DOMParser()).parseFromString(inResponse, "text/xml");
+		
+		var errorNodes, singleErrorNode;
+		errorNodes = xmlobject.getElementsByTagName("error");
+		for(var i = 0; i < errorNodes.length; i++) {
+			singleErrorNode = errorNodes[i];
+			
+			this.doBannerMessage("Error: "+singleErrorNode.childNodes[0].nodeValue, true);
+			
+		}
+		
+		var albumsNodes, singleAlbumNode, singleAlbumChildNode;
+		var s = {};
+		
+		albumsNodes = xmlobject.getElementsByTagName("album");
+		for(var i = 0; i < albumsNodes.length; i++) {
+			singleAlbumNode = albumsNodes[i];
+			s = {};
+			
+			s.id = singleAlbumNode.getAttributeNode("id").nodeValue;
+				
+			s.name = "[Unknown (Broken)]";
+			s.artist = "[Unknown (Broken)]";
+			s.artist_id = -1;
+			s.year = 0;
+			s.tracks = 0;
+			s.art = "[Unknown (Broken)]";
+			
+			for(var j = 0; j < singleAlbumNode.childNodes.length; j++) {
+				singleAlbumChildNode = singleAlbumNode.childNodes[j];
+				
+				switch(singleAlbumChildNode.nodeName) {
+					case "name":
+						if(singleAlbumChildNode.childNodes[0]) s.name = singleAlbumChildNode.childNodes[0].nodeValue.replace(/"/g,"");
+						break;
+					case "artist":
+						if(singleAlbumChildNode.childNodes[0]) s.artist = singleAlbumChildNode.childNodes[0].nodeValue.replace(/"/g,"");
+						s.artist_id = singleAlbumChildNode.getAttributeNode("id").nodeValue;
+						break;
+					case "year":
+						if(singleAlbumChildNode.childNodes[0]) s.year = singleAlbumChildNode.childNodes[0].nodeValue;
+						break;
+					case "tracks":
+						if(singleAlbumChildNode.childNodes[0]) s.tracks = singleAlbumChildNode.childNodes[0].nodeValue;
+						break;
+					case "art":
+						if(singleAlbumChildNode.childNodes[0]) s.art = singleAlbumChildNode.childNodes[0].nodeValue;
+						break;
+				}
+				
+			}
+		
+			s.type = "album";
+			
+			this.fullResultsList.push(s);
+			
+			this.sqlArray.push('INSERT INTO albums (id, name, artist, artist_id, tracks, year, oldArt) VALUES ('+s.id+', "'+s.name+'", "'+s.artist+'", '+s.artist_id+', '+s.tracks+', "'+s.year+'", "'+s.art+'");');
+		
+		}
+		
+		this.fullResultsList.sort(sort_by("name", false));
+		
+		if(this.fullResultsList.length >= AmpacheXL.connectResponse.albums) {
+			if(debug) this.log("finished getting all albums: "+this.fullResultsList.length);
+			
+			AmpacheXL.allAlbums = this.fullResultsList.concat([]);
+			
+			AmpacheXL.prefsCookie.oldAlbumsAuth  = AmpacheXL.connectResponse.auth;
+			
+			this.doSavePreferences();
+			
+			//if(debug) this.log("about to do sqlArray: "+enyo.json.stringify(this.sqlArray));
+			html5sql.process(this.sqlArray, enyo.bind(this, "insertSuccess"), enyo.bind(this, "insertFailure"));
+		
+			this.resetAlbumsSearch();
+			
+		} else {
+			if(debug) this.log("got some albums ("+this.fullResultsList.length+") but less than total ("+AmpacheXL.connectResponse.albums+")");
+			
+			if(this.fullResultsList.length == 1) {
+				this.$.headerSubtitle.setContent(this.fullResultsList.length+" album");
+			} else {
+				this.$.headerSubtitle.setContent(this.fullResultsList.length+" albums");
+			}
+			
+			//this.resultsList.push({title: "Loaded "+this.fullResultsList.length+" of "+AmpacheXL.connectResponse.albums+" songs", artist: "", album: "", track: this.fullResultsList.length, url: "", art: ""});
+			this.resultsList.splice(0,0,{name: "Loaded "+this.fullResultsList.length+" of "+AmpacheXL.connectResponse.albums+" albums", artist: "", album: "", tracks: this.fullResultsList.length, url: "", art: ""});
+			this.$.albumsVirtualList.punt();
+			
+			if(this.activeView) this.getSomeAlbums(this.fullResultsList.length);
+		}
 	},
 	resetAlbumsSearch: function() {
 		if(debug) this.log("resetAlbumsSearch");
