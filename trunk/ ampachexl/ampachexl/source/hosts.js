@@ -105,6 +105,10 @@ enyo.kind({
 		//this.$.headerSubtitle.setContent(AmpacheXL.hosts.length+" items");
 		
 	},
+	deactivate: function() {
+		if(debug) this.log("deactivate");
+	
+	},
 	resize: function() {
 		if(debug) this.log("resize");
 		

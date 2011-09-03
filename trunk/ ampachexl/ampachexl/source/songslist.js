@@ -51,6 +51,7 @@ enyo.kind({
 	
 	components: [
 		{name: "allSongsRequestService", kind: "WebService", handleAs: "txt", onSuccess: "allSongsRequestResponse", onFailure: "allSongsRequestFailure"},
+		{name: "streamSongService", kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "launch"},
 		
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
 			{name: "headerTitle", kind: "Control", content: "Songs", className: "headerTitle"},
@@ -720,6 +721,7 @@ enyo.kind({
 					{caption: "Download single song"},
 					{caption: "Download all"},
 				]},
+				{name: $L("Stream single song"), caption: $L("Stream single song")},
 				{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
 				{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
 				
@@ -779,6 +781,13 @@ enyo.kind({
 						AmpacheXL.downloads.push(this.resultsList[i]);
 					}
 					this.doUpdateCounts();
+					break;
+				case "Stream single song":
+					if(window.PalmSystem) {
+						this.$.streamSongService.call({id: "com.palm.app.streamingmusicplayer", target: this.selectedSong.url, params: {target: this.selectedSong.url}});
+					} else {
+						this.doBannerMessage("Streaming only works on webOS devices");
+					}
 					break;
 				default: 
 					

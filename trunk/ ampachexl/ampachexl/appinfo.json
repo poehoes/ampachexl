@@ -1,6 +1,6 @@
 {
 	"id": "com.thewbman.ampachexl",
-	"version": "0.2.8",
+	"version": "0.2.9",
 	"vendor": "thewbman",
 	"type": "web",
 	"main": "device.html",

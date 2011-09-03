@@ -58,7 +58,11 @@ var defaultCookie = function() {
 		lastFMusername: "",
 		lastFMpassword: "",
 		
-		limitCount: 1000,
+		limitCount: 300,
+		
+		retryDownload: true,
+		
+		mediaAudioClass: true,
 	};
 	
 	return newCookie;

@@ -28,6 +28,8 @@ AmpacheXL.prefsCookie;
 
 AmpacheXL.connected = false;
 
+AmpacheXL.connectResponse = {};
+
 AmpacheXL.localPlaylists = [];
 
 AmpacheXL.nowplaying = [];
@@ -108,7 +110,7 @@ enyo.kind({
 			{name: "scrimSpinner", kind: "SpinnerLarge"},
 		]},
 		
-		{name: "preferencesPopup", kind: "Popup", className: "preferencesPopup", layoutKind: "VFlexLayout", height: "100%", width: "600px", scrim: true, onBeforeOpen: "beforePreferencesOpen", components: [
+		{name: "preferencesPopup", kind: "Popup", className: "preferencesPopup", layoutKind: "VFlexLayout", height: "100%", width: "700px", scrim: true, onBeforeOpen: "beforePreferencesOpen", components: [
 			{name: "preferencesHeader", style: "text-align: center;"},
 			{content: "<hr/>", allowHtml: true},
 			
@@ -154,6 +156,14 @@ enyo.kind({
 						{caption: "Play again", value: "play[]:[]straight"},
 						{caption: "Play again, shuffled", value: "play[]:[]shuffled"},
 					]},
+				]},
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{content: "Set media audio class (good for BT, but pauses at other sounds)", flex: 1},
+					{name: "mediaAudioClass", kind: "ToggleButton", onChange: "mediaAudioClassToggle"},
+				]},
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{content: "Retry on failed download", flex: 1},
+					{name: "retryDownload", kind: "ToggleButton", onChange: "retryDownloadToggle"},
 				]},
 				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 					{content: "Dashboard playback controls", flex: 1},
@@ -235,7 +245,7 @@ enyo.kind({
 				
 				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onNowplayingUpdated: "nowplayingUpdated", onPreviousView: "previousView", onSavePreferences: "savePreferences", onUpdateCounts: "updateCounts"},
 				
-				{name: "videosList", kind: "VideosList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
+				{name: "videosList", kind: "VideosList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onUpdateCounts: "updateCounts"},
 				
 				{name: "help", kind: "Help", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
 				
@@ -264,7 +274,8 @@ enyo.kind({
 			if(AmpacheXL.prefsCookie.allowMetrix) setTimeout(enyo.bind(this,"submitMetrix"),60000);
 			if(AmpacheXL.prefsCookie.autoLogin) setTimeout(enyo.bind(this,"ampacheConnect"),50);
 			
-			if((AmpacheXL.prefsCookie.lastFM)&&(!AmpacheXL.prefsCookie.lastFMkey)) setTimeout(enyo.bind(this,"lastfmConnect"),200);
+			//if((AmpacheXL.prefsCookie.lastFM)&&(!AmpacheXL.prefsCookie.lastFMkey)) setTimeout(enyo.bind(this,"lastfmConnect"),200);
+			if(AmpacheXL.prefsCookie.lastFM) setTimeout(enyo.bind(this,"lastfmConnect"),200);
 			
 			var appInfo = enyo.fetchAppInfo();
 			
@@ -277,6 +288,8 @@ enyo.kind({
 			AmpacheXL.prefsCookie.appVersion = appInfo.version;
 			
 			if(!AmpacheXL.prefsCookie.limitCount) AmpacheXL.prefsCookie.limitCount = 300;
+			if(!AmpacheXL.prefsCookie.retryDownload) AmpacheXL.prefsCookie.retryDownload = true;
+			if(!AmpacheXL.prefsCookie.mediaAudioClass) AmpacheXL.prefsCookie.mediaAudioClass = true;
 			
 		} else {
 		
@@ -328,10 +341,11 @@ enyo.kind({
 	submitMetrix: function() {
 		if(debug) this.log("submitMetrix");
 		
-		AmpacheXL.Metrix.postDeviceData();
-		
-		AmpacheXL.Metrix.checkBulletinBoard(10, false);
-		
+		if(window.PalmSystem) {
+			AmpacheXL.Metrix.postDeviceData();
+			
+			AmpacheXL.Metrix.checkBulletinBoard(10, false);
+		}
 	},
 	openAbout: function() {
 		if(debug) this.log("openAbout");
@@ -395,6 +409,8 @@ enyo.kind({
 		this.$.limitCount.setValue(AmpacheXL.prefsCookie.limitCount);
 		this.$.defaultAction.setValue(AmpacheXL.prefsCookie.defaultAction);
 		this.$.nowPlayingEnd.setValue(AmpacheXL.prefsCookie.nowPlayingEnd);
+		this.$.mediaAudioClass.setState(AmpacheXL.prefsCookie.mediaAudioClass);
+		this.$.retryDownload.setState(AmpacheXL.prefsCookie.retryDownload);
 		this.$.dashboardPlayer.setState(AmpacheXL.prefsCookie.dashboardPlayer);
 		this.$.theme.setValue(AmpacheXL.prefsCookie.theme);
 		this.$.artOnLists.setState(AmpacheXL.prefsCookie.artOnLists);
@@ -433,6 +449,8 @@ enyo.kind({
 		AmpacheXL.prefsCookie.limitCount = this.$.limitCount.getValue();
 		AmpacheXL.prefsCookie.defaultAction = this.$.defaultAction.getValue();
 		AmpacheXL.prefsCookie.nowPlayingEnd = this.$.nowPlayingEnd.getValue();
+		AmpacheXL.prefsCookie.mediaAudioClass = this.$.mediaAudioClass.getState();
+		AmpacheXL.prefsCookie.retryDownload = this.$.retryDownload.getState();
 		AmpacheXL.prefsCookie.dashboardPlayer = this.$.dashboardPlayer.getState();
 		AmpacheXL.prefsCookie.theme = this.$.theme.getValue();
 		AmpacheXL.prefsCookie.artOnLists = this.$.artOnLists.getState();
@@ -814,6 +832,7 @@ enyo.kind({
 		AmpacheXL.connectResponse = {};
 		
 		AmpacheXL.audioPlayer.initialize();
+		AmpacheXL.audioPlayer.setMediaAudioClass(AmpacheXL.prefsCookie.mediaAudioClass);
 		AmpacheXL.audioPlayer.setNumBuffers(AmpacheXL.numBuffers);
 		AmpacheXL.audioPlayer.setMainHandler(this);
 		AmpacheXL.audioPlayer.setPlaybackHandler(this.$.playback);
@@ -959,6 +978,8 @@ enyo.kind({
 						this.$.rightContent.selectViewByName("albumsList");
 						break;
 				}
+			
+				AmpacheXL.pingInterval = setInterval(enyo.bind(this, "ampachePing"),5000);
 				
 			} else {
 			
@@ -976,8 +997,6 @@ enyo.kind({
 				}
 				
 			}
-			
-			AmpacheXL.pingInterval = setInterval(enyo.bind(this, "ampachePing"),5000);
 			
 		
 		} catch(e) {
