@@ -267,7 +267,7 @@ enyo.kind({
 		//this.$.totalTime.setContent(floatToTime(AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].duration));
 		this.$.totalTime.setContent(floatToTime(AmpacheXL.currentSong.time));
 		
-		if((AmpacheXL.prefsCookie.lastFM)&&(!AmpacheXL.prefsCookie.lastFMkey)) {
+		if((AmpacheXL.prefsCookie.lastFM)&&(AmpacheXL.prefsCookie.lastFMkey)) {
 			//lastfm track.updateNowPlaying
 			var url = "http://ws.audioscrobbler.com/2.0/";
 			var secret = "ab3e2bdb8a9c8faced63b61fae1f842c";
@@ -385,7 +385,7 @@ enyo.kind({
 		//this.doNextTrack();
 		
 		
-		if((AmpacheXL.prefsCookie.lastFM)&&(!AmpacheXL.prefsCookie.lastFMkey)) {
+		if((AmpacheXL.prefsCookie.lastFM)&&(AmpacheXL.prefsCookie.lastFMkey)) {
 			//lastfm track.scrobble	
 			var url = "http://ws.audioscrobbler.com/2.0/";
 			var secret = "ab3e2bdb8a9c8faced63b61fae1f842c";

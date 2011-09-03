@@ -33,6 +33,7 @@ enyo.kind({
 		onBannerMessage: "",
 		onNowplayingUpdated: "",
 		onPreviousView: "",
+		onUpdateCounts: "",
 	},
 	
 	fullResultsList: [],
@@ -61,11 +62,11 @@ enyo.kind({
 		{name: "videosVirtualList", kind: "ScrollerVirtualList", onSetupRow: "setupVideosItem", flex: 1, components: [
 			{name: "videosDivider", kind: "Divider"},
 			{name: "videosItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", components: [
-				{kind: "VFlexBox", flex: 1, onclick: "videosClick", onmousedown2: "videosMousedown", onmouseup2: "videosMouseup", components: [
+				{kind: "VFlexBox", flex: 1, onclick2: "videosClick", onmousedown: "videosMousedown", onmouseup: "videosMouseup", components: [
 					{name: "videosTitle", className: "title"},
 					{name: "videosResolution", className: "subtitle"},
 				]},
-				{kind: "VFlexBox", onclick: "videosClick", onmousedown2: "videosMousedown", onmouseup2: "videosMouseup", components: [
+				{kind: "VFlexBox", onclick2: "videosClick", onmousedown: "videosMousedown", onmouseup: "videosMouseup", components: [
 					{name: "videosSize", className: "count"},
 					{name: "videosMime", className: "count"},
 				]},
@@ -112,6 +113,10 @@ enyo.kind({
 		}
 		*/
 	},
+	deactivate: function() {
+		if(debug) this.log("deactivate");
+	
+	},
 	resize: function() {
 		if(debug) this.log("resize");
 		
@@ -153,8 +158,8 @@ enyo.kind({
 					case "title":
 						s.title = singleVideoChildNode.childNodes[0].nodeValue;
 						break;
-					case "mine":
-						s.mine = singleVideoChildNode.childNodes[0].nodeValue;
+					case "mime":
+						s.mime = singleVideoChildNode.childNodes[0].nodeValue;
 						break;
 					case "resolution":
 						s.resolution = singleVideoChildNode.childNodes[0].nodeValue;
@@ -249,6 +254,8 @@ enyo.kind({
 		
 			if(s.title.toUpperCase().indexOf(filterString) >= 0) {
 				finalList.push(s);
+			} else if(s.id.toUpperCase().indexOf(filterString) >= 0) {
+				finalList.push(s);
 			} 
 		}	
 		
@@ -266,7 +273,7 @@ enyo.kind({
 			//this.$.videosItem.applyStyle("border-bottom", "none;");
 			
 			if(row.title == "") {
-				this.$.videosTitle.setContent("[Unknown title]");
+				this.$.videosTitle.setContent("[Unknown title - id #"+row.id+"]");
 			} else {
 				this.$.videosTitle.setContent(row.title);
 			}
@@ -357,73 +364,44 @@ enyo.kind({
 			if(debug) this.log("change in scroller offset is too large: "+Math.abs(this.$.videosVirtualList.getScrollTop() - this.listOffset));
 		
 		} else {
-			this.selectedVideo = this.resultsList[inEvent.rowIndex];
 			this.selectedIndex = inEvent.rowIndex;
 			
-			if(debug) this.log("videosClick: "+enyo.json.stringify(this.selectedVideo));
-			
-			if(window.PalmSystem) {
-				this.$.streamVideoService.call({id: "com.palm.app.videoplayer", target: this.selectedVideo.url, params: {target: this.selectedVideo.url}});
-			} else {
-				window.open(this.selectedVideo.url);
-			}
+			this.videosPlay(this.selectedIndex);
 		}
 	}, 
-	videosAction: function(inAction) {
-	
-		var actionArray = inAction.split("[]:[]");
-		var playAction = actionArray[0];
-		var playVideos = actionArray[1];
-		var playOrder = actionArray[2];
+	videosPlay: function(inIndex) {
+		if(debug) this.log("videosPlay: "+inIndex);
 		
-		var row = this.selectedVideo;
+		this.selectedVideo = this.resultsList[inIndex];
+		this.selectedIndex = inIndex;
 		
-		var newVideos = [], s = {};
+		if(debug) this.log("videosPlay: "+enyo.json.stringify(this.selectedVideo));
 		
-		if(playAction == "queue") newVideos = newVideos.concat(AmpacheXL.nowplaying);
-		
-		if(playVideos == "single") {
-		
-			newVideos.push(row);
-			
+		if(window.PalmSystem) {
+			this.$.streamVideoService.call({id: "com.palm.app.videoplayer", target: this.selectedVideo.url, params: {target: this.selectedVideo.url}});
 		} else {
-		
-			if(playOrder == "straight") {
-			
-				newVideos = newVideos.concat(this.resultsList);
-				
-			} else {
-			
-				var originalList = this.resultsList.concat([]);
-			
-				//add selected video first
-				s = originalList.splice(this.selectedIndex, 1)[0];
-				newVideos.push(s);
-					
-				while(originalList.length > 0) {
-				
-					var randomVideo = Math.floor(Math.random()*originalList.length);
-					
-					s = originalList.splice(randomVideo, 1)[0];
-					newVideos.push(s);
-					
-					//if(debug) this.log("splicing random video at index "+randomVideo+": "+enyo.json.stringify(s));
-					
-				} 
-				
-			}
+			window.open(this.selectedVideo.url);
 		}
+	},
+	videosDownload: function(inIndex) {
+		if(debug) this.log("videosDownload: "+inIndex);
 		
-		AmpacheXL.nowplaying.length = 0;
-		AmpacheXL.nowplaying = newVideos;
+		this.selectedVideo = this.resultsList[inIndex];
+		this.selectedIndex = inIndex;
 		
-		this.doNowplayingUpdated(playAction);
+		if(debug) this.log("videosDownload: "+enyo.json.stringify(this.selectedVideo));
 		
-		this.doViewSelected("nowplaying");
-		
+		if(window.PalmSystem) {
+			//this.$.streamVideoService.call({id: "com.palm.app.videoplayer", target: this.selectedVideo.url, params: {target: this.selectedVideo.url}});
+		} else {
+			this.doBannerMessage("Downloading is only support on a webOS device.  Try playing video instead.");
+		}
 	},
 	videosMoreClick: function(inSender, inEvent) {
 		if(debug) this.log("videosMoreClick: "+inEvent.rowIndex+" with offset:"+this.$.videosVirtualList.getScrollTop());
+		
+		this.selectedIndex = inEvent.rowIndex;
+		this.selectedVideo = this.resultsList[this.selectedIndex];
 		
 		this.newClick = false;
 		
@@ -437,18 +415,8 @@ enyo.kind({
 			this.selectedIndex = inEvent.rowIndex;
 			
 			this.$.morePopupMenu.setItems([
-				{caption: $L("Play"), components: [
-					{name: "Play all", caption: "Play all"},
-					{name: "Play all, shuffled", caption: "Play all, shuffled"},
-					{name: "Play single video", caption: "Play single video"},
-				]},
-				{caption: $L("Queue"), components: [
-					{name: "Queue all", caption: "Queue all"},
-					{name: "Queue all, shuffled", caption: "Queue all, shuffled"},
-					{name: "Queue single video", caption: "Queue single video"},
-				]},
-				{name: "Artist: "+this.selectedVideo.artist, caption: "Artist: "+this.selectedVideo.artist},
-				{name: "Album: "+this.selectedVideo.album, caption: "Album: "+this.selectedVideo.album},
+				{name: $L("Play"), caption: $L("Play")},
+				{name: $L("Download"), caption: $L("Download")},
 				
 				/*
 				{caption: $L("Web"), components: [
@@ -471,47 +439,14 @@ enyo.kind({
 			
 			switch(inEvent.value) {
 				case "Play":
-					//
+					this.videosPlay(this.selectedIndex);
 					break;
-				case "Play all":
-					this.videosAction("play[]:[]all[]:[]straight");
-					break;
-				case "Play all, shuffled":
-					this.videosAction("play[]:[]all[]:[]shuffled");
-					break;
-				case "Play single video":
-					this.videosAction("play[]:[]single[]:[]straight");
-					break;
-				case "Queue":
-					//
-					break;
-				case "Queue all":
-					this.videosAction("queue[]:[]all[]:[]straight");
-					break;
-				case "Queue all, shuffled":
-					this.videosAction("queue[]:[]all[]:[]shuffled");
-					break;
-				case "Queue single video":
-					this.videosAction("queue[]:[]single[]:[]straight");
+				case "Download":
+					AmpacheXL.downloads.push(this.selectedVideo);
+					this.doUpdateCounts();
 					break;
 				default: 
 					
-					if(inEvent.value.substring(0,5) == "Album") {
-						this.doUpdateSpinner(true);
-						this.doDataRequest("videosList", "album_videos", "&filter="+this.selectedVideo.album_id);
-						this.doViewSelected("videosList");
-					} else if(inEvent.value.substring(0,6) == "Artist") {
-						this.selectedVideo.type = "artist";
-						this.selectedVideo.videos = "all";
-						this.selectedVideo.name = this.selectedVideo.artist;
-						this.selectedVideo.id = this.selectedVideo.artist_id;
-						AmpacheXL.selectedArtist = this.selectedVideo;
-						this.doUpdateSpinner(true);
-						this.doDataRequest("albumsList", "artist_albums", "&filter="+this.selectedVideo.artist_id);
-						this.doViewSelected("albumsList");
-					} else {
-						this.log("unknown more command: "+inEvent.value);
-					}
 					
 					break;
 			}

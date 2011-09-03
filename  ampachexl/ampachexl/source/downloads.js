@@ -45,12 +45,13 @@ enyo.kind({
 	
 	components: [
 		
+		{name: "downloadFileService", kind: "PalmService", service: "palm://com.palm.downloadmanager/", method: "download", subscribe: true, onSuccess: "downloadFileResponse", onFailure: "downloadFileFailure"},
+		{name: "download2FileService", kind: "PalmService", service: "palm://com.palm.downloadmanager/", method: "download", subscribe: true, onSuccess: "download2FileResponse", onFailure: "download2FileFailure"},
+		
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
 			{name: "headerTitle", kind: "Control", content: "Downloads", className: "headerTitle"},
 			{name: "headerSubtitle", kind: "Control", className: "headerSubtitle"},
 		]},
-		
-		{name: "downloadFileService", kind: "PalmService", service: "palm://com.palm.downloadmanager/", method: "download", subscribe: true, onSuccess: "downloadFileResponse", onFailure: "downloadFileFailure"},
 		
 		{name: "downloadsVirtualList", kind: "ScrollerVirtualList", onSetupRow: "setupDownloadsItem", flex: 1, components: [
 			{name: "downloadsItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", components: [
@@ -110,6 +111,10 @@ enyo.kind({
 		this.$.footer.render();
 		
 	},
+	deactivate: function() {
+		if(debug) this.log("deactivate");
+	
+	},
 	resize: function() {
 		if(debug) this.log("resize");
 		
@@ -137,18 +142,33 @@ enyo.kind({
 			
 			this.$.downloadsIndex.setContent(newIndex+1);
 			
-			if(AmpacheXL.prefsCookie.artOnLists) {
+			if((row.type == "song")&&(AmpacheXL.prefsCookie.artOnLists)) {
 				this.$.listArt.setSrc(row.art);
 				this.$.listArt.show();
 			} else {
 				this.$.listArt.hide();
 			}
 			
-			this.$.downloadsTitle.setContent(row.title);
-			this.$.downloadsArtist.setContent(row.artist);
+			if(row.type == "song") {
+				this.$.downloadsTitle.setContent(row.title);
 			
-			this.$.downloadsAlbum.setContent(row.album);
-			this.$.downloadsTrack.setContent("Track #"+row.track);
+				this.$.downloadsArtist.setContent(row.artist);
+				
+				this.$.downloadsAlbum.setContent(row.album);
+				this.$.downloadsTrack.setContent("Track #"+row.track);
+			} else {
+			
+				if(row.title.length > 0) {
+					this.$.downloadsTitle.setContent(row.title);
+				} else {
+					this.$.downloadsTitle.setContent("[Unknown title - id #"+row.id+"]");
+				}
+				
+				this.$.downloadsArtist.setContent(row.resolution);
+				
+				this.$.downloadsAlbum.setContent(row.size+" B");
+				this.$.downloadsTrack.setContent(row.mime);
+			}
 			
 			//this.$.downloadsAlbumWrapper.hide();
 			this.$.downloadsMoveUp.show();
@@ -157,7 +177,7 @@ enyo.kind({
 			this.$.downloadsMoveDownSpacer.show();
 			this.$.downloadsRemove.show();
 			
-			if(AmpacheXL.currentDownload.id == row.id) {
+			if((AmpacheXL.currentDownload.id == row.id)&&(AmpacheXL.currentDownload.type == row.type)) {
 				this.$.downloadsItem.addClass("selected");
 			} else {
 				this.$.downloadsItem.removeClass("selected");
@@ -187,6 +207,7 @@ enyo.kind({
 			this.$.pauseButton.hide();
 			this.$.resumeButton.show();
 		}
+		
 		
 		this.$.footer.render();
 	},
@@ -406,7 +427,7 @@ enyo.kind({
 		var downloadIndex = 0;
 		
 		for(var i = 0; i < AmpacheXL.downloads.length; i++) {
-			if(AmpacheXL.currentDownload.id == AmpacheXL.downloads[i].id) downloadIndex = i;
+			if((AmpacheXL.currentDownload.id == AmpacheXL.downloads[i].id)&&(AmpacheXL.currentDownload.type == AmpacheXL.downloads[i].type)) downloadIndex = i;
 		}
 			
 		if(downloadIndex == newIndex) {
@@ -423,7 +444,7 @@ enyo.kind({
 		this.doUpdateCounts();
 		this.$.headerSubtitle.setContent(AmpacheXL.downloads.length+" items");
 		
-		this.$.downloadsVirtualList.punt();
+		this.$.downloadsVirtualList.refresh();
 	},
 	
 	startDownload: function() {
@@ -436,26 +457,47 @@ enyo.kind({
 			
 			AmpacheXL.currentDownload = AmpacheXL.downloads[0];
 			
-			this.$.downloadsVirtualList.punt();
+			this.$.downloadsVirtualList.refresh();
 			
 			this.activeDownload = true;
 			
 			var directory = "/media/internal/";
-			var filename = AmpacheXL.currentDownload.title+".mp3";
+			var filename = "";
 			
 			if(AmpacheXL.currentDownload.type == "song") {
+			
 				directory += "music/";
 				directory += AmpacheXL.currentDownload.artist+"/";
 				directory += AmpacheXL.currentDownload.album+"/";
+				
+				filename += AmpacheXL.currentDownload.title+".mp3";
+				
+			} else if(AmpacheXL.currentDownload.type == "video") {
+			
+				directory += "video/";
+					
+				if(AmpacheXL.currentDownload.title.length > 0) {
+					filename += AmpacheXL.currentDownload.title;
+				} else {
+					filename += "[Unknown title - id #"+AmpacheXL.currentDownload.id+"]";
+				}
+				
+				filename += "." + AmpacheXL.currentDownload.mime.replace("video/","");
 			}
 			
-			if(debug) this.log("Starting to download '"+filename+"' to '"+directory);
+			directory = directory.replace(/:/g,"");
+			directory = directory.replace(/,/g,"");
+			
+			filename = filename.replace(/:/g,"");
+			filename = filename.replace(/,/g,"");
+			
+			if(debug) this.log("Starting to download '"+filename+"' to '"+directory+"' from url '"+AmpacheXL.currentDownload.url+"'");
 			
 			//this.doBannerMessage("Starting download");
 			this.$.downloadFileService.call({target: AmpacheXL.currentDownload.url, targetFilename: filename,	targetDir: directory});
 		
 		} else {
-			this.$.downloadsVirtualList.punt();
+			this.$.downloadsVirtualList.refresh();
 		}
 	},
 	downloadFileResponse: function(inSender, inResponse) {
@@ -468,7 +510,7 @@ enyo.kind({
 			var downloadIndex = 0;
 			
 			for(var i = 0; i < AmpacheXL.downloads.length; i++) {
-				if(AmpacheXL.currentDownload.id == AmpacheXL.downloads[i].id) downloadIndex = i;
+				if((AmpacheXL.currentDownload.id == AmpacheXL.downloads[i].id)&&(AmpacheXL.currentDownload.type == AmpacheXL.downloads[i].type)) downloadIndex = i;
 			}
 			
 			var row = AmpacheXL.downloads.splice(downloadIndex, 1)[0];
@@ -499,7 +541,114 @@ enyo.kind({
 				
 	},
 	downloadFileFailure: function(inSender, inResponse) {
-		this.doBannerMessage("Error downloading file", true);
+		if(debug) this.log("downloadFileFailure");
+		
+		if(AmpacheXL.prefsCookie.retryDownload) {
+		
+			this.doBannerMessage("Error downloading file, retrying...");
+			
+			if((window.PalmSystem)&&(this.downloading)&&(AmpacheXL.downloads.length > 0)) {
+				if(debug) this.log("Downloading #2 using Palm system");
+				
+				//AmpacheXL.currentDownload = AmpacheXL.downloads[0];
+				
+				this.$.downloadsVirtualList.refresh();
+				
+				this.activeDownload = true;
+				
+				var directory = "/media/internal/";
+				var filename = "";
+			
+				if(AmpacheXL.currentDownload.type == "song") {
+				
+					directory += "music/";
+					directory += AmpacheXL.currentDownload.artist+"/";
+					directory += AmpacheXL.currentDownload.album+"/";
+					
+					filename = AmpacheXL.currentDownload.title+".mp3";
+					
+				} else if(AmpacheXL.currentDownload.type == "video") {
+				
+					directory += "video/";
+					
+					if(AmpacheXL.currentDownload.title.length > 0) {
+						filename += AmpacheXL.currentDownload.title;
+					} else {
+						filename += "[Unknown title - id #"+AmpacheXL.currentDownload.id+"]";
+					}
+					
+					filename += "." + AmpacheXL.currentDownload.mime.replace("video/","");
+				}
+				
+				directory = directory.replace(/:/g,"");
+				directory = directory.replace(/,/g,"");
+				
+				filename = filename.replace(/:/g,"");
+				filename = filename.replace(/,/g,"");
+			
+				if(debug) this.log("Starting to download '"+filename+"' to '"+directory);
+				
+				//this.doBannerMessage("Starting download");
+				//this.$.download2FileService.call({target: AmpacheXL.currentDownload.url, targetFilename: filename,	targetDir: directory});
+			
+				setTimeout(enyo.bind(this, "download2Call", AmpacheXL.currentDownload.url, filename, directory),3000);
+			
+			} else {
+				this.$.downloadsVirtualList.refresh();
+			}
+		
+		} else {
+			this.doBannerMessage("Error downloading file", true);
+		}
+	},
+	download2Call: function(inTarget, inFilename, inDir) {
+		if(debug) this.log("download2Call");
+		
+		this.$.download2FileService.call({target: inTarget, targetFilename: inFilename,	targetDir: inDir});
+	},
+	download2FileResponse: function(inSender, inResponse) {
+		if(inResponse.completed) {
+			//this.doBannerMessage("Download finished!");
+			
+			this.activeDownload = false;
+			
+			var downloadIndex = 0;
+			
+			for(var i = 0; i < AmpacheXL.downloads.length; i++) {
+				if((AmpacheXL.currentDownload.id == AmpacheXL.downloads[i].id)&&(AmpacheXL.currentDownload.type == AmpacheXL.downloads[i].type)) downloadIndex = i;
+			}
+			
+			var row = AmpacheXL.downloads.splice(downloadIndex, 1)[0];
+			
+			this.$.headerSubtitle.setContent(AmpacheXL.downloads.length+" items");
+			this.doUpdateCounts();
+			this.$.downloadsProgressBar.setPosition(0);
+			
+			this.startDownload();
+			
+		} else {
+		
+			this.activeDownload = true;
+			
+			if(inResponse.amountReceived && inResponse.amountTotal) {
+				var percent = (inResponse.amountReceived / inResponse.amountTotal)*100;
+				percent = Math.round(percent);
+				if(percent!=NaN) {
+					if(this.currProgress != percent) {
+						this.currProgress = percent;
+						if(debug) this.log("Downloading: " + percent + "%", "");
+						this.$.downloadsProgressBar.setPosition(percent);
+					}
+				}
+			}
+			
+		}
+				
+	},
+	download2FileFailure: function(inSender, inResponse) {
+		if(debug) this.log("downloadFileFailure");
+		
+		this.doBannerMessage("Error downloading file (2nd attempt)", true);
 	},
 	
 });

@@ -39,6 +39,8 @@ AudioPlayer = Class.create({
     bufferPool: null,
 
     displayBanners: false,
+	
+	mediaAudioClass: true,
 
     //buffer:null,
     streamingEvents: ["play", "playing", "pause", "error", "ended", "canplay", "emptied", "load", "loadstart", "waiting", "progress", "canplaythrough"],
@@ -58,6 +60,9 @@ AudioPlayer = Class.create({
         this.numBuffers = 0;
     },
 
+	setMediaAudioClass: function(inMediaAudioClass) {
+		this.mediaAudioClass = inMediaAudioClass;
+	},
     setNumBuffers: function(numBuffers) {
         this.stop();
         var buffDiff = numBuffers - this.numBuffers;
@@ -93,7 +98,7 @@ AudioPlayer = Class.create({
         //audioObj.song = this.blankSong;
         this.setAudioToBuffer(audioObj);
 
-        //audioObj.setAttribute("x-palm-media-audio-class", "media");
+        if(this.mediaAudioClass) audioObj.setAttribute("x-palm-media-audio-class", "media");
 
         audioObj.isSong = function(song) {
             return (audioObj.song === song) ? true: false;
