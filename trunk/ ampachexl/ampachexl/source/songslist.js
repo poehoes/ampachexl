@@ -340,8 +340,13 @@ enyo.kind({
 			requestUrl += "/server/xml.server.php?";
 			requestUrl += "auth="+AmpacheXL.connectResponse.auth;
 			requestUrl += "&action=songs";
-			requestUrl += "&limit="+AmpacheXL.prefsCookie.limitCount;
 			requestUrl += "&offset="+inOffset;
+			
+			if(AmpacheXL.prefsCookie.limitCount == "all") {
+				requestUrl += "&limit="+AmpacheXL.connectResponse.songs;
+			} else {
+				requestUrl += "&limit="+AmpacheXL.prefsCookie.limitCount;
+			}
 		
 			this.$.allSongsRequestService.setUrl(requestUrl);
 			if(debug) this.log("allSongsRequestService url: "+this.$.allSongsRequestService.getUrl());
@@ -432,7 +437,7 @@ enyo.kind({
 		
 		}
 		
-		if(this.fullResultsList.length >= AmpacheXL.connectResponse.songs) {
+		if((this.fullResultsList.length >= AmpacheXL.connectResponse.songs)||(AmpacheXL.prefsCookie.limitCount == "all")) {
 			if(debug) this.log("finished getting all songs: "+this.fullResultsList.length);
 			
 			AmpacheXL.allSongs = this.fullResultsList.concat([]);

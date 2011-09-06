@@ -138,6 +138,7 @@ enyo.kind({
 						{caption: "300", value: 300},
 						{caption: "1000", value: 1000},
 						{caption: "3000", value: 3000},
+						{caption: "All", value: "all"},
 					]},
 				]},
 				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [

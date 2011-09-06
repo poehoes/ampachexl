@@ -307,8 +307,13 @@ enyo.kind({
 			requestUrl += "/server/xml.server.php?";
 			requestUrl += "auth="+AmpacheXL.connectResponse.auth;
 			requestUrl += "&action=albums";
-			requestUrl += "&limit="+AmpacheXL.prefsCookie.limitCount;
 			requestUrl += "&offset="+inOffset;
+			
+			if(AmpacheXL.prefsCookie.limitCount == "all") {
+				requestUrl += "&limit="+AmpacheXL.connectResponse.albums;
+			} else {
+				requestUrl += "&limit="+AmpacheXL.prefsCookie.limitCount;
+			}
 		
 			this.$.allAlbumsRequestService.setUrl(requestUrl);
 			if(debug) this.log("allAlbumsRequestService url: "+this.$.allAlbumsRequestService.getUrl());
@@ -404,7 +409,7 @@ enyo.kind({
 		
 		this.fullResultsList.sort(sort_by("name", false));
 		
-		if(this.fullResultsList.length >= AmpacheXL.connectResponse.albums) {
+		if((this.fullResultsList.length >= AmpacheXL.connectResponse.albums)||(AmpacheXL.prefsCookie.limitCount == "all")) {
 			if(debug) this.log("finished getting all albums: "+this.fullResultsList.length);
 			
 			AmpacheXL.allAlbums = this.fullResultsList.concat([]);
