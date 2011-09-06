@@ -230,7 +230,9 @@ enyo.kind({
 			}.bind(this));
 			
 		} else {
+		
 			this.getArtists();
+			
 		}
 	},
 	
@@ -249,6 +251,7 @@ enyo.kind({
 		this.resultsList.length = 0;
 		
 		this.$.headerSubtitle.setContent("0 artists");
+		this.$.artistsVirtualList.punt();
 		
 		this.resultsList.push({name: "Attempting to get "+AmpacheXL.connectResponse.artists+" artists", artist: "", album: "", albums: AmpacheXL.connectResponse.artists, songs: 0, track: AmpacheXL.connectResponse.artists, url: "", art: ""});
 		this.$.artistsVirtualList.punt();
@@ -265,8 +268,13 @@ enyo.kind({
 			requestUrl += "/server/xml.server.php?";
 			requestUrl += "auth="+AmpacheXL.connectResponse.auth;
 			requestUrl += "&action=artists";
-			requestUrl += "&limit="+AmpacheXL.prefsCookie.limitCount;
 			requestUrl += "&offset="+inOffset;
+			
+			if(AmpacheXL.prefsCookie.limitCount == "all") {
+				requestUrl += "&limit="+AmpacheXL.connectResponse.artists;
+			} else {
+				requestUrl += "&limit="+AmpacheXL.prefsCookie.limitCount;
+			}
 		
 			this.$.allArtistsRequestService.setUrl(requestUrl);
 			if(debug) this.log("allArtistsRequestService url: "+this.$.allArtistsRequestService.getUrl());
@@ -344,7 +352,7 @@ enyo.kind({
 		
 		this.fullResultsList.sort(sort_by("name", false));
 		
-		if(this.fullResultsList.length >= AmpacheXL.connectResponse.artists) {
+		if((this.fullResultsList.length >= AmpacheXL.connectResponse.artists)||(AmpacheXL.prefsCookie.limitCount == "all")) {
 			if(debug) this.log("finished getting all artists: "+this.fullResultsList.length);
 			
 			AmpacheXL.allArtists = this.fullResultsList.concat([]);
