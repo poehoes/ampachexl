@@ -34,6 +34,8 @@ enyo.kind({
 		onNowplayingUpdated: "",
 		onPreviousView: "",
 		onUpdateCounts: "",
+		onUpdateCounts: "",
+		onDbRequest: "",
 	},
 	
 	fullResultsList: [],
@@ -45,6 +47,10 @@ enyo.kind({
 	videosMouseTimer: "",
 	
 	components: [
+		{kind: "DbService", dbKind: "com.palm.media.video.file:1", onFailure: "dbFailure", components: [
+            {name: "dbVideosService", method: "find", onSuccess: "dbVideosSuccess"},                                   
+        ]},
+		
 		{name: "streamVideoService", kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "launch"},
 			
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
@@ -207,6 +213,79 @@ enyo.kind({
 		this.resetVideosSearch();
 		
 	},
+	allVideos: function(inOther) {
+		if(debug) this.log("allVideos AmpacheXL.allVideos.length: "+AmpacheXL.allVideos.length+" AmpacheXL.connectResponse.videos: "+AmpacheXL.connectResponse.videos);
+		
+		this.doUpdateSpinner(true);
+		
+		this.fullResultsList.length = 0;
+		this.resultsList.length = 0;
+		
+		this.dbSearchProperty = null;
+			
+		if(AmpacheXL.allVideos.length > 0) {
+		
+			this.fullResultsList = AmpacheXL.allVideos.concat([]);
+			
+			this.resetVideosSearch();
+			
+		} else if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+		
+			this.doUpdateSpinner(true);
+			this.$.dbVideosService.call({query:{"from":"com.palm.media.video.file:1"}});
+		
+		} else {
+			this.doUpdateSpinner(true);
+			
+			this.getVideos();
+		}
+	},
+	
+	
+	dbVideosSuccess: function(inSender, inResponse) {
+        //this.log("dbVideosSuccess, results=" + enyo.json.stringify(inResponse));
+        this.log("dbVideosSuccess");
+		
+		this.fullResultsList.length = 0;
+		
+		var s = {}, t = {};
+		
+		for(var i = 0; i < inResponse.results.length; i++) {
+			s = inResponse.results[i];
+			t = {name: "Unknown", songs: 0};
+			
+			t.id = s._id;
+			//t._kind = s._kind;
+			t.title = s.title;
+			t.mime = s.mediaType;
+			t.resolution = "Unknown";
+			t.size = s.size;
+			t.url = s.path;
+			
+			t.type = "video";
+			
+			
+			//if(debug) this.log("adding new item: "+enyo.json.stringify(t));
+			
+			this.fullResultsList.push(t);
+		}
+		
+		
+		this.fullResultsList.sort(sort_by("title", false));
+		
+		AmpacheXL.connectResponse.videos = this.fullResultsList.length;
+		
+		AmpacheXL.allVideos = this.fullResultsList.concat([]);
+		
+		
+		//if(debug) this.log("fullResultsList: "+enyo.json.stringify(this.fullResultsList));
+		
+		this.resetVideosSearch();
+		
+    },          
+    dbFailure: function(inSender, inError, inRequest) {
+        this.error(enyo.json.stringify(inError));
+    },
 	
 	
 	getVideos: function() {

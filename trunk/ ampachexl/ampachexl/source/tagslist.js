@@ -31,6 +31,8 @@ enyo.kind({
 		onOpenWeb: "",
 		onBannerMessage: "",
 		onPreviousView: "",
+		onDbRequest: "",
+		onUpdateCounts: "",
 	},
 	
 	activeView: false,
@@ -41,6 +43,11 @@ enyo.kind({
 	selectedTag: {},
 	
 	components: [
+		
+		{kind: "DbService", dbKind: "com.palm.media.audio.genre:1", onFailure: "dbFailure", components: [
+            {name: "dbTagsService", method: "find", onSuccess: "dbTagsSuccess"}                           
+        ]},
+		
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
 			{name: "headerTitle", kind: "Control", content: "Tags", className: "headerTitle"},
 			{name: "headerSubtitle", kind: "Control", className: "headerSubtitle"},
@@ -190,6 +197,75 @@ enyo.kind({
 		this.resetTagsSearch();
 		
 	},
+	allTags: function(inOther) {
+		if(debug) this.log("allTags AmpacheXL.allTags.length: "+AmpacheXL.allTags.length+" AmpacheXL.connectResponse.tags: "+AmpacheXL.connectResponse.tags);
+		
+		this.doUpdateSpinner(true);
+		
+		this.fullResultsList.length = 0;
+		this.resultsList.length = 0;
+		
+		this.dbSearchProperty = null;
+			
+		if(AmpacheXL.allTags.length > 0) {
+		
+			this.fullResultsList = AmpacheXL.allTags.concat([]);
+			
+			this.resetTagsSearch();
+			
+		} else if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+		
+			this.doUpdateSpinner(true);
+			this.$.dbTagsService.call({query:{"from":"com.palm.media.audio.genre:1"}});
+		
+		} else {
+			this.doUpdateSpinner(true);
+			
+			this.getTags();
+		}
+	},
+	
+	dbTagsSuccess: function(inSender, inResponse) {
+        //this.log("dbTagsSuccess, results=" + enyo.json.stringify(inResponse));
+        this.log("dbTagsSuccess");
+		
+		this.fullResultsList.length = 0;
+		
+		var s = {}, t = {};
+		
+		for(var i = 0; i < inResponse.results.length; i++) {
+			s = inResponse.results[i];
+			t = {name: "Unknown", songs: 0};
+			
+			t.id = s._id;
+			//t._kind = s._kind;
+			t.name = s.name;
+			t.artists = 0;
+			t.albums = s.total.albums;
+			t.songs = s.total.tracks;
+			
+			t.type = "tag";
+			
+			//if(debug) this.log("adding new tag: "+enyo.json.stringify(t));
+			
+			this.fullResultsList.push(t);
+		}
+		
+		this.fullResultsList.sort(sort_by("name", false));
+		
+		AmpacheXL.connectResponse.tags = this.fullResultsList.length;
+		
+		AmpacheXL.allTags = this.fullResultsList.concat([]);
+		
+		
+		//if(debug) this.log("fullResultsList: "+enyo.json.stringify(this.fullResultsList));
+		
+		this.resetTagsSearch();
+		
+    },          
+    dbFailure: function(inSender, inError, inRequest) {
+        this.error(enyo.json.stringify(inError));
+    },
 	
 	getTags: function() {
 		if(debug) this.log("getTags");
@@ -199,6 +275,8 @@ enyo.kind({
 	},
 	resetTagsSearch: function() {
 		if(debug) this.log("resetTagsSearch");
+		
+		this.doUpdateCounts();
 		
 		this.$.tagsSearchInput.setValue("");
 		this.$.tagsSearchClear.hide();
@@ -370,25 +448,40 @@ enyo.kind({
 		
 		this.$.typePopupMenu.setItems(types);
 		this.$.typePopupMenu.openAtEvent(inEvent);
+		
 	},
 	typeSelect: function(inSender, inEvent) {
 		if(inEvent) {
 			if(debug) this.log("moreSelect: "+inEvent.value);
 			
-			if(inEvent.value.indexOf("artist") >= 0) {
-				this.doUpdateSpinner(true);
-				this.doDataRequest("artistsList", "tag_artists", "&filter="+this.selectedTag.id);
-				this.doViewSelected("artistsList");
-			} else if(inEvent.value.indexOf("album") >= 0) {
-				this.doUpdateSpinner(true);
-				this.doDataRequest("albumsList", "tag_albums", "&filter="+this.selectedTag.id);
-				this.doViewSelected("albumsList");
-			} else if(inEvent.value.indexOf("song") >= 0) {
-				this.doUpdateSpinner(true);
-				this.doDataRequest("songsList", "tag_songs", "&filter="+this.selectedTag.id);
-				this.doViewSelected("songsList");
+			if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+				if(inEvent.value.indexOf("artist") >= 0) {
+					this.doUpdateSpinner(true);
+					this.doDbRequest("artistsList", "genre", this.selectedTag.name);
+					this.doViewSelected("artistsList");
+				} else if(inEvent.value.indexOf("album") >= 0) {
+					this.doUpdateSpinner(true);
+					this.doDbRequest("albumsList", "genre", this.selectedTag.name);
+					this.doViewSelected("albumsList");
+				} else if(inEvent.value.indexOf("song") >= 0) {
+					this.doUpdateSpinner(true);
+					this.doDbRequest("songsList", "genre", this.selectedTag.name);
+					this.doViewSelected("songsList");
+				} 
 			} else {
-				//
+				if(inEvent.value.indexOf("artist") >= 0) {
+					this.doUpdateSpinner(true);
+					this.doDataRequest("artistsList", "tag_artists", "&filter="+this.selectedTag.id);
+					this.doViewSelected("artistsList");
+				} else if(inEvent.value.indexOf("album") >= 0) {
+					this.doUpdateSpinner(true);
+					this.doDataRequest("albumsList", "tag_albums", "&filter="+this.selectedTag.id);
+					this.doViewSelected("albumsList");
+				} else if(inEvent.value.indexOf("song") >= 0) {
+					this.doUpdateSpinner(true);
+					this.doDataRequest("songsList", "tag_songs", "&filter="+this.selectedTag.id);
+					this.doViewSelected("songsList");
+				} 
 			}
 		
 		}

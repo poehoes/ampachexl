@@ -101,11 +101,9 @@ enyo.kind({
 	playSong: function(inSong) {
 		if(debug) this.log("playSong: "+enyo.json.stringify(inSong));
 		
-		
 	},
 	queueNextSong: function(inSong) {
 		if(debug) this.log("queueNextSong for index "+AmpacheXL.nextAudioObjectIndex+": "+enyo.json.stringify(inSong));
-		
 		
 	},
 	disconnect: function() {
@@ -224,6 +222,7 @@ enyo.kind({
 			this.$.songSlider.setPosition(timePercentage);
 			this.$.songSlider.setBarPosition(amtBuffered);
 			this.$.progressTime.setContent(floatToTime(currentTime));
+			AmpacheXL.currentSong.time = duration;
 		}
 		
 	},

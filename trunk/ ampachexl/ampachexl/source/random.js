@@ -33,6 +33,8 @@ enyo.kind({
 		onBannerMessage: "",
 		onNowplayingUpdated: "",
 		onPreviousView: "",
+		onUpdateCounts: "",
+		onDbRequest: "",
 	},
 	
 	randomAlbums: [],
@@ -164,19 +166,31 @@ enyo.kind({
 		
 		switch(inValue.getValue().substring(0,5)) {
 			case "Album":
-				this.doUpdateSpinner(true);
-				this.doDataRequest("songsList", "album_songs", "&filter="+row.id);
-				this.doViewSelected("songsList");
+				if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+					this.doUpdateSpinner(true);
+					this.doDbRequest("songsList", "album", row.name);
+					this.doViewSelected("songsList");
+				} else {
+					this.doUpdateSpinner(true);
+					this.doDataRequest("songsList", "album_songs", "&filter="+row.id);
+					this.doViewSelected("songsList");
+				}
 				break;
 			case "Artis":		
-				row.type = "artist";
-				row.songs = "all";
-				row.id = row.artist_id;
-				row.name = row.artist;
-				AmpacheXL.selectedArtist = row;
-				this.doUpdateSpinner(true);
-				this.doDataRequest("albumsList", "artist_albums", "&filter="+row.artist_id);
-				this.doViewSelected("albumsList");
+				if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+					this.doUpdateSpinner(true);
+					this.doDbRequest("albumsList", "artist", row.artist);
+					this.doViewSelected("albumsList");
+				} else {
+					row.type = "artist";
+					row.songs = "all";
+					row.id = row.artist_id;
+					row.name = row.artist;
+					AmpacheXL.selectedArtist = row;
+					this.doUpdateSpinner(true);
+					this.doDataRequest("albumsList", "artist_albums", "&filter="+row.artist_id);
+					this.doViewSelected("albumsList");
+				}
 				break;
 		}
 		

@@ -67,6 +67,7 @@ enyo.kind({
 		]},
 							
 		{name: "hostsVirtualList", kind: "VirtualList", onSetupRow: "setupHostsItem", flex: 1, components: [
+			{name: "hostsDivider", kind: "Divider"},
 			{name: "hostsItem", kind: "Item", className: "listItem", layoutKind: "HFlexLayout", align: "center", components: [
 				{kind: "VFlexBox", flex: 1, onclick: "hostsClick", components: [
 					{name: "hostsName", className: "title"},
@@ -151,6 +152,7 @@ enyo.kind({
 				url: this.$.urlInput.getValue(), 
 				username: this.$.usernameInput.getValue(), 
 				password: this.$.passwordInput.getValue(), 
+				source: "Ampache Server",
 			};
 			
 			AmpacheXL.prefsCookie.accounts.push(newHost);
@@ -185,19 +187,53 @@ enyo.kind({
 		
 		if(row) {
 		
-			//accounts: [{name: "local", url: "http://192.168.1.105/ampache/", username: "ampachexl", password: "ampachexl"}],
-		
+			if(!row.source) row.source = "Ampache Server";
+			
+			this.setupHostsDivider(inIndex);
+			
 			//this.$.hostsItem.applyStyle("border-top", "1px solid silver;");
 			//this.$.hostsItem.applyStyle("border-bottom", "none;");
 			
 			this.$.hostsName.setContent(row.name);
 			this.$.hostsUrl.setContent(row.url);
 			
-			this.$.hostsUsername.setContent(row.username);
-			this.$.hostsPassword.setContent("*********");
+			if(row.source == "Ampache Server") {
+				this.$.hostsUsername.setContent(row.username);
+				this.$.hostsPassword.setContent("*********");
+			} else {
+				this.$.hostsUsername.setContent("");
+				this.$.hostsPassword.setContent("");
+				
+				this.$.editHost.hide();
+				this.$.deleteHost.hide();
+			}
 			
 			return true;
 		
+		}
+	},
+	setupHostsDivider: function(inIndex) {
+		
+		// use group divider at group transition, otherwise use item border for divider
+		var group = this.getHostsGroupName(inIndex);
+		this.$.hostsDivider.setCaption(group);
+		this.$.hostsDivider.canGenerate = Boolean(group);
+		if(Boolean(group)) this.$.hostsItem.applyStyle("border-top", "none");
+		//this.$.playlistsItem.applyStyle("border-bottom", "none;");
+    },
+	getHostsGroupName: function(inIndex) {
+		//if(debug) this.log("getHostsGroupName at index: "+inIndex);
+		
+		var r0 = AmpacheXL.prefsCookie.accounts[inIndex-1];
+		var r1 = AmpacheXL.prefsCookie.accounts[inIndex];
+		
+		var a = r0 && r0.source;
+		var b = r1.source;
+		
+		if(inIndex == 0) {
+			return b;
+		} else {
+			return a != b ? b : null;
 		}
 	},
 	

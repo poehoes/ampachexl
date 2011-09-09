@@ -32,6 +32,8 @@ enyo.kind({
 		onBannerMessage: "",
 		onPreviousView: "",
 		onSavePreferences: "",
+		onDbRequest: "",
+		onUpdateCounts: "",
 	},
 	
 	activeView: false,
@@ -42,6 +44,10 @@ enyo.kind({
 	sqlArray: [],
 	
 	components: [
+		{kind: "DbService", dbKind: "com.palm.media.audio.artist:1", onFailure: "dbFailure", components: [
+            {name: "dbArtistsService", method: "find", onSuccess: "dbArtistsSuccess"}                           
+        ]},
+		
 		{name: "allArtistsRequestService", kind: "WebService", handleAs: "txt", onSuccess: "allArtistsRequestResponse", onFailure: "allArtistsRequestFailure"},
 		
 		{name: "header", kind: "Toolbar", layoutKind: "VFlexLayout", onclick: "headerClick", components: [
@@ -204,14 +210,23 @@ enyo.kind({
 	allArtists: function() {
 		if(debug) this.log("allArtists AmpacheXL.allArtists.length: "+AmpacheXL.allArtists.length+" AmpacheXL.connectResponse.artists: "+AmpacheXL.connectResponse.artists+" AmpacheXL.prefsCookie.oldArtistsCount: "+AmpacheXL.prefsCookie.oldArtistsCount);
 		
+		this.doUpdateSpinner(true);
+		
 		this.fullResultsList.length = 0;
 		this.resultsList.length = 0;
+		
+		this.dbSearchProperty = null;
 		
 		if(AmpacheXL.allArtists.length == AmpacheXL.connectResponse.artists) {
 		
 			this.fullResultsList = AmpacheXL.allArtists.concat([]);
 			
 			this.resetArtistsSearch();
+		
+		} if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+		
+			this.doUpdateSpinner(true);
+			this.$.dbArtistsService.call({query:{"from":"com.palm.media.audio.artist:1"}});
 		
 		} else if(AmpacheXL.prefsCookie.oldArtistsCount == AmpacheXL.connectResponse.artists) {
 			if(debug) this.log("have correct number of saved artists in DB");
@@ -234,6 +249,90 @@ enyo.kind({
 			this.getArtists();
 			
 		}
+	},
+	dbRequest: function(inProperty, inParameters) {
+		if(debug) this.log("dbRequest: "+inProperty+" "+inParameters);
+		
+		this.doUpdateSpinner(true);
+		
+		//this.$.dbArtistsService.call({query:{"from":"com.palm.media.audio.artist:1", "where":[{"prop":inProperty,"op":"=","val":inParameters}]}});
+		this.dbSearchProperty = inProperty;
+		this.dbSearchValue = inParameters;
+		
+		if(AmpacheXL.allArtists.length > 0) {
+			this.fullResultsList = AmpacheXL.allArtists.concat([]);
+			this.dbFilterArtists();
+		} else {
+			this.$.dbArtistsService.call({query:{"from":"com.palm.media.audio.artist:1"}});
+		}
+	},
+	
+	
+	dbArtistsSuccess: function(inSender, inResponse) {
+        //this.log("dbArtistsSuccess, results=" + enyo.json.stringify(inResponse));
+        this.log("dbArtistsSuccess");
+		
+		this.fullResultsList.length = 0;
+		
+		var s = {}, t = {};
+		
+		for(var i = 0; i < inResponse.results.length; i++) {
+			s = inResponse.results[i];
+			t = {name: "[Unknown (Broken)]", albums: 0, songs: 0};
+			
+			t.id = s._id;
+			//t._kind = s._kind;
+			t.name = s.name;
+			t.albums = s.total.albums;
+			t.songs = s.total.tracks;
+			
+			t.type = "artist";
+			
+			
+			//if(debug) this.log("adding new artist: "+enyo.json.stringify(t));
+			
+			this.fullResultsList.push(t);
+		}
+		
+		this.fullResultsList.sort(sort_by("name", false));
+		
+		//if(debug) this.log("fullResultsList: "+enyo.json.stringify(this.fullResultsList));
+		
+		AmpacheXL.connectResponse.artists = this.fullResultsList.length;
+		
+		AmpacheXL.allArtists = this.fullResultsList.concat([]);
+		
+		
+		this.dbFilterArtists();
+		//this.resetArtistsSearch();
+		
+    },          
+    dbFailure: function(inSender, inError, inRequest) {
+        this.error(enyo.json.stringify(inError));
+    },
+	dbFilterArtists: function() {
+		if(debug) this.log("dbFilterArtists");
+		
+		if(this.dbSearchProperty) {
+		
+			var s = {};
+		
+			for(var i = this.fullResultsList.length; i > 0; i--) {
+				s = this.fullResultsList[i-1];
+				
+				if(s[this.dbSearchProperty] == this.dbSearchValue) {
+					//matches search - keep
+				} else {
+					//if(debug) this.log("removing item: "+enyo.json.stringify(s)+" because "+this.dbSearchProperty+" != "+this.dbSearchValue);
+					
+					this.fullResultsList.splice(i-1, 1);
+				}
+			}
+		
+		} 
+		
+		this.resetArtistsSearch();
+	
 	},
 	
 	
@@ -385,6 +484,10 @@ enyo.kind({
 	resetArtistsSearch: function() {
 		if(debug) this.log("resetArtistsSearch");
 		
+		this.dbSearchProperty = null;
+		
+		this.doUpdateCounts();
+		
 		this.$.artistsSearchInput.setValue("");
 		this.$.artistsSearchClear.hide();
 		this.$.artistsSearchSpinner.hide();
@@ -511,10 +614,15 @@ enyo.kind({
 		if(debug) this.log("artistsClick: "+enyo.json.stringify(row));
 		
 		this.doUpdateSpinner(true);
-		//this.doDataRequest("songsList", "artist_songs", "&filter="+row.id);
-		//this.doViewSelected("songsList");
-		this.doDataRequest("albumsList", "artist_albums", "&filter="+row.id);
-		this.doViewSelected("albumsList");
+		
+		if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+			this.doUpdateSpinner(true);
+			this.doDbRequest("albumsList", "artist", row.name);
+			this.doViewSelected("albumsList");
+		} else {
+			this.doDataRequest("albumsList", "artist_albums", "&filter="+row.id);
+			this.doViewSelected("albumsList");
+		}	
 				
 	},
 	

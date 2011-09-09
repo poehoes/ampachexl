@@ -583,36 +583,64 @@ enyo.kind({
 			this.selectedIndex = newIndex;
 			this.selectedOffsetIndex = inEvent.rowIndex;
 			
-			this.$.morePopupMenu.setItems([
-				{caption: "Play"},
-				{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
-				{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
-				{caption: $L("Move"), components: [
-					{caption: "Move up"},
-					{caption: "Move down"},
-					{caption: "Move to top"},
-					{caption: "Move to bottom"},
-					{caption: "Move to next"},
-				]},
-				{caption: $L("Download"), components: [
-					{caption: "Download single song"},
-					{caption: "Download all"},
-				]},
-				{name: $L("Stream single song"), caption: $L("Stream single song")},
-				{caption: $L("Remove"), components: [
-					{caption: "Remove single song"},
-					{caption: "Remove all above this"},
-					{caption: "Remove all below this"},
-				]},
-				/*
-				{caption: $L("Web"), components: [
-					{name: "Google", caption: "Google"},
-					{name: "Wikipedia", caption: "Wikipedia"},
-				]},
-				
-				//download
-				*/
-			]);
+			if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+				this.$.morePopupMenu.setItems([
+					{caption: "Play"},
+					{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
+					{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
+					{caption: $L("Move"), components: [
+						{caption: "Move up"},
+						{caption: "Move down"},
+						{caption: "Move to top"},
+						{caption: "Move to bottom"},
+						{caption: "Move to next"},
+					]},
+					{caption: $L("Remove"), components: [
+						{caption: "Remove single song"},
+						{caption: "Remove all above this"},
+						{caption: "Remove all below this"},
+					]},
+					/*
+					{caption: $L("Web"), components: [
+						{name: "Google", caption: "Google"},
+						{name: "Wikipedia", caption: "Wikipedia"},
+					]},
+					
+					//download
+					*/
+				]);
+			} else {
+				this.$.morePopupMenu.setItems([
+					{caption: "Play"},
+					{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
+					{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
+					{caption: $L("Move"), components: [
+						{caption: "Move up"},
+						{caption: "Move down"},
+						{caption: "Move to top"},
+						{caption: "Move to bottom"},
+						{caption: "Move to next"},
+					]},
+					{caption: $L("Download"), components: [
+						{caption: "Download single song"},
+						{caption: "Download all"},
+					]},
+					{name: $L("Stream single song"), caption: $L("Stream single song")},
+					{caption: $L("Remove"), components: [
+						{caption: "Remove single song"},
+						{caption: "Remove all above this"},
+						{caption: "Remove all below this"},
+					]},
+					/*
+					{caption: $L("Web"), components: [
+						{name: "Google", caption: "Google"},
+						{name: "Wikipedia", caption: "Wikipedia"},
+					]},
+					
+					//download
+					*/
+				]);
+			}
 								
 			this.$.morePopupMenu.openAtEvent(inEvent);
 		
@@ -691,18 +719,30 @@ enyo.kind({
 				default: 
 					
 					if(inEvent.value.substring(0,5) == "Album") {
-						this.doUpdateSpinner(true);
-						this.doDataRequest("songsList", "album_songs", "&filter="+this.selectedSong.album_id);
-						this.doViewSelected("songsList");
+						if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+							this.doUpdateSpinner(true);
+							this.doDbRequest("albumsList", "album", row.album);
+							this.doViewSelected("albumsList");
+						} else {
+							this.doUpdateSpinner(true);
+							this.doDataRequest("songsList", "album_songs", "&filter="+this.selectedSong.album_id);
+							this.doViewSelected("songsList");
+						}
 					} else if(inEvent.value.substring(0,6) == "Artist") {
-						this.selectedSong.type = "artist";
-						this.selectedSong.songs = "all";
-						this.selectedSong.name = this.selectedSong.artist;
-						this.selectedSong.id = this.selectedSong.artist_id;
-						AmpacheXL.selectedArtist = this.selectedSong;
-						this.doUpdateSpinner(true);
-						this.doDataRequest("albumsList", "artist_albums", "&filter="+this.selectedSong.artist_id);
-						this.doViewSelected("albumsList");
+						if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+							this.doUpdateSpinner(true);
+							this.doDbRequest("artistList", "artist", row.artist);
+							this.doViewSelected("artistList");
+						} else {
+							this.selectedSong.type = "artist";
+							this.selectedSong.songs = "all";
+							this.selectedSong.name = this.selectedSong.artist;
+							this.selectedSong.id = this.selectedSong.artist_id;
+							AmpacheXL.selectedArtist = this.selectedSong;
+							this.doUpdateSpinner(true);
+							this.doDataRequest("albumsList", "artist_albums", "&filter="+this.selectedSong.artist_id);
+							this.doViewSelected("albumsList");
+						}
 					} else {
 						this.log("unknown more command: "+inEvent.value);
 					}

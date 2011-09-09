@@ -1145,6 +1145,7 @@ AudioPlayer = Class.create({
             break;
         case "playing":
             this.ticksUnchanged = 0;
+			this.player.song.time = this.player.duration;
 			this.playbackHandler.playingEvent(this.player.song);
             this.UIStartPlaybackTimer();
             break;

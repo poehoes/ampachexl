@@ -24,7 +24,7 @@ var defaultCookie = function() {
 	var newCookie = {
 		accounts: [],
 		currentAccountIndex: 0,
-		autoLogin: true,
+		autoLogin: false,
 		startingPane: "albumsList",
 		
 		defaultAction: "queue[]:[]all[]:[]shuffled",
