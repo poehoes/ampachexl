@@ -35,6 +35,7 @@ enyo.kind({
 		onPreviousView: "",
 		onSavePreferences: "",
 		onUpdateCounts: "",
+		onDbRequest: "",
 	},
 	
 	activeView: false,
@@ -50,6 +51,11 @@ enyo.kind({
 	sqlArray: [],
 	
 	components: [
+		{kind: "DbService", dbKind: "com.palm.media.audio.file:1", onFailure: "dbFailure", components: [
+            {name: "dbSongsService", method: "find", onSuccess: "dbSongsSuccess"},                        
+            {name: "dbSongsSearchService", method: "search", onSuccess: "dbSongsSuccess"},                           
+        ]},
+		
 		{name: "allSongsRequestService", kind: "WebService", handleAs: "txt", onSuccess: "allSongsRequestResponse", onFailure: "allSongsRequestFailure"},
 		{name: "streamSongService", kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "launch"},
 		
@@ -258,14 +264,23 @@ enyo.kind({
 	allSongs: function() {
 		if(debug) this.log("allSongs AmpacheXL.allSongs.length: "+AmpacheXL.allSongs.length+" AmpacheXL.connectResponse.songs: "+AmpacheXL.connectResponse.songs+" AmpacheXL.prefsCookie.oldSongsCount: "+AmpacheXL.prefsCookie.oldSongsCount);
 		
+		this.doUpdateSpinner(true);
+		
 		this.fullResultsList.length = 0;
 		this.resultsList.length = 0;
+		
+		this.dbSearchProperty = null;
 		
 		if(AmpacheXL.allSongs.length == AmpacheXL.connectResponse.songs) {
 		
 			this.fullResultsList = AmpacheXL.allSongs.concat([]);
 			
 			this.resetSongsSearch();
+		
+		} else if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+		
+			this.doUpdateSpinner(true);
+			this.$.dbSongsService.call({query:{"from":"com.palm.media.audio.file:1"}});
 		
 		} else if(AmpacheXL.prefsCookie.oldSongsCount == AmpacheXL.connectResponse.songs) {
 			if(debug) this.log("have correct number of saved songs in DB");
@@ -303,6 +318,108 @@ enyo.kind({
 				enyo.bind(this, "selectLocalplaylistSongsFailures") 
 			);
 		}.bind(this));
+	
+	},
+	dbRequest: function(inProperty, inParameters) {
+		if(debug) this.log("dbRequest: "+inProperty+" "+inParameters);
+		
+		this.doUpdateSpinner(true);
+		
+		/*
+		switch(inProperty) {
+			case "genre":
+				this.$.dbSongsSearchService.call({query:{"from":"com.palm.media.audio.file:1", "where":[{"prop":inProperty,"op":"?","val":inParameters}]}});
+				break;
+			default: 
+				this.$.dbSongsService.call({query:{"from":"com.palm.media.audio.file:1", "where":[{"prop":inProperty,"op":"=","val":inParameters}]}});
+				break;
+		}
+		*/
+		this.dbSearchProperty = inProperty;
+		this.dbSearchValue = inParameters;
+		
+		if(AmpacheXL.allSongs.length > 0) {
+			this.fullResultsList = AmpacheXL.allSongs.concat([]);
+			this.dbFilterSongs();
+		} else {
+			this.$.dbSongsService.call({query:{"from":"com.palm.media.audio.file:1"}});
+		}
+	},
+	
+	
+	dbSongsSuccess: function(inSender, inResponse) {
+        //this.log("dbSongsSuccess, results=" + enyo.json.stringify(inResponse));
+        this.log("dbSongsSuccess");
+		
+		this.fullResultsList.length = 0;
+		
+		var s = {}, t = {};
+		
+		for(var i = 0; i < inResponse.results.length; i++) {
+			s = inResponse.results[i];			
+			t = {title: "[Unknown (Broken)]", artist: "[Unknown (Broken)]", artist_id: -1, album: "[Unknown (Broken)]", album_id: -1, url: "[Unknown (Broken)]", track: 0, time: 0, size: 0, art: "images/blank.jpg" };
+			
+			t.id = s._id;
+			//t._kind = s._kind;
+			t.title = s.title;
+			t.artist = s.artist;
+			t.album = s.album;
+			t.genre = s.genre;
+			t.url = s.path;
+			if(s.track) t.track = s.track.position;
+			t.time = s.duration;
+			t.size = s.size;
+			if(s.thumbnails[0]) t.art = s.thumbnails[0].data.path;
+			
+			if(!t.art) t.art = "images/blank.jpg";
+			
+			t.type = "song";
+			
+			
+			//if(debug) this.log("raw song: "+enyo.json.stringify(s));
+			
+			//if(debug) this.log("adding new song: "+enyo.json.stringify(t));
+			
+			this.fullResultsList.push(t);
+		}
+		
+		//this.fullResultsList.sort(sort_by("title", false));
+		
+		//if(debug) this.log("fullResultsList: "+enyo.json.stringify(this.fullResultsList));
+		
+		AmpacheXL.connectResponse.songs = this.fullResultsList.length;
+		
+		AmpacheXL.allSongs = this.fullResultsList.concat([]);
+		
+		this.dbFilterSongs();
+		//this.resetSongsSearch();
+		
+    },          
+    dbFailure: function(inSender, inError, inRequest) {
+        this.error(enyo.json.stringify(inError));
+    },
+	dbFilterSongs: function() {
+		if(debug) this.log("dbFilterSongs");
+		
+		if(this.dbSearchProperty) {
+		
+			var s = {};
+		
+			for(var i = this.fullResultsList.length; i > 0; i--) {
+				s = this.fullResultsList[i-1];
+				
+				if(s[this.dbSearchProperty] == this.dbSearchValue) {
+					//matches search - keep
+				} else {
+					//if(debug) this.log("removing item: "+enyo.json.stringify(s)+" because "+this.dbSearchProperty+" != "+this.dbSearchValue);
+					
+					this.fullResultsList.splice(i-1, 1);
+				}
+			}
+		
+		} 
+		
+		this.resetSongsSearch();
 	
 	},
 	
@@ -470,6 +587,10 @@ enyo.kind({
 	},
 	resetSongsSearch: function() {
 		if(debug) this.log("resetSongsSearch");
+		
+		this.dbSearchProperty = null;
+		
+		this.doUpdateCounts();
 		
 		this.$.songsSearchInput.setValue("");
 		this.$.songsSearchClear.hide();
@@ -710,36 +831,61 @@ enyo.kind({
 			
 			if(debug) this.log("song: "+enyo.json.stringify(this.selectedSong));
 		
+			if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+				this.$.morePopupMenu.setItems([
+					{caption: $L("Play"), components: [
+						{name: "Play all", caption: "Play all"},
+						{name: "Play all, shuffled", caption: "Play all, shuffled"},
+						{name: "Play single song", caption: "Play single song"},
+					]},
+					{caption: $L("Queue"), components: [
+						{name: "Queue all", caption: "Queue all"},
+						{name: "Queue all, shuffled", caption: "Queue all, shuffled"},
+						{name: "Queue single song", caption: "Queue single song"},
+					]},
+					{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
+					{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
+					
+					/*
+					{caption: $L("Web"), components: [
+						{name: "Google", caption: "Google"},
+						{name: "Wikipedia", caption: "Wikipedia"},
+					]},
+					
+					//download
+					*/
+				]);
+			} else {
+				this.$.morePopupMenu.setItems([
+					{caption: $L("Play"), components: [
+						{name: "Play all", caption: "Play all"},
+						{name: "Play all, shuffled", caption: "Play all, shuffled"},
+						{name: "Play single song", caption: "Play single song"},
+					]},
+					{caption: $L("Queue"), components: [
+						{name: "Queue all", caption: "Queue all"},
+						{name: "Queue all, shuffled", caption: "Queue all, shuffled"},
+						{name: "Queue single song", caption: "Queue single song"},
+					]},
+					{caption: $L("Download"), components: [
+						{caption: "Download single song"},
+						{caption: "Download all"},
+					]},
+					{name: $L("Stream single song"), caption: $L("Stream single song")},
+					{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
+					{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
+					
+					/*
+					{caption: $L("Web"), components: [
+						{name: "Google", caption: "Google"},
+						{name: "Wikipedia", caption: "Wikipedia"},
+					]},
+					
+					//download
+					*/
+				]);
+			}
 			
-			this.$.morePopupMenu.setItems([
-				{caption: $L("Play"), components: [
-					{name: "Play all", caption: "Play all"},
-					{name: "Play all, shuffled", caption: "Play all, shuffled"},
-					{name: "Play single song", caption: "Play single song"},
-				]},
-				{caption: $L("Queue"), components: [
-					{name: "Queue all", caption: "Queue all"},
-					{name: "Queue all, shuffled", caption: "Queue all, shuffled"},
-					{name: "Queue single song", caption: "Queue single song"},
-				]},
-				{caption: $L("Download"), components: [
-					{caption: "Download single song"},
-					{caption: "Download all"},
-				]},
-				{name: $L("Stream single song"), caption: $L("Stream single song")},
-				{name: "Album: "+this.selectedSong.album, caption: "Album: "+this.selectedSong.album},
-				{name: "Artist: "+this.selectedSong.artist, caption: "Artist: "+this.selectedSong.artist},
-				
-				/*
-				{caption: $L("Web"), components: [
-					{name: "Google", caption: "Google"},
-					{name: "Wikipedia", caption: "Wikipedia"},
-				]},
-				
-				//download
-				*/
-			]);
-								
 			this.$.morePopupMenu.openAtEvent(inEvent);
 		
 		}
@@ -797,18 +943,30 @@ enyo.kind({
 				default: 
 					
 					if(inEvent.value.substring(0,5) == "Album") {
-						this.doUpdateSpinner(true);
-						this.doDataRequest("songsList", "album_songs", "&filter="+this.selectedSong.album_id);
-						this.doViewSelected("songsList");
+						if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+							this.doUpdateSpinner(true);
+							this.doDbRequest("albumsList", "album", row.album);
+							this.doViewSelected("albumsList");
+						} else {
+							this.doUpdateSpinner(true);
+							this.doDataRequest("songsList", "album_songs", "&filter="+this.selectedSong.album_id);
+							this.doViewSelected("songsList");
+						}
 					} else if(inEvent.value.substring(0,6) == "Artist") {
-						this.selectedSong.type = "artist";
-						this.selectedSong.songs = "all";
-						this.selectedSong.name = this.selectedSong.artist;
-						this.selectedSong.id = this.selectedSong.artist_id;
-						AmpacheXL.selectedArtist = this.selectedSong;
-						this.doUpdateSpinner(true);
-						this.doDataRequest("albumsList", "artist_albums", "&filter="+this.selectedSong.artist_id);
-						this.doViewSelected("albumsList");
+						if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+							this.doUpdateSpinner(true);
+							this.doDbRequest("artistList", "artist", row.artist);
+							this.doViewSelected("artistList");
+						} else {
+							this.selectedSong.type = "artist";
+							this.selectedSong.songs = "all";
+							this.selectedSong.name = this.selectedSong.artist;
+							this.selectedSong.id = this.selectedSong.artist_id;
+							AmpacheXL.selectedArtist = this.selectedSong;
+							this.doUpdateSpinner(true);
+							this.doDataRequest("albumsList", "artist_albums", "&filter="+this.selectedSong.artist_id);
+							this.doViewSelected("albumsList");
+						}
 					} else {
 						this.log("unknown more command: "+inEvent.value);
 					}

@@ -53,7 +53,7 @@ enyo.kind({
 				{name: "downloadsItemCount"},
 			]},
 			
-			{name: "searchItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+			{name: "searchItem", showing: false, kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
 				{name: "searchItemIcon", kind: "Image", src: "images/06-magnify.png", className: "menuIcon"},
 				{name: "searchItemTitle", content: "Search", flex: 1},
 				//name: "searchItemCount"},
@@ -85,7 +85,7 @@ enyo.kind({
 				{name: "tagsItemTitle", content: "Genres", flex: 1},
 				{name: "tagsItemCount"},
 			]},
-			{name: "playlistsItem", kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
+			{name: "playlistsItem", showing: false, kind: "Item", className: "menuItem", layoutKind: "HFlexLayout", onclick: "itemClick", components: [
 				{name: "playlistsItemIcon", kind: "Image", src: "images/179-notepad.png", className: "menuIcon"},
 				{name: "playlistsItemTitle", content: "Playlists", flex: 1},
 				{name: "playlistsItemCount"},
@@ -143,6 +143,8 @@ enyo.kind({
 			
 			if(AmpacheXL.connectResponse.playlists == "") {
 				this.$.playlistsItemCount.setContent("");
+			} else if(AmpacheXL.connectResponse.playlists == null) {
+				this.$.playlistsItemCount.setContent(AmpacheXL.localPlaylists.length);
 			} else {
 				this.$.playlistsItemCount.setContent(AmpacheXL.localPlaylists.length+"+"+AmpacheXL.connectResponse.playlists);
 			}
@@ -154,6 +156,14 @@ enyo.kind({
 			} else {
 				this.$.videosItem.show();
 			}
+		}
+		
+		if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+			this.$.searchItem.hide();
+			this.$.playlistsItem.hide();
+		} else {
+			this.$.searchItem.show();
+			this.$.playlistsItem.show();
 		}
 	},
 	
@@ -203,18 +213,22 @@ enyo.kind({
 				this.doViewSelected("songsList");
 				break;
 			case "tagsItem":
+				/*
 				if(AmpacheXL.allTags.length == 0) {
 					this.doUpdateSpinner(true);
 					this.doDataRequest("tagsList", "tags", "");
 				}
+				*/
+				this.doAllItems("tagsList");
 				this.doViewSelected("tagsList");
 				break;
 				
 			case "videosItem":
-				if(AmpacheXL.allVideos.length == 0) {
+				/*if(AmpacheXL.allVideos.length == 0) {
 					this.doUpdateSpinner(true);
 					this.doDataRequest("videosList", "videos", "");
-				}
+				}*/
+				this.doAllItems("videosList");
 				this.doViewSelected("videosList");
 				break;
 		};

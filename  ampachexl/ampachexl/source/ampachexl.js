@@ -68,13 +68,15 @@ enyo.kind({
 	
 		{kind: "ApplicationEvents", onLoad: "appLoaded", onUnload: "appUnloaded", onError: "appError", onWindowActivated: "windowActivated", onWindowDeactivated: "windowDeactivated", onBack: "backHandler", onWindowParamsChange: "windowParamsChangeHandler"},
 		
+		{name: "mediaPermissionsService", kind : "PalmService", service : "palm://com.palm.mediapermissions", method : "request", onSuccess : "mediaPermissionsSuccess", onFailure : "mediaPermissionsFailure", subscribe : true },
+		
 		{name: "lockVolumeKeysService", kind: "PalmService", service: "palm://com.palm.audio/media/", method: "lockVolumeKeys", subscribe: true, foregroundApp: true, onSuccess: "lockVolumeKeysResponse", onFailure: "lockVolumeKeysFailure"},
 		
 		{name: "ampacheConnectService", kind: "WebService", handleAs: "txt", onSuccess: "ampacheConnectResponse", onFailure: "ampacheConnectFailure"},
 		{name: "dataRequestService", kind: "WebService", handleAs: "txt", onSuccess: "dataRequestResponse", onFailure: "dataRequestFailure"},
 		{name: "pingService", kind: "WebService", handleAs: "xml", onSuccess: "ampachePingResponse", onFailure: "ampachePingFailure"},
 		{name: "lastfmConnectService", kind: "WebService", handleAs: "txt", method: "POST", onSuccess: "lastfmConnectResponse", onFailure: "lastfmConnectFailure"},
-			
+				
 		{kind: "AppMenu", components: [
 			{caption: "About", onclick: "openAbout"},
 			{caption: "Disconnect", onclick: "disconnect"},
@@ -231,24 +233,24 @@ enyo.kind({
 			]},
 			{name: "rightContent", className: "rightContent", kind: "Pane", flex: 1, onSelectView: "rightContentViewSelected", onCreateView: "rightContentViewCreated", transitionKind: "enyo.transitions.Simple", components: [	
 				
-				{name: "hosts", kind: "Hosts", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onAmpacheConnect: "ampacheConnect", onSavePreferences: "savePreferences", onPreviousView: "previousView"},
+				{name: "hosts", kind: "Hosts", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onAmpacheConnect: "ampacheConnect", onSavePreferences: "savePreferences", onPreviousView: "previousView", onDbRequest: "dbRequest"},
 				
-				{name: "nowplaying", kind: "Nowplaying", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onQueueNextSong: "queueNextSong", onPreviousView: "previousView"},
+				{name: "nowplaying", kind: "Nowplaying", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onQueueNextSong: "queueNextSong", onPreviousView: "previousView", onDbRequest: "dbRequest"},
 				
-				{name: "downloads", kind: "Downloads", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onQueueNextSong: "queueNextSong", onPreviousView: "previousView"},
+				{name: "downloads", kind: "Downloads", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onQueueNextSong: "queueNextSong", onPreviousView: "previousView", onDbRequest: "dbRequest"},
 				
-				{name: "random", kind: "Random", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
+				{name: "random", kind: "Random", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onDbRequest: "dbRequest", onUpdateCounts: "updateCounts"},
 				
-				{name: "artistsList", kind: "ArtistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
-				{name: "albumsList", kind: "AlbumsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
-				{name: "playlistsList", kind: "PlaylistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences", onUpdateCounts: "updateCounts", onLocalplaylistSongs: "localplaylistSongs"},
-				{name: "tagsList", kind: "TagsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences"},
+				{name: "artistsList", kind: "ArtistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences", onDbRequest: "dbRequest", onUpdateCounts: "updateCounts"},
+				{name: "albumsList", kind: "AlbumsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences", onDbRequest: "dbRequest", onUpdateCounts: "updateCounts"},
+				{name: "playlistsList", kind: "PlaylistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences", onUpdateCounts: "updateCounts", onLocalplaylistSongs: "localplaylistSongs", onDbRequest: "dbRequest", onUpdateCounts: "updateCounts"},
+				{name: "tagsList", kind: "TagsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences", onDbRequest: "dbRequest", onUpdateCounts: "updateCounts"},
 				
-				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onNowplayingUpdated: "nowplayingUpdated", onPreviousView: "previousView", onSavePreferences: "savePreferences", onUpdateCounts: "updateCounts"},
+				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onNowplayingUpdated: "nowplayingUpdated", onPreviousView: "previousView", onSavePreferences: "savePreferences", onUpdateCounts: "updateCounts", onDbRequest: "dbRequest"},
 				
-				{name: "videosList", kind: "VideosList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onUpdateCounts: "updateCounts"},
+				{name: "videosList", kind: "VideosList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onUpdateCounts: "updateCounts", onDbRequest: "dbRequest"},
 				
-				{name: "help", kind: "Help", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView"},
+				{name: "help", kind: "Help", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onDbRequest: "dbRequest"},
 				
 			]},
 		]},
@@ -326,6 +328,8 @@ enyo.kind({
 		
 		
 		AmpacheXL.audioPlayer = new AudioPlayer(this);
+		
+		if((!AmpacheXL.prefsCookie.mediaPermissions)&&(window.PalmSystem)) this.getMediaPermissions();
 		
 	},
 	
@@ -706,6 +710,12 @@ enyo.kind({
 			case "playlistsList":
 				this.$.playlistsList.allPlaylists(inOther);
 				break;
+			case "tagsList":
+				this.$.tagsList.allTags(inOther);
+				break;
+			case "videosList":
+				this.$.videosList.allVideos(inOther);
+				break;
 			
 		}
 	},
@@ -713,6 +723,11 @@ enyo.kind({
 		if(debug) this.log("localplaylistSongs: "+inPlaylistId+" "+inAuth);
 		
 		this.$.songsList.localplaylistSongs(inPlaylistId, inAuth);
+	},
+	dbRequest: function(inSender, inView, inProperty, inParameters) {
+		if(debug) this.log("dbRequest: "+inView+" "+inProperty+" "+inParameters);
+		
+		this.$[inView].dbRequest(inProperty, inParameters);
 	},
 	
 	backHandler: function(inSender, e) {
@@ -820,9 +835,25 @@ enyo.kind({
 	ampacheConnect: function() {
 		if(debug) this.log("ampacheConnect");
 		
-		this.$.ampacheConnectService.setUrl(getAmpacheConnectionUrl(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex]));
-		if(debug) this.log("ampacheConnectService url: "+this.$.ampacheConnectService.getUrl());
-		this.$.ampacheConnectService.call();
+		if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+	
+			AmpacheXL.connected = true;
+			
+			AmpacheXL.connectResponse = {};
+			
+			AmpacheXL.audioPlayer.initialize();
+			AmpacheXL.audioPlayer.setMediaAudioClass(AmpacheXL.prefsCookie.mediaAudioClass);
+			AmpacheXL.audioPlayer.setNumBuffers(AmpacheXL.numBuffers);
+			AmpacheXL.audioPlayer.setMainHandler(this);
+			AmpacheXL.audioPlayer.setPlaybackHandler(this.$.playback);
+			
+			this.finishedConnect();
+		
+		} else {
+			this.$.ampacheConnectService.setUrl(getAmpacheConnectionUrl(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex]));
+			if(debug) this.log("ampacheConnectService url: "+this.$.ampacheConnectService.getUrl());
+			this.$.ampacheConnectService.call();
+		}
 	},
 	ampacheConnectResponse: function(inSender, inResponse) {
 		if(debug) this.log("ampacheConnectResponse");
@@ -888,8 +919,6 @@ enyo.kind({
 				
 				//if(debug) this.log("connectResponse: "+enyo.json.stringify(AmpacheXL.connectResponse));
 				
-				this.updateCounts();
-				
 				/*
 				if(window.localStorage.getItem("allArtists")) {
 					//AmpacheXL.allArtists = enyo.json.parse(window.localStorage.getItem("allArtists"));
@@ -907,6 +936,49 @@ enyo.kind({
 				}
 				*/
 				
+				
+				this.finishedConnect();
+			
+				AmpacheXL.pingInterval = setInterval(enyo.bind(this, "ampachePing"),5000);
+				
+			} else {
+			
+				if(debug) this.log("did not find auth, so we got rejected from Ampache");
+				
+				AmpacheXL.connectResponse.success = false;
+				
+				var errorNodes, singleErrorNode;
+				errorNodes = xmlobject.getElementsByTagName("error");
+				for(var i = 0; i < errorNodes.length; i++) {
+					singleErrorNode = errorNodes[i];
+					
+					this.doBannerMessage(singleErrorNode.childNodes[0].nodeValue, true);
+					
+				}
+				
+			}
+			
+		
+		} catch(e) {
+		
+			this.error(e);
+			
+			this.doBannerMessage("Could not connect to ampache.  Check you settings.", true);
+			
+		}
+		
+	},
+	ampacheConnectFailure: function(inSender, inResponse) {
+		if(debug) this.log("ampacheConnectFailure");
+		
+		this.bannerMessage("ampachexl", "Failed to connect to AmpacheXL.  Check your settings.", true);
+	},
+	finishedConnect: function() {
+		if(debug) this.log("finishedConnect");
+		
+				
+				this.updateCounts();
+		
 				if(window.localStorage.getItem("localPlaylists")) {
 					AmpacheXL.localPlaylists = enyo.json.parse(window.localStorage.getItem("localPlaylists"));
 					//window.localStorage.setItem("localPlaylists", null);
@@ -956,8 +1028,9 @@ enyo.kind({
 						this.$.rightContent.selectViewByName("artistsList");
 						break;
 					case "tagsList":
-						this.updateSpinner("AmpacheXL", true);
-						this.dataRequest("AmpacheXL", "tagsList", "tags", "");
+						//this.updateSpinner("AmpacheXL", true);
+						//this.dataRequest("AmpacheXL", "tagsList", "tags", "");
+						this.allItems("tagsList", "tagsList");
 						this.$.rightContent.selectViewByName("tagsList");
 						break;
 					case "playlistsList":
@@ -979,40 +1052,6 @@ enyo.kind({
 						this.$.rightContent.selectViewByName("albumsList");
 						break;
 				}
-			
-				AmpacheXL.pingInterval = setInterval(enyo.bind(this, "ampachePing"),5000);
-				
-			} else {
-			
-				if(debug) this.log("did not find auth, so we got rejected from Ampache");
-				
-				AmpacheXL.connectResponse.success = false;
-				
-				var errorNodes, singleErrorNode;
-				errorNodes = xmlobject.getElementsByTagName("error");
-				for(var i = 0; i < errorNodes.length; i++) {
-					singleErrorNode = errorNodes[i];
-					
-					this.doBannerMessage(singleErrorNode.childNodes[0].nodeValue, true);
-					
-				}
-				
-			}
-			
-		
-		} catch(e) {
-		
-			this.error(e);
-			
-			this.doBannerMessage("Could not connect to ampache.  Check you settings.", true);
-			
-		}
-		
-	},
-	ampacheConnectFailure: function(inSender, inResponse) {
-		if(debug) this.log("ampacheConnectFailure");
-		
-		this.bannerMessage("ampachexl", "Failed to connect to AmpacheXL.  Check your settings.", true);
 	},
 	
 	lastfmConnect: function() {
@@ -1227,6 +1266,48 @@ enyo.kind({
 		if(debug) this.error("changeVersion5Failure");
 		
 	},
+	
+	getMediaPermissions: function() {
+		var album      = "com.palm.media.audio.album:1";
+        var albumimage = "com.palm.media.image.album:1";
+        var artist     = "com.palm.media.audio.artist:1";
+        var audio      = "com.palm.media.audio.file:1";
+        var genre      = "com.palm.media.audio.genre:1";
+        var image      = "com.palm.media.image.file:1";
+        var playlist   = "com.palm.media.audio.playlist.object:1";
+        var video      = "com.palm.media.video.file:1";
+        var params = {"read":[
+			album, 
+			albumimage, 
+			artist, 
+			audio, 
+			genre, 
+			image, 
+			playlist, 
+			video
+		]}; 
+		
+        this.$.mediaPermissionsService.call({ "rights": params});
+	},
+	mediaPermissionsSuccess: function(inSender, inResponse) {
+        this.log("Get Permissions success, results=" + enyo.json.stringify(inResponse));
+		
+		AmpacheXL.prefsCookie.mediaPermissions = inResponse.isAllowed;
+		
+		var haveLocalHost = false;
+		
+		for(var i = 0; i < AmpacheXL.prefsCookie.accounts.length; i++) {
+			if(AmpacheXL.prefsCookie.accounts[i].source == "Device") haveLocalHost = true;
+		}
+		
+		if(!haveLocalHost) AmpacheXL.prefsCookie.accounts.push({name: "This device", url: "", username: "", password: "", source: "Device"});
+		
+		this.$.hosts.activate();
+		
+    },          
+    getPermFailure: function(inSender, inError, inRequest) {
+        this.log(enyo.json.stringify(inError));
+    },
 	
 	localplaylistsSelect: function() {
 		if(debug) this.log("localplaylistsSelect");
