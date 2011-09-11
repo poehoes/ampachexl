@@ -63,6 +63,8 @@ var defaultCookie = function() {
 		retryDownload: true,
 		
 		mediaAudioClass: true,
+		
+		webArt: false,
 	};
 	
 	return newCookie;

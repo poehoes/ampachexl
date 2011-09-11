@@ -379,6 +379,14 @@ enyo.kind({
 			this.inCommand = null;
 		}
 		
+		
+		if(debug) this.log("AmpacheXL.selectedArtist: "+enyo.json.stringify(AmpacheXL.selectedArtist));
+		
+		if((AmpacheXL.selectedArtist)&&(AmpacheXL.selectedArtist.type == "artist")) {
+			this.fullResultsList.splice(0,0,AmpacheXL.selectedArtist);
+			this.fullResultsList[0].isArtist = true;
+		}
+		
 		this.resetAlbumsSearch();
 	
 	},
@@ -389,23 +397,31 @@ enyo.kind({
 		
 		this.doUpdateSpinner(true);
 		
-		AmpacheXL.prefsCookie.oldAlbumsCount = 0;
+		if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
 		
-		html5sql.process("DELETE FROM albums;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
-		this.sqlArray.length = 0;
-		
-		this.fullResultsList.length = 0;
-		this.resultsList.length = 0;
-		
-		this.$.headerSubtitle.setContent("0 albums");
-		
-		this.$.albumsVirtualList.punt();
-		
-		this.resultsList.push({name: "Attempting to get "+AmpacheXL.connectResponse.albums+" albums", artist: "", album: "", tracks: AmpacheXL.connectResponse.albums, track: AmpacheXL.connectResponse.albums, url: "", art: ""});
-		this.$.albumsVirtualList.punt();
+			this.$.dbAlbumsService.call({query:{"from":"com.palm.media.audio.album:1"}});
 			
-		//this.allSongsOffset = 0;
-		this.getSomeAlbums(0);
+		} else {
+			
+			AmpacheXL.prefsCookie.oldAlbumsCount = 0;
+			
+			html5sql.process("DELETE FROM albums;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
+			this.sqlArray.length = 0;
+			
+			this.fullResultsList.length = 0;
+			this.resultsList.length = 0;
+			
+			this.$.headerSubtitle.setContent("0 albums");
+			
+			this.$.albumsVirtualList.punt();
+			
+			this.resultsList.push({name: "Attempting to get "+AmpacheXL.connectResponse.albums+" albums", artist: "", album: "", tracks: AmpacheXL.connectResponse.albums, track: AmpacheXL.connectResponse.albums, url: "", art: ""});
+			this.$.albumsVirtualList.punt();
+				
+			//this.allSongsOffset = 0;
+			this.getSomeAlbums(0);
+		
+		}
 	},
 	getSomeAlbums: function(inOffset) {
 		if(debug) this.log("getSomeAlbums at offset "+inOffset);
@@ -722,8 +738,10 @@ enyo.kind({
 		
 		this.doUpdateSpinner(true);
 		
-		if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
-			this.doUpdateSpinner(true);
+		if((AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device")&&(row.isArtist)) {
+			this.doDbRequest("songsList", "artist", row.artist);
+			this.doViewSelected("songsList");
+		} else if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
 			this.doDbRequest("songsList", "album", row.name);
 			this.doViewSelected("songsList");
 		} else if(row.isArtist) {

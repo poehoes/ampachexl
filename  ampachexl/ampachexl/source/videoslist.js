@@ -292,7 +292,16 @@ enyo.kind({
 		if(debug) this.log("getVideos");
 		
 		this.doUpdateSpinner(true);
-		this.doDataRequest("videosList", "videos", "");
+		
+		if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+		
+			this.$.dbVideosService.call({query:{"from":"com.palm.media.video.file:1"}});
+			
+		} else {
+		
+			this.doDataRequest("videosList", "videos", "");
+			
+		}
 	},
 	resetVideosSearch: function() {
 		if(debug) this.log("resetVideosSearch");

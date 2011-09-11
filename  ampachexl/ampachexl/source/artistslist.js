@@ -223,7 +223,7 @@ enyo.kind({
 			
 			this.resetArtistsSearch();
 		
-		} if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+		} else if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
 		
 			this.doUpdateSpinner(true);
 			this.$.dbArtistsService.call({query:{"from":"com.palm.media.audio.artist:1"}});
@@ -339,24 +339,32 @@ enyo.kind({
 	getArtists: function() {
 		if(debug) this.log("getArtists");
 		
-		AmpacheXL.prefsCookie.oldArtistsCount = 0;
-		
-		html5sql.process("DELETE FROM artists;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
-		this.sqlArray.length = 0;
-		
 		this.doUpdateSpinner(true);
 		
-		this.fullResultsList.length = 0;
-		this.resultsList.length = 0;
+		if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
 		
-		this.$.headerSubtitle.setContent("0 artists");
-		this.$.artistsVirtualList.punt();
-		
-		this.resultsList.push({name: "Attempting to get "+AmpacheXL.connectResponse.artists+" artists", artist: "", album: "", albums: AmpacheXL.connectResponse.artists, songs: 0, track: AmpacheXL.connectResponse.artists, url: "", art: ""});
-		this.$.artistsVirtualList.punt();
+			this.$.dbArtistsService.call({query:{"from":"com.palm.media.audio.artist:1"}});
 			
-		//this.allSongsOffset = 0;
-		this.getSomeArtists(0);
+		} else {
+		
+			AmpacheXL.prefsCookie.oldArtistsCount = 0;
+			
+			html5sql.process("DELETE FROM artists;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
+			this.sqlArray.length = 0;
+			
+			this.fullResultsList.length = 0;
+			this.resultsList.length = 0;
+			
+			this.$.headerSubtitle.setContent("0 artists");
+			this.$.artistsVirtualList.punt();
+			
+			this.resultsList.push({name: "Attempting to get "+AmpacheXL.connectResponse.artists+" artists", artist: "", album: "", albums: AmpacheXL.connectResponse.artists, songs: 0, track: AmpacheXL.connectResponse.artists, url: "", art: ""});
+			this.$.artistsVirtualList.punt();
+				
+			//this.allSongsOffset = 0;
+			this.getSomeArtists(0);
+			
+		}
 	},
 	getSomeArtists: function(inOffset) {
 		if(debug) this.log("getSomeArtists at offset "+inOffset);
@@ -608,6 +616,7 @@ enyo.kind({
 		if(debug) this.log("artistsClick: "+inEvent.rowIndex);
 		
 		var row = this.resultsList[inEvent.rowIndex];
+		row.artist = row.name;
 		
 		AmpacheXL.selectedArtist = row;
 		

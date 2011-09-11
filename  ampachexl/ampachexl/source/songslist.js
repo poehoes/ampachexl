@@ -380,7 +380,7 @@ enyo.kind({
 			
 			//if(debug) this.log("adding new song: "+enyo.json.stringify(t));
 			
-			this.fullResultsList.push(t);
+			if(t.album != "webOS Ringtones") this.fullResultsList.push(t);
 		}
 		
 		//this.fullResultsList.sort(sort_by("title", false));
@@ -428,25 +428,31 @@ enyo.kind({
 		if(debug) this.log("getSongs");
 		
 		this.doUpdateSpinner(true);
-		//this.doDataRequest("songsList", "songs", "&limit="+AmpacheXL.connectResponse.songs);
 		
-		AmpacheXL.prefsCookie.oldSongsCount = 0;
+		if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
 		
-		html5sql.process("DELETE FROM songs;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
-		this.sqlArray.length = 0;
-		
-		this.fullResultsList.length = 0;
-		this.resultsList.length = 0;
-		
-		this.$.headerSubtitle.setContent("0 songs");
-		
-		this.$.songsVirtualList.punt();
-		
-		this.resultsList.push({title: "Attempting to get "+AmpacheXL.connectResponse.songs+" songs", artist: "", album: "", track: AmpacheXL.connectResponse.songs, url: "", art: ""});
-		this.$.songsVirtualList.punt();
+			this.$.dbSongsService.call({query:{"from":"com.palm.media.audio.file:1"}});
 			
-		//this.allSongsOffset = 0;
-		this.getSomeSongs(0);
+		} else {
+		
+			AmpacheXL.prefsCookie.oldSongsCount = 0;
+			
+			html5sql.process("DELETE FROM songs;", enyo.bind(this, "truncateSuccess"), enyo.bind(this, "truncateFailure"));
+			this.sqlArray.length = 0;
+			
+			this.fullResultsList.length = 0;
+			this.resultsList.length = 0;
+			
+			this.$.headerSubtitle.setContent("0 songs");
+			
+			this.$.songsVirtualList.punt();
+			
+			this.resultsList.push({title: "Attempting to get "+AmpacheXL.connectResponse.songs+" songs", artist: "", album: "", track: AmpacheXL.connectResponse.songs, url: "", art: ""});
+			this.$.songsVirtualList.punt();
+				
+			//this.allSongsOffset = 0;
+			this.getSomeSongs(0);
+		}
 	},
 	getSomeSongs: function(inOffset) {
 		if(debug) this.log("getSomeSongs at offset "+inOffset);

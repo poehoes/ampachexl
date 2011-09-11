@@ -41,6 +41,8 @@ enyo.kind({
 	
 			{name: "lastfmUpdateService", kind: "WebService", handleAs: "txt", method: "POST", onSuccess: "lastfmUpdateResponse", onFailure: "lastfmUpdateFailure"},
 			{name: "lastfmScrobbleService", kind: "WebService", handleAs: "txt", method: "POST", onSuccess: "lastfmScrobbleResponse", onFailure: "lastfmScrobbleFailure"},
+			
+			{name: "lastfmArtService", kind: "WebService", handleAs: "txt", onSuccess: "lastfmArtResponse", onFailure: "lastfmArtFailure"},
 		
 			/*
 			{name: "sound1", kind: "Sound", src: "media/empty.mp3", audioClass: "media"},
@@ -283,6 +285,20 @@ enyo.kind({
 			this.$.lastfmUpdateService.setUrl(url);
 			if(debug) this.log("lastfmUpdateService url: "+this.$.lastfmUpdateService.getUrl()+enyo.json.stringify(params));
 			this.$.lastfmUpdateService.call(params);
+		}
+		
+		if(AmpacheXL.prefsCookie.webArt) {
+			var url = "http://ws.audioscrobbler.com/2.0/";
+			
+			var params = {};
+			params.api_key = "5b3c5775a14bc5dd0182b8b2965b62ac";
+			params.method = "track.getInfo";
+			params.track = inSong.title;
+			params.artist = inSong.artist;
+		
+			this.$.lastfmArtService.setUrl(url);
+			if(debug) this.log("lastfmArtService url: "+this.$.lastfmArtService.getUrl()+enyo.json.stringify(params));
+			this.$.lastfmArtService.call(params);
 		}
 	},
 	timeupdateEvent: function(inCurrentTime) {
@@ -528,6 +544,53 @@ enyo.kind({
 	},
 	lastfmScrobbleFailure: function(inSender, inResponse) {
 		if(debug) this.log("lastfmScrobbleFailure");
+	},
+	
+	lastfmArtResponse: function(inSender, inResponse) {
+		if(debug) this.log("lastfmArtResponse");
+		//if(debug) this.log("lastfmArtResponse: "+inResponse);
+		
+		var imagesList = [];
+		
+		
+		var xmlobject = (new DOMParser()).parseFromString(inResponse, "text/xml");
+		
+		var imagesNodes, singleImageNode, singleTagChildNode;
+		var s = {};
+		
+		imagesNodes = xmlobject.getElementsByTagName("image");
+		for(var i = 0; i < imagesNodes.length; i++) {
+			singleImageNode = imagesNodes[i];
+			s = {};
+			
+			s.size = singleImageNode.getAttributeNode("size").nodeValue;
+			s.url = singleImageNode.childNodes[0].nodeValue;
+			
+			imagesList.push(s);
+		
+		}
+		
+		if(debug) this.log("imagesList: "+enyo.json.stringify(imagesList));
+	
+		if(imagesList.length > 0) {
+		
+			var artUrl = imagesList[0].url;
+			
+			for(var i = 0; i < imagesList.length; i++) {
+				if(imagesList[i].size == "extralarge") artUrl = imagesList[i].url;
+			}
+			
+			this.$.songArt.setSrc(artUrl);
+			AmpacheXL.currentSong.art = artUrl;
+			
+			this.doUpdatePlaybackStatus();
+		
+		}
+		
+	
+	},
+	lastfmArtFailure: function() {
+		if(debug) this.log("lastfmArtFailure");
 	},
 	
 });
