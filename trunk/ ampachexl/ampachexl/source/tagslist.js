@@ -271,7 +271,16 @@ enyo.kind({
 		if(debug) this.log("getTags");
 		
 		this.doUpdateSpinner(true);
-		this.doDataRequest("tagsList", "tags", "");
+		
+		if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+		
+			this.$.dbTagsService.call({query:{"from":"com.palm.media.audio.genre:1"}});
+			
+		} else {
+		
+			this.doDataRequest("tagsList", "tags", "");
+			
+		}
 	},
 	resetTagsSearch: function() {
 		if(debug) this.log("resetTagsSearch");

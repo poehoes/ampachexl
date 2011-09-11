@@ -34,6 +34,7 @@ enyo.kind({
 		onAmpacheConnect: "",
 		onSavePreferences: "",
 		onBannerMessage: "",
+		onGetMediaPermissions: "",
 	},
 	
 	selectedHostIndex: -1,
@@ -84,7 +85,9 @@ enyo.kind({
 		
 		{name: "footer", kind: "Toolbar", layoutKind: "HFlexLayout", components: [
 			{kind: "Spacer"},
-			{content: "Add", onclick: "addClick"},
+			{content: "Add Ampache Server", onclick: "addClick"},
+			{name: "addDeviceSpacer", showing: false, kind: "Spacer"},
+			{name: "addDevice", showing: false, content: "Add This Device", onclick: "doGetMediaPermissions"},
 			{kind: "Spacer"},
 		]},
 	],
@@ -99,9 +102,19 @@ enyo.kind({
 		
 		this.resize();
 		
+		AmpacheXL.prefsCookie.accounts.sort(double_sort_by("source", "name", false));
+		
 		this.$.hostsVirtualList.punt();
 		
 		this.doUpdateSpinner(false);
+		
+		if(AmpacheXL.prefsCookie.mediaPermissions) {
+			this.$.addDeviceSpacer.hide();
+			this.$.addDevice.hide();
+		} else {
+			this.$.addDeviceSpacer.show();
+			this.$.addDevice.show();
+		}
 		
 		//this.$.headerSubtitle.setContent(AmpacheXL.hosts.length+" items");
 		

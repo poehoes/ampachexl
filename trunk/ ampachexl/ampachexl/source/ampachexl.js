@@ -179,6 +179,10 @@ enyo.kind({
 					]},
 				]},
 				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{content: "Get album art from web (last.fm)", flex: 1},
+					{name: "webArt", kind: "ToggleButton", onChange: "webArtToggle"},
+				]},
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 					{content: "Show album art on lists", flex: 1},
 					{name: "artOnLists", kind: "ToggleButton", onChange: "artOnListsToggle"},
 				]},
@@ -233,7 +237,7 @@ enyo.kind({
 			]},
 			{name: "rightContent", className: "rightContent", kind: "Pane", flex: 1, onSelectView: "rightContentViewSelected", onCreateView: "rightContentViewCreated", transitionKind: "enyo.transitions.Simple", components: [	
 				
-				{name: "hosts", kind: "Hosts", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onAmpacheConnect: "ampacheConnect", onSavePreferences: "savePreferences", onPreviousView: "previousView", onDbRequest: "dbRequest"},
+				{name: "hosts", kind: "Hosts", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onAmpacheConnect: "ampacheConnect", onSavePreferences: "savePreferences", onPreviousView: "previousView", onDbRequest: "dbRequest", onGetMediaPermissions: "getMediaPermissions"},
 				
 				{name: "nowplaying", kind: "Nowplaying", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onQueueNextSong: "queueNextSong", onPreviousView: "previousView", onDbRequest: "dbRequest"},
 				
@@ -329,7 +333,7 @@ enyo.kind({
 		
 		AmpacheXL.audioPlayer = new AudioPlayer(this);
 		
-		if((!AmpacheXL.prefsCookie.mediaPermissions)&&(window.PalmSystem)) this.getMediaPermissions();
+		if((AmpacheXL.prefsCookie.mediaPermissions != null)&&(window.PalmSystem)) this.getMediaPermissions();
 		
 	},
 	
@@ -418,6 +422,7 @@ enyo.kind({
 		this.$.retryDownload.setState(AmpacheXL.prefsCookie.retryDownload);
 		this.$.dashboardPlayer.setState(AmpacheXL.prefsCookie.dashboardPlayer);
 		this.$.theme.setValue(AmpacheXL.prefsCookie.theme);
+		this.$.webArt.setState(AmpacheXL.prefsCookie.webArt);
 		this.$.artOnLists.setState(AmpacheXL.prefsCookie.artOnLists);
 		this.$.bannerOnPlayback.setState(AmpacheXL.prefsCookie.bannerOnPlayback);
 		this.$.lastFM.setState(AmpacheXL.prefsCookie.lastFM);
@@ -427,7 +432,7 @@ enyo.kind({
 		this.$.debug.setState(AmpacheXL.prefsCookie.debug);
 		
 		this.lastFMToggle();
-			
+		
 	},
 	themeSelect: function(inSender, inValue, inOldValue) {
 		if(debug) this.log("themeSelect from "+inOldValue+" to "+inValue);
@@ -458,6 +463,7 @@ enyo.kind({
 		AmpacheXL.prefsCookie.retryDownload = this.$.retryDownload.getState();
 		AmpacheXL.prefsCookie.dashboardPlayer = this.$.dashboardPlayer.getState();
 		AmpacheXL.prefsCookie.theme = this.$.theme.getValue();
+		AmpacheXL.prefsCookie.webArt = this.$.webArt.getState();
 		AmpacheXL.prefsCookie.artOnLists = this.$.artOnLists.getState();
 		AmpacheXL.prefsCookie.bannerOnPlayback = this.$.bannerOnPlayback.getState();
 		AmpacheXL.prefsCookie.lastFM = this.$.lastFM.getState();
@@ -1300,7 +1306,7 @@ enyo.kind({
 			if(AmpacheXL.prefsCookie.accounts[i].source == "Device") haveLocalHost = true;
 		}
 		
-		if(!haveLocalHost) AmpacheXL.prefsCookie.accounts.push({name: "This device", url: "", username: "", password: "", source: "Device"});
+		if((!haveLocalHost)&&(AmpacheXL.prefsCookie.mediaPermissions)) AmpacheXL.prefsCookie.accounts.push({name: "This device", url: "", username: "", password: "", source: "Device"});
 		
 		this.$.hosts.activate();
 		

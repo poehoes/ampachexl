@@ -41,6 +41,11 @@ enyo.kind({
 	resultsList: [],
 	
 	components: [
+	
+		{kind: "DbService", dbKind: "com.palm.media.audio.playlist.object:1", onFailure: "dbFailure", components: [
+            {name: "dbPlaylistsService", method: "find", onSuccess: "dbPlaylistsSuccess"}                           
+        ]},
+		
 		{name: "confirmDeletePopup", kind: "Popup", lazy: true, scrim: true, onBeforeOpen: "beforeConfirmDeleteOpen", components: [
 			{name: "confirmDeletePopupText", style: "text-align: center;"},
 			{kind: "Button", caption: "Yes", className: "enyo-button-negative", onclick:"confirmDeleteClick"},
@@ -193,7 +198,7 @@ enyo.kind({
 		this.fullResultsList.length = 0;
 		this.resultsList.length = 0;
 		
-		if(AmpacheXL.allPlaylists.length == AmpacheXL.connectResponse.playlists) {
+		if(AmpacheXL.allPlaylists.length > 0) {
 		
 			this.fullResultsList = AmpacheXL.allPlaylists.concat(AmpacheXL.localPlaylists);
 		
@@ -202,6 +207,12 @@ enyo.kind({
 			this.resetPlaylistsSearch();
 			
 			this.doUpdateCounts();
+			
+		} else if(AmpacheXL.prefsCookie.accounts[AmpacheXL.prefsCookie.currentAccountIndex].source == "Device") {
+		
+			//this doesnt work - wrong kind name?
+			this.doUpdateSpinner(true);
+			this.$.dbPlaylistsService.call({query:{"from":"com.palm.media.audio.playlist.object:1"}});
 		
 		} else {
 			this.getPlaylists();
@@ -219,8 +230,51 @@ enyo.kind({
 		
 		this.resetPlaylistsSearch();
 			
-		
 	},
+	
+	
+	dbPlaylistsSuccess: function(inSender, inResponse) {
+        this.log("dbPlaylistsSuccess, results=" + enyo.json.stringify(inResponse));
+        //this.log("dbPlaylistsSuccess");
+		
+		AmpacheXL.allPlaylists.length = 0;
+		
+		var s = {}, t = {};
+		
+		for(var i = 0; i < inResponse.results.length; i++) {
+			s = inResponse.results[i];
+			t = {name: "Unknown", songs: 0};
+			
+			t.id = s._id;
+			//t._kind = s._kind;
+			t.name = s.name;
+			t.artists = 0;
+			t.albums = s.total.albums;
+			t.songs = s.total.tracks;
+			
+			t.type = "playlist";
+			s.source = "Device";
+			
+			//if(debug) this.log("adding new tag: "+enyo.json.stringify(t));
+			
+			AmpacheXL.allPlaylists.push(t);
+		}
+		
+		this.fullResultsList = AmpacheXL.allPlaylists.concat(AmpacheXL.localPlaylists);
+		
+		this.fullResultsList.sort(double_sort_by("source", "name", false));
+		
+		//if(debug) this.log("fullResultsList: "+enyo.json.stringify(this.fullResultsList));
+		
+		this.resetPlaylistsSearch();
+			
+		this.doUpdateCounts();
+		
+    },          
+    dbFailure: function(inSender, inError, inRequest) {
+        this.error(enyo.json.stringify(inError));
+    },
+	
 	
 	getPlaylists: function() {
 		if(debug) this.log("getPlaylists");
