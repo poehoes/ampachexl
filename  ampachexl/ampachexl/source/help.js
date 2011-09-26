@@ -97,6 +97,9 @@ enyo.kind({
 		setTimeout(enyo.bind(this,"getFaqs"),50);
 		setTimeout(enyo.bind(this,"getChangelog"),50);
 		
+		//if(debug) this.error("checkIfPluginInit(): "+objwAMP.checkIfPluginInit());
+		
+		
 	},
 	resize: function() {
 		if(debug) this.log("resize");

@@ -37,7 +37,7 @@ var defaultCookie = function() {
 		
 		artOnLists: true,
 		
-		//albumsSort: 0,
+		albumsSort: "album",
 		//artistsSort: 0,
 		//songsSort: 0,
 		//playlistsSort: 0,
@@ -62,7 +62,8 @@ var defaultCookie = function() {
 		
 		retryDownload: true,
 		
-		mediaAudioClass: true,
+		//mediaAudioClass: true,
+		playerType: "plugin",
 		
 		webArt: false,
 	};

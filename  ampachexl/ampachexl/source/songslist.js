@@ -807,13 +807,20 @@ enyo.kind({
 		AmpacheXL.nowplaying.length = 0;
 		AmpacheXL.nowplaying = newSongs;
 		
-		if((playAction == "play")||(previousLength == 0)) {
+		if((AmpacheXL.prefsCookie.playerType == "plugin")&&((playAction == "play")||(previousLength == 0))) {
 			AmpacheXL.nowplayingIndex = 0;
 			AmpacheXL.currentSong = AmpacheXL.nowplaying[0];
-			AmpacheXL.audioPlayer.newPlayList(AmpacheXL.nowplaying, false, 0);
-			AmpacheXL.audioPlayer.play();
+			AmpacheXL.nextSong = AmpacheXL.nowplaying[0];
+			AmpacheXL.pluginObj.Open(AmpacheXL.currentSong.url,0);
 		} else {
-			AmpacheXL.audioPlayer.reorderPlayList(AmpacheXL.nowplaying, AmpacheXL.currentSong, AmpacheXL.currentSong.id);
+			if((playAction == "play")||(previousLength == 0)) {
+				AmpacheXL.nowplayingIndex = 0;
+				AmpacheXL.currentSong = AmpacheXL.nowplaying[0];
+				AmpacheXL.audioPlayer.newPlayList(AmpacheXL.nowplaying, false, 0);
+				AmpacheXL.audioPlayer.play();
+			} else {
+				AmpacheXL.audioPlayer.reorderPlayList(AmpacheXL.nowplaying, AmpacheXL.currentSong, AmpacheXL.currentSong.id);
+			}
 		}
 		
 		this.doNowplayingUpdated(playAction);

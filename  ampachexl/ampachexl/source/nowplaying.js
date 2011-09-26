@@ -554,11 +554,16 @@ enyo.kind({
 			
 			AmpacheXL.nowplayingIndex = newIndex;
 			AmpacheXL.currentSong = row;
+			AmpacheXL.nextSong = row;
 			
 			if(debug) this.log("nowplayingClick: "+enyo.json.stringify(row));
 			
 			//this.doPlaySong(row);
-			AmpacheXL.audioPlayer.playTrack(newIndex);
+			if(AmpacheXL.prefsCookie.playerType == "plugin") {
+				AmpacheXL.pluginObj.Open(row.url,0);
+			} else {
+				AmpacheXL.audioPlayer.playTrack(newIndex);
+			}
 			
 			this.$.nowplayingVirtualList.refresh();
 			this.doUpdateCounts();
@@ -844,7 +849,11 @@ enyo.kind({
 		
 		this.$.nowplayingVirtualList.refresh();
 		
-		AmpacheXL.audioPlayer.reorderPlayList(AmpacheXL.nowplaying, AmpacheXL.currentSong, AmpacheXL.currentSong.id);
+		if(AmpacheXL.prefsCookie.playerType == "plugin") {
+			//
+		} else {
+			AmpacheXL.audioPlayer.reorderPlayList(AmpacheXL.nowplaying, AmpacheXL.currentSong, AmpacheXL.currentSong.id);
+		}
 		
 		this.doUpdateCounts();
 		this.$.headerSubtitle.setContent(AmpacheXL.nowplaying.length+" items");
@@ -867,8 +876,19 @@ enyo.kind({
 		
 		if(row) {
 		
-			//this.doQueueNextSong(row);
+			AmpacheXL.nextSong = row;
+			
+			if(AmpacheXL.prefsCookie.playerType == "plugin") {
+				AmpacheXL.pluginObj.SetNext(row.url, 0, 0);
+			} else {
+			
+				//this.doQueueNextSong(row);
+			}
 		
+		} else {
+			if(AmpacheXL.prefsCookie.playerType == "plugin") {
+				AmpacheXL.pluginObj.SetNoNext(0);
+			}
 		}
 	},
 	
