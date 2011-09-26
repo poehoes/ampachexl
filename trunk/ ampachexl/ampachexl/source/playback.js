@@ -36,6 +36,7 @@ enyo.kind({
 	
 	movingSlider: false,
 	startPlayingTimer: "",
+	pluginPlayingInterval: "",
 	
 	components: [
 	
@@ -166,7 +167,11 @@ enyo.kind({
 		this.$[AmpacheXL.currentAudioObjectName].audio.currentTime = newTime;
 		*/
 		
-		AmpacheXL.audioPlayer.seek(newTime);
+		if(AmpacheXL.prefsCookie.playerType == "plugin") {
+			AmpacheXL.pluginObj.Seek(newTime, 0);
+		} else {
+			AmpacheXL.audioPlayer.seek(newTime);
+		}
 		
 		//AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].currentTime = newTime;
 		
@@ -174,7 +179,17 @@ enyo.kind({
 	pauseClick: function() {
 		if(debug) this.log("pauseClick");
 		
-		AmpacheXL.audioPlayer.pause();
+		if(AmpacheXL.prefsCookie.playerType == "plugin") {
+			AmpacheXL.pluginObj.Pause(0);
+			this.$.songSlider.show();
+			this.$.previous.show();
+			this.$.play.show();
+			this.$.pause.hide();
+			this.$.next.show();
+			clearInterval(this.pluginPlayingInterval);
+		} else {
+			AmpacheXL.audioPlayer.pause();
+		}
 		
 		//clearTimeout(this.startPlayingTimer);
 		/*
@@ -187,7 +202,17 @@ enyo.kind({
 	playClick: function() {
 		if(debug) this.log("playClick");
 		
-		AmpacheXL.audioPlayer.play();
+		if(AmpacheXL.prefsCookie.playerType == "plugin") {
+			AmpacheXL.pluginObj.Play(0);
+			this.$.songSlider.show();
+			this.$.previous.show();
+			this.$.play.hide();
+			this.$.pause.show();
+			this.$.next.show();
+			this.pluginPlayingInterval = setInterval(enyo.bind(this, "pluginPlayingRequest"), 1000);
+		} else {
+			AmpacheXL.audioPlayer.play();
+		}
 		
 		//clearTimeout(this.startPlayingTimer);
 		
@@ -201,20 +226,32 @@ enyo.kind({
 	previousClick: function() {
 		if(debug) this.log("previousClick");
 		
-		AmpacheXL.audioPlayer.previous();
+		/*
+		if(AmpacheXL.prefsCookie.playerType == "plugin") {
+			//
+		} else {
+			AmpacheXL.audioPlayer.previous();
+		}
+		*/
 		
 		//clearTimeout(this.startPlayingTimer);
 		
-		//this.doPreviousTrack();
+		this.doPreviousTrack();
 	},
 	nextClick: function() {
 		if(debug) this.log("nextClick");
 		
-		AmpacheXL.audioPlayer.next();
+		/*
+		if(AmpacheXL.prefsCookie.playerType == "plugin") {
+			//
+		} else {
+			AmpacheXL.audioPlayer.next();
+		}
+		*/
 		
 		//clearTimeout(this.startPlayingTimer);
 		
-		//this.doNextTrack();
+		this.doNextTrack();
 	},
 	
 	updateTime: function(currentTime, duration, timePercentage, amtBuffered, songIndex) {
@@ -268,38 +305,7 @@ enyo.kind({
 		//this.$.totalTime.setContent(floatToTime(AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].duration));
 		this.$.totalTime.setContent(floatToTime(AmpacheXL.currentSong.time));
 		
-		if((AmpacheXL.prefsCookie.lastFM)&&(AmpacheXL.prefsCookie.lastFMkey)) {
-			//lastfm track.updateNowPlaying
-			var url = "http://ws.audioscrobbler.com/2.0/";
-			var secret = "ab3e2bdb8a9c8faced63b61fae1f842c";
-			
-			var params = {};
-			params.api_key = "5b3c5775a14bc5dd0182b8b2965b62ac";
-			params.method = "track.updateNowPlaying";
-			params.track = inSong.title;
-			params.artist = inSong.artist;
-			params.sk = AmpacheXL.prefsCookie.lastFMkey;
-			
-			params.api_sig = MD5_hexhash("api_key"+params.api_key+"artist"+params.artist+"method"+params.method+"sk"+params.sk+"track"+params.track+secret);
-			
-			this.$.lastfmUpdateService.setUrl(url);
-			if(debug) this.log("lastfmUpdateService url: "+this.$.lastfmUpdateService.getUrl()+enyo.json.stringify(params));
-			this.$.lastfmUpdateService.call(params);
-		}
-		
-		if(AmpacheXL.prefsCookie.webArt) {
-			var url = "http://ws.audioscrobbler.com/2.0/";
-			
-			var params = {};
-			params.api_key = "5b3c5775a14bc5dd0182b8b2965b62ac";
-			params.method = "track.getInfo";
-			params.track = inSong.title;
-			params.artist = inSong.artist;
-		
-			this.$.lastfmArtService.setUrl(url);
-			if(debug) this.log("lastfmArtService url: "+this.$.lastfmArtService.getUrl()+enyo.json.stringify(params));
-			this.$.lastfmArtService.call(params);
-		}
+		this.lastFMplaying();
 	},
 	timeupdateEvent: function(inCurrentTime) {
 		if(debug) this.log("timeupdateEvent: "+inCurrentTime);
@@ -453,6 +459,109 @@ enyo.kind({
 		var soFar = parseInt(((endBuf / AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].duration) * 100));
 		
 		if(debug) this.log("progressEvent endBuf: "+endBuf+" and soFar:"+soFar+"%");
+	},
+	
+	pluginStartSong: function(path, artist, title, iTrack) {
+		if(debug) this.log("pluginStartSong: "+path+" "+artist+" "+title+" "+iTrack);
+		
+		AmpacheXL.currentSong = AmpacheXL.nextSong;
+		
+		this.$.songSlider.show();
+		this.$.previous.show();
+		this.$.play.hide();
+		this.$.pause.show();
+		this.$.next.show();
+		
+		this.$.songArt.addClass("playbackSongArt");
+		this.$.songArt.setSrc(AmpacheXL.currentSong.art);
+		
+		this.$.songArtist.setContent(AmpacheXL.currentSong.artist);
+		this.$.songTitle.setContent(AmpacheXL.currentSong.title);
+		this.$.songAlbum.setContent(AmpacheXL.currentSong.album);
+		
+		//this.$.songSlider.setBarPosition(AmpacheXL.currentSong.amtBuffered);
+		
+		this.render();
+		
+		if((window.PalmSystem)&&(AmpacheXL.prefsCookie.bannerOnPlayback)) this.doBannerMessage(AmpacheXL.currentSong.artist+": "+AmpacheXL.currentSong.title);
+		
+		clearTimeout(this.startPlayingTimer);
+		
+		this.$.play.hide();
+		if(AmpacheXL.connected) this.$.pause.show();
+		
+		AmpacheXL.currentSong.status = "playing";
+		setTimeout(enyo.bind(this, "doUpdatePlaybackStatus", 10));
+		
+		//this.$.totalTime.setContent(floatToTime(AmpacheXL.audioObjects[AmpacheXL.currentAudioObjectIndex].duration));
+		this.$.totalTime.setContent(floatToTime(AmpacheXL.currentSong.time));
+		
+		this.pluginPlayingInterval = setInterval(enyo.bind(this, "pluginPlayingRequest"), 1000);
+		
+		this.lastFMplaying();
+	},
+	pluginPlayingRequest: function() {
+		//if(debug) this.log("pluginPlayingRequest");
+		
+		var objState = {EndTime: 0, CurTime: 0};
+		
+		try {
+			objState.EndTime = Number(AmpacheXL.pluginObj.GetEndTime(0));
+			objState.CurTime = Number(AmpacheXL.pluginObj.GetCurTime(0));
+		} catch(e) {
+			if(debug) this.log(e);
+			clearInterval(this.pluginPlayingInterval);
+			this.doBannerMessage("The plugin has crashed.  You will need to close and reopen the app.  If this is happening a lot you may want to use a different playback method in the preferences.", true);
+			clearInterval(this.pluginPlayingInterval);
+		}
+
+		if(objState.EndTime > 0) AmpacheXL.currentSong.time = objState.EndTime;
+		
+		var progress = parseInt(100 * (objState.CurTime/AmpacheXL.currentSong.time));
+		
+		if((!this.movingSlider)&&(AmpacheXL.connected))  {
+			this.$.songSlider.setPosition(progress);
+			this.$.progressTime.setContent(floatToTime(objState.CurTime));
+			this.$.totalTime.setContent(floatToTime(AmpacheXL.currentSong.time));
+		}
+		
+	},
+	
+	lastFMplaying: function() {
+		if(debug) this.log("lastFMplaying");
+		
+		if((AmpacheXL.prefsCookie.lastFM)&&(AmpacheXL.prefsCookie.lastFMkey)) {
+			//lastfm track.updateNowPlaying
+			var url = "http://ws.audioscrobbler.com/2.0/";
+			var secret = "ab3e2bdb8a9c8faced63b61fae1f842c";
+			
+			var params = {};
+			params.api_key = "5b3c5775a14bc5dd0182b8b2965b62ac";
+			params.method = "track.updateNowPlaying";
+			params.track = AmpacheXL.currentSong.title;
+			params.artist = AmpacheXL.currentSong.artist;
+			params.sk = AmpacheXL.prefsCookie.lastFMkey;
+			
+			params.api_sig = MD5_hexhash("api_key"+params.api_key+"artist"+params.artist+"method"+params.method+"sk"+params.sk+"track"+params.track+secret);
+			
+			this.$.lastfmUpdateService.setUrl(url);
+			if(debug) this.log("lastfmUpdateService url: "+this.$.lastfmUpdateService.getUrl()+enyo.json.stringify(params));
+			this.$.lastfmUpdateService.call(params);
+		}
+		
+		if(AmpacheXL.prefsCookie.webArt) {
+			var url = "http://ws.audioscrobbler.com/2.0/";
+			
+			var params = {};
+			params.api_key = "5b3c5775a14bc5dd0182b8b2965b62ac";
+			params.method = "track.getInfo";
+			params.track = AmpacheXL.currentSong.title;
+			params.artist = AmpacheXL.currentSong.artist;
+		
+			this.$.lastfmArtService.setUrl(url);
+			if(debug) this.log("lastfmArtService url: "+this.$.lastfmArtService.getUrl()+enyo.json.stringify(params));
+			this.$.lastfmArtService.call(params);
+		}
 	},
 	
 	queueProgressEvent: function() {

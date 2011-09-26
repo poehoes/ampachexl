@@ -28,6 +28,8 @@ enyo.depends(
 	
 	"source/commands.js",
 	
+	"source/libraries/wAMP.js",
+	
 	"source/libraries/scrollervirtuallist.js",
 	"source/libraries/sha256.js",
 	"source/libraries/md5.js",

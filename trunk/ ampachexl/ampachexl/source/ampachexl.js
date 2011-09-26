@@ -21,7 +21,7 @@
 
 var AmpacheXL = {};
 
-var debug = false;
+var debug = true;
 
 AmpacheXL.prefsCookieString = enyo.getCookie("AmpacheXL-prefs");
 AmpacheXL.prefsCookie;
@@ -161,9 +161,18 @@ enyo.kind({
 					]},
 				]},
 				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{name: "playerType", kind: "ListSelector", label: "Player type", onChange: "playerTypeSelect", flex: 1, items: [
+						{caption: "Plugin", value: "plugin"},
+						{caption: "HTML5 audio, media", value: "mediaClass"},
+						{caption: "HTML5 audio, basic", value: "basic"},
+					]},
+				]},
+				/*
+				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 					{content: "Set media audio class (good for BT, but pauses at other sounds)", flex: 1},
 					{name: "mediaAudioClass", kind: "ToggleButton", onChange: "mediaAudioClassToggle"},
 				]},
+				*/
 				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
 					{content: "Retry on failed download", flex: 1},
 					{name: "retryDownload", kind: "ToggleButton", onChange: "retryDownloadToggle"},
@@ -176,6 +185,12 @@ enyo.kind({
 					{name: "theme", kind: "ListSelector", label: "Theme", onChange: "themeSelect", flex: 1, items: [
 						{caption: "Dark", value: "dark"},
 						{caption: "Light", value: "light"},
+					]},
+				]},
+				{kind: "Item", showing: true, align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
+					{name: "albumsSort", kind: "ListSelector", label: "Albums sort", onChange: "albumsSortSelect", flex: 1, items: [
+						{caption: "Album name", value: "album"},
+						{caption: "Year", value: "year"},
 					]},
 				]},
 				{kind: "Item", align: "center", tapHighlight: false, layoutKind: "HFlexLayout", components: [
@@ -232,9 +247,12 @@ enyo.kind({
 				{kind: "VFlexBox", height: "100%", width: "300px", components: [
 					{name: "leftMenuKind", kind: "LeftMenuKind", flex: 1, onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onOpenAppMenu: "openAppMenu", onAllItems: "allItems"},
 					
+					{name: "pluginHolder", kind: "Control", height: "0px", className2: "pluginHolder"},
+					
 					{name: "playback", kind: "Playback", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPreviousTrack: "previousTrack", onNextTrack: "nextTrack", onBannerMessage: "bannerMessage", onUpdatePlaybackStatus: "updatePlaybackStatus"},
 				]},
 			]},
+			
 			{name: "rightContent", className: "rightContent", kind: "Pane", flex: 1, onSelectView: "rightContentViewSelected", onCreateView: "rightContentViewCreated", transitionKind: "enyo.transitions.Simple", components: [	
 				
 				{name: "hosts", kind: "Hosts", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onAmpacheConnect: "ampacheConnect", onSavePreferences: "savePreferences", onPreviousView: "previousView", onDbRequest: "dbRequest", onGetMediaPermissions: "getMediaPermissions"},
@@ -296,7 +314,12 @@ enyo.kind({
 			
 			if(!AmpacheXL.prefsCookie.limitCount) AmpacheXL.prefsCookie.limitCount = 300;
 			if(!AmpacheXL.prefsCookie.retryDownload) AmpacheXL.prefsCookie.retryDownload = true;
-			if(!AmpacheXL.prefsCookie.mediaAudioClass) AmpacheXL.prefsCookie.mediaAudioClass = true;
+			
+			if((AmpacheXL.prefsCookie.mediaAudioClass === true)||(AmpacheXL.prefsCookie.mediaAudioClass === false)) 
+			{
+				AmpacheXL.prefsCookie.mediaAudioClass = null;
+				AmpacheXL.prefsCookie.playerType = "plugin";
+			}
 			
 		} else {
 		
@@ -314,7 +337,7 @@ enyo.kind({
 		
 		this.addClass(AmpacheXL.prefsCookie.theme);
 		
-		if(window.PalmSystem) this.$.lockVolumeKeysService.call({subscribe: true, foregroundApp: true, parameters: {subscribe: true, foregroundApp: true}});
+		//if(window.PalmSystem) this.$.lockVolumeKeysService.call({subscribe: true, foregroundApp: true, parameters: {subscribe: true, foregroundApp: true}});
 		
 		//this.activate();
 		
@@ -335,6 +358,95 @@ enyo.kind({
 		
 		if((AmpacheXL.prefsCookie.mediaPermissions != null)&&(window.PalmSystem)) this.getMediaPermissions();
 		
+
+		
+	},
+	rendered: function() {
+		if(debug) this.log("rendered");
+		this.inherited(arguments);
+		
+		if(AmpacheXL.prefsCookie.playerType == "plugin") {
+			try {
+				
+				AmpacheXL.pluginObj = window.document.createElement("object");
+
+				AmpacheXL.pluginObj.id = "wAMPPlugin";
+				AmpacheXL.pluginObj.type = "application/x-palm-remote";
+				AmpacheXL.pluginObj.setAttribute("height", "1px");
+				AmpacheXL.pluginObj.setAttribute("width",	"1px");
+				AmpacheXL.pluginObj.setAttribute('x-palm-pass-event', true);
+
+				var param1 = window.document.createElement("param");
+				param1.name = "appid";
+				param1.value = OWNDER_STR;
+
+				var param2 = window.document.createElement("param");
+				param2.name = "exe";
+				param2.value = "wAMP_plugin";
+
+				AmpacheXL.pluginObj.appendChild(param1);
+				AmpacheXL.pluginObj.appendChild(param2);
+				
+				if(debug) this.log("created object");
+				
+				//document.getElementsByTagName('body')[0].appendChild(pluginObj);
+				document.getElementById('main_pluginHolder').appendChild(AmpacheXL.pluginObj);
+				
+				if(debug) this.log("added to body");
+				
+				AmpacheXL.pluginObj.StartSong = function(path, artist, title, iTrack) {
+					this.pluginStartSong(path, artist, title, iTrack);
+				}.bind(this)
+				
+				setTimeout(enyo.bind(this, "testPluginPlay"), 10000)
+				
+				/*
+				//var domobjPlugin
+				AmpacheXL.wampPlugin = CreatePluginHook();
+
+				document.getElementsByTagName('body')[0].appendChild(AmpacheXL.wampPlugin);
+				//document.getElementById('main_mainPane').appendChild(AmpacheXL.wampPlugin);
+				
+				if(debug) this.error("success CreatePluginHook and appendChild");
+				
+				//AmpacheXL.wampPlugin.Open("/media/internal/music/Adele/21/12.Adele - Rolling in the Deep.mp3", 0);
+				//document.getElementById('wAMPPlugin').Open("/media/internal/music/Adele/21/12.Adele - Rolling in the Deep.mp3", 0);
+				//document.getElementById('wAMPPlugin').AddToIndex('test', "dirty");
+				objwAMP.CheckOS(document.getElementById('wAMPPlugin'));
+				
+				if(debug) this.error("checkIfPluginInit(): "+objwAMP.checkIfPluginInit());
+				
+				//objwAMP.CallOpenSong("/media/internal/music/Adele/21/12.Adele - Rolling in the Deep.mp3", 0);
+				   
+				//if(debug) this.error("after AmpacheXL.wampPlugin.Start(0)");
+				*/
+				
+			} catch(e) {
+				this.error(e);
+			}
+		}
+	},
+	
+	testPluginPlay: function() {
+		if(debug) this.log("testPluginPlay");
+		
+		//AmpacheXL.pluginObj.Open("/media/internal/music/Adele/21/01.mp3",0);
+		//AmpacheXL.pluginObj.Open("http://192.168.1.105/ampache/play/index.php?ssid=69362153ccdc09824f98082a9e217672&oid=5934&uid=1&name=/Buckcherry%20-%20Crazy%20Bitch.mp3",0);
+	
+	},
+	pluginStartSong: function(path, artist, title, iTrack) {
+		if(debug) this.log("pluginStartSong: "+path+" "+artist+" "+title+" "+iTrack);
+		
+		this.$.playback.pluginStartSong(path, artist, title, iTrack);
+		
+		//this.doBannerMessage("pluginStartSong: "+path+" "+artist+" "+title+" "+iTrack, true);
+		
+		setTimeout(enyo.bind(this,"pluginPlay"), 50);
+	},
+	pluginPlay: function() {
+		if(debug) this.log("pluginPlay");
+		
+		AmpacheXL.pluginObj.Play(0);
 	},
 	
 	activate: function() {
@@ -395,8 +507,12 @@ enyo.kind({
 		AmpacheXL.allSongs.length = 0;
 		AmpacheXL.allVideos.length = 0;
 		
-		AmpacheXL.audioPlayer.cleanup();
-
+		if(AmpacheXL.prefsCookie.playerType == "plugin") {
+			AmpacheXL.pluginObj.Pause(0);
+		} else {
+			AmpacheXL.audioPlayer.cleanup();
+		}
+		
 		this.updateCounts();
 		this.$.playback.disconnect();
 		this.$.rightContent.selectViewByName("hosts");
@@ -418,10 +534,12 @@ enyo.kind({
 		this.$.limitCount.setValue(AmpacheXL.prefsCookie.limitCount);
 		this.$.defaultAction.setValue(AmpacheXL.prefsCookie.defaultAction);
 		this.$.nowPlayingEnd.setValue(AmpacheXL.prefsCookie.nowPlayingEnd);
-		this.$.mediaAudioClass.setState(AmpacheXL.prefsCookie.mediaAudioClass);
+		this.$.playerType.setValue(AmpacheXL.prefsCookie.playerType);
+		//this.$.mediaAudioClass.setState(AmpacheXL.prefsCookie.mediaAudioClass);
 		this.$.retryDownload.setState(AmpacheXL.prefsCookie.retryDownload);
 		this.$.dashboardPlayer.setState(AmpacheXL.prefsCookie.dashboardPlayer);
 		this.$.theme.setValue(AmpacheXL.prefsCookie.theme);
+		this.$.albumsSort.setValue(AmpacheXL.prefsCookie.albumsSort);
 		this.$.webArt.setState(AmpacheXL.prefsCookie.webArt);
 		this.$.artOnLists.setState(AmpacheXL.prefsCookie.artOnLists);
 		this.$.bannerOnPlayback.setState(AmpacheXL.prefsCookie.bannerOnPlayback);
@@ -451,6 +569,9 @@ enyo.kind({
 			this.$.lastFMpasswordItem.hide();
 		}
 	},
+	playerTypeSelect: function() {
+		this.doBannerMessage("NOTE: After changing this preferences, you must close and reopen the app for the changes to take effect.  Plugin is still experimental, but can provide better playback for trasncoded files.  Using the HTML5 audio with with media setting provides playback over bluetooth, but may occasionally pause when the TouchPad gets notifications.  The basic HTML5 audio does not support bluetooth playback, but will not pause when the TouchPad plays other sounds.", true); 
+	},
 	saveNewPreferences: function() {
 		if(debug) this.log("saveNewPreferences");
 		
@@ -459,10 +580,12 @@ enyo.kind({
 		AmpacheXL.prefsCookie.limitCount = this.$.limitCount.getValue();
 		AmpacheXL.prefsCookie.defaultAction = this.$.defaultAction.getValue();
 		AmpacheXL.prefsCookie.nowPlayingEnd = this.$.nowPlayingEnd.getValue();
-		AmpacheXL.prefsCookie.mediaAudioClass = this.$.mediaAudioClass.getState();
+		AmpacheXL.prefsCookie.playerType = this.$.playerType.getValue();
+		//AmpacheXL.prefsCookie.mediaAudioClass = this.$.mediaAudioClass.getState();
 		AmpacheXL.prefsCookie.retryDownload = this.$.retryDownload.getState();
 		AmpacheXL.prefsCookie.dashboardPlayer = this.$.dashboardPlayer.getState();
 		AmpacheXL.prefsCookie.theme = this.$.theme.getValue();
+		AmpacheXL.prefsCookie.albumsSort = this.$.albumsSort.getValue();
 		AmpacheXL.prefsCookie.webArt = this.$.webArt.getState();
 		AmpacheXL.prefsCookie.artOnLists = this.$.artOnLists.getState();
 		AmpacheXL.prefsCookie.bannerOnPlayback = this.$.bannerOnPlayback.getState();
@@ -656,14 +779,30 @@ enyo.kind({
 		
 		//this.$.nowplaying.previousTrack();
 		
-		AmpacheXL.audioPlayer.previous();
+		if(AmpacheXL.prefsCookie.playerType == "plugin") {
+		
+			if(AmpacheXL.nowplayingIndex > 0) {
+				AmpacheXL.nextSong = AmpacheXL.nowplaying[AmpacheXL.nowplayingIndex - 1];
+				AmpacheXL.pluginObj.Open(AmpacheXL.nextSong.url,0);
+				
+			} else {
+				//
+			}
+			
+		} else {
+			AmpacheXL.audioPlayer.previous();
+		}
 	},
 	nextTrack: function() {
 		if(debug) this.log("nextTrack");
 		
 		//this.$.nowplaying.nextTrack();
 		
-		AmpacheXL.audioPlayer.next();
+		if(AmpacheXL.prefsCookie.playerType == "plugin") {
+			AmpacheXL.pluginObj.Open(AmpacheXL.nextSong.url,0);
+		} else {
+			AmpacheXL.audioPlayer.next();
+		}
 	},
 	updateCounts: function() {
 		if(debug) this.log("updateCounts");
@@ -771,6 +910,10 @@ enyo.kind({
 		AmpacheXL.windowActivated = true;
 		
 		try {
+			
+			//document.getElementById('wAMPPlugin').Open("/media/internal/music/Adele/21/12.Adele - Rolling in the Deep.mp3", 0);
+			//this.error("after plugin open");
+		
 			AmpacheXL.audioPlayer.UIStartPlaybackTimer();
 			
 			//if(this.doneFirstActivated) enyo.windows.setWindowParams(this.dashWindow, {close: true});
@@ -779,7 +922,7 @@ enyo.kind({
 			this.doneFirstActivated = true;
 			
 		} catch(e) {
-			this.log(e);
+			if(debug) this.log(e);
 		}
 	},
 	windowDeactivated: function() {
@@ -847,11 +990,15 @@ enyo.kind({
 			
 			AmpacheXL.connectResponse = {};
 			
-			AmpacheXL.audioPlayer.initialize();
-			AmpacheXL.audioPlayer.setMediaAudioClass(AmpacheXL.prefsCookie.mediaAudioClass);
-			AmpacheXL.audioPlayer.setNumBuffers(AmpacheXL.numBuffers);
-			AmpacheXL.audioPlayer.setMainHandler(this);
-			AmpacheXL.audioPlayer.setPlaybackHandler(this.$.playback);
+			if(AmpacheXL.prefsCookie.playerType == "plugin") {
+				//
+			} else {
+				AmpacheXL.audioPlayer.initialize();
+				if(AmpacheXL.prefsCookie.playerType == "basic") AmpacheXL.audioPlayer.setMediaAudioClass(false);
+				AmpacheXL.audioPlayer.setNumBuffers(AmpacheXL.numBuffers);
+				AmpacheXL.audioPlayer.setMainHandler(this);
+				AmpacheXL.audioPlayer.setPlaybackHandler(this.$.playback);
+			}
 			
 			this.finishedConnect();
 		
@@ -1361,6 +1508,16 @@ enyo.kind({
 	localplaylistsSelectFailure: function(inError) {
 		if(debug) this.error("localplaylistsSelectFailure: "+inError.message);
 		
+	},
+	
+	pluginReady: function() {
+		if(debug) this.error("pluginReady");
+	},
+	pluginConnected: function() {
+		if(debug) this.error("pluginConnected");
+	},
+	pluginDisconnected: function() {
+		if(debug) this.error("pluginDisconnected");
 	},
 	
 });

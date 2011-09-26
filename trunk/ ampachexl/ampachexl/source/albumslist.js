@@ -70,7 +70,10 @@ enyo.kind({
 					{name: "albumsTitle", className: "title"},
 					{name: "albumsArtist", className: "subtitle"},
 				]},
-				{name: "albumsSongCount", className: "count"},
+				{kind: "VFlexBox", flex: 1, components: [
+					{name: "albumsYear", className: "count"},
+					{name: "albumsSongCount", className: "count"},
+				]},
 			]},
 		]},
 		
@@ -210,7 +213,17 @@ enyo.kind({
 		
 		//if(debug) this.log("fullResultsList: "+enyo.json.stringify(this.fullResultsList));
 		
-		this.fullResultsList.sort(sort_by("name", false));
+		switch(AmpacheXL.prefsCookie.albumsSort) {
+			case "album":
+				this.fullResultsList.sort(sort_by("name", false));
+				break;
+			case "year":
+				this.fullResultsList.sort(double_sort_by("year", "name", false));
+				break;
+			default:
+				this.fullResultsList.sort(sort_by("name", false));
+				break;
+		}
 		
 		if(this.fullResultsList.length == AmpacheXL.connectResponse.albums) {
 			if(debug) this.log("was all albums, now saving");
@@ -339,7 +352,17 @@ enyo.kind({
 			this.fullResultsList.push(t);
 		}
 		
-		this.fullResultsList.sort(sort_by("name", false));
+		switch(AmpacheXL.prefsCookie.albumsSort) {
+			case "album":
+				this.fullResultsList.sort(sort_by("name", false));
+				break;
+			case "year":
+				this.fullResultsList.sort(double_sort_by("year", "name", false));
+				break;
+			default:
+				this.fullResultsList.sort(sort_by("name", false));
+				break;
+		}
 		
 		//if(debug) this.log("fullResultsList: "+enyo.json.stringify(this.fullResultsList));
 		
@@ -532,7 +555,17 @@ enyo.kind({
 		
 		}
 		
-		this.fullResultsList.sort(sort_by("name", false));
+		switch(AmpacheXL.prefsCookie.albumsSort) {
+			case "album":
+				this.fullResultsList.sort(sort_by("name", false));
+				break;
+			case "year":
+				this.fullResultsList.sort(double_sort_by("year", "name", false));
+				break;
+			default:
+				this.fullResultsList.sort(sort_by("name", false));
+				break;
+		}
 		
 		if((this.fullResultsList.length >= AmpacheXL.connectResponse.albums)||(AmpacheXL.prefsCookie.limitCount == "all")) {
 			if(debug) this.log("finished getting all albums: "+this.fullResultsList.length);
@@ -623,6 +656,8 @@ enyo.kind({
 		
 		if(row) {
 		
+			this.setupAlbumsDivider(inIndex);
+			/*
 			if(AmpacheXL.selectedArtist) {
 				this.$.albumsDivider.canGenerate = false;
 				//this.$.albumsItem.applyStyle("border-top", "1px solid silver;");
@@ -630,6 +665,7 @@ enyo.kind({
 			} else {
 				this.setupAlbumsDivider(inIndex);
 			}
+			*/
 			
 			if(row.isArtist) {
 			
@@ -661,6 +697,7 @@ enyo.kind({
 			
 				this.$.albumsTitle.setContent(row.name);
 				this.$.albumsArtist.setContent(row.artist);
+				this.$.albumsYear.setContent(row.year);
 				
 				if(row.tracks == 1) {
 					this.$.albumsSongCount.setContent("1 track");
@@ -690,11 +727,27 @@ enyo.kind({
 		var r0 = this.resultsList[inIndex-1];
 		var r1 = this.resultsList[inIndex];
 		
-		var a = r0 && r0.name.substring(0,1);
-		var b = r1.name.substring(0,1);
+		var a;
+		var b;
 		
-		if(!enyo.g11n.Char.isLetter(a)) a = "#";
-		if(!enyo.g11n.Char.isLetter(b)) b = "#";
+		switch(AmpacheXL.prefsCookie.albumsSort) {
+			case "album":
+				a = r0 && r0.name.substring(0,1);
+				b = r1.name.substring(0,1); 
+				if(!enyo.g11n.Char.isLetter(a)) a = "#";
+				if(!enyo.g11n.Char.isLetter(b)) b = "#";
+				break;
+			case "year":
+				a = r0 && r0.year;
+				b = r1.year;
+				break;
+			default:
+				a = r0 && r0.name.substring(0,1);
+				b = r1.name.substring(0,1); 
+				if(!enyo.g11n.Char.isLetter(a)) a = "#";
+				if(!enyo.g11n.Char.isLetter(b)) b = "#";
+				break;
+		}
 		
 		if((inIndex == 0)&&(!this.resultsList[inIndex].isArtist)) {
 			return b;
@@ -796,7 +849,17 @@ enyo.kind({
 
 		}
 		
-		this.fullResultsList.sort(sort_by("name", false));
+		switch(AmpacheXL.prefsCookie.albumsSort) {
+			case "album":
+				this.fullResultsList.sort(sort_by("name", false));
+				break;
+			case "year":
+				this.fullResultsList.sort(double_sort_by("year", "name", false));
+				break;
+			default:
+				this.fullResultsList.sort(sort_by("name", false));
+				break;
+		}
 		
 		AmpacheXL.allAlbums.length = 0;
 		AmpacheXL.allAlbums = this.fullResultsList.concat([]);
