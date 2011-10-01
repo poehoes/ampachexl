@@ -36,6 +36,7 @@ enyo.kind({
 		onSavePreferences: "",
 		onUpdateCounts: "",
 		onDbRequest: "",
+		onStartingPlayback: "",
 	},
 	
 	activeView: false,
@@ -811,11 +812,13 @@ enyo.kind({
 			AmpacheXL.nowplayingIndex = 0;
 			AmpacheXL.currentSong = AmpacheXL.nowplaying[0];
 			AmpacheXL.nextSong = AmpacheXL.nowplaying[0];
+			this.doStartingPlayback(AmpacheXL.currentSong);
 			AmpacheXL.pluginObj.Open(AmpacheXL.currentSong.url,0);
 		} else {
 			if((playAction == "play")||(previousLength == 0)) {
 				AmpacheXL.nowplayingIndex = 0;
 				AmpacheXL.currentSong = AmpacheXL.nowplaying[0];
+				this.doStartingPlayback(AmpacheXL.currentSong);
 				AmpacheXL.audioPlayer.newPlayList(AmpacheXL.nowplaying, false, 0);
 				AmpacheXL.audioPlayer.play();
 			} else {

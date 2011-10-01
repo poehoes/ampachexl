@@ -34,6 +34,7 @@ enyo.kind({
 		onBannerMessage: "",
 		onQueueNextSong: "",
 		onPreviousView: "",
+		onStartingPlayback: "",
 	},
 	
 	listMode: "play",
@@ -557,6 +558,8 @@ enyo.kind({
 			AmpacheXL.nextSong = row;
 			
 			if(debug) this.log("nowplayingClick: "+enyo.json.stringify(row));
+			
+			this.doStartingPlayback(row);
 			
 			//this.doPlaySong(row);
 			if(AmpacheXL.prefsCookie.playerType == "plugin") {

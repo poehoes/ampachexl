@@ -95,6 +95,8 @@ enyo.kind({
 			{content: "<hr />", allowHtml: true},
 			{name: "aboutPopupText", content: "AmpacheXL is an app for Ampache written for use on a webOS tablet.", style: "text-align: center; font-size: smaller;"},
 			{content: "<hr />", allowHtml: true},
+			{content: 'Audio playback powered by <a href="http://developer.palm.com/appredirect/?packageid=com.epikwarlord.audiophilehdpro">AudiophileHD</a>', style: "text-align: center; font-size: smaller;"},
+			{content: "<hr />", allowHtml: true},
 			{content: '<a href="http://code.google.com/p/ampachexl/">App homepage</a>', allowHtml: true, style: "text-align: center; font-size: smaller;"},
 			{content: "<hr />", allowHtml: true},
 			{content: '<a href="http://ampache.org/">Ampache homepage</a>', allowHtml: true, style: "text-align: center; font-size: smaller;"},
@@ -106,6 +108,12 @@ enyo.kind({
 		{name: "bannerMessagePopup", kind: "Popup", scrim: true, onBeforeOpen: "beforeBannerMessageOpen", components: [
 			{name: "bannerMessagePopupText", allowHtml: true, style: "text-align: center;"},
 			{kind: "Button", caption: "OK", onclick:"closeBannerMessagePopup"}
+		]},
+		
+		{name: "startPlayingPopup", kind: "Popup", scrim: true, onclick: "scrimClick", layoutKind: "VFlexLayout", align: "center", pack: "center", lazy: false, components: [
+			{name: "startPlayingText", content: "Starting playback, please wait", allowHtml: true, style: "text-align: center;"},
+			{name: "startPlayingTitle", allowHtml: true, style: "text-align: center;"},
+			{name: "startPlayingArtist", allowHtml: true, style: "text-align: center;"},
 		]},
 		
 		{name: "spinnerScrim", kind: "Scrim", onclick: "scrimClick", layoutKind: "HFlexLayout", align: "center", pack: "center", components: [
@@ -249,7 +257,7 @@ enyo.kind({
 					
 					{name: "pluginHolder", kind: "Control", height: "0px", className2: "pluginHolder"},
 					
-					{name: "playback", kind: "Playback", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPreviousTrack: "previousTrack", onNextTrack: "nextTrack", onBannerMessage: "bannerMessage", onUpdatePlaybackStatus: "updatePlaybackStatus"},
+					{name: "playback", kind: "Playback", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPreviousTrack: "previousTrack", onNextTrack: "nextTrack", onBannerMessage: "bannerMessage", onUpdatePlaybackStatus: "updatePlaybackStatus", onCloseStartingPlayback: "closeStartingPlayback"},
 				]},
 			]},
 			
@@ -257,7 +265,7 @@ enyo.kind({
 				
 				{name: "hosts", kind: "Hosts", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onAmpacheConnect: "ampacheConnect", onSavePreferences: "savePreferences", onPreviousView: "previousView", onDbRequest: "dbRequest", onGetMediaPermissions: "getMediaPermissions"},
 				
-				{name: "nowplaying", kind: "Nowplaying", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onQueueNextSong: "queueNextSong", onPreviousView: "previousView", onDbRequest: "dbRequest"},
+				{name: "nowplaying", kind: "Nowplaying", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onQueueNextSong: "queueNextSong", onPreviousView: "previousView", onDbRequest: "dbRequest", onStartingPlayback: "startingPlayback"},
 				
 				{name: "downloads", kind: "Downloads", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onUpdateCounts: "updateCounts", onQueueNextSong: "queueNextSong", onPreviousView: "previousView", onDbRequest: "dbRequest"},
 				
@@ -268,7 +276,7 @@ enyo.kind({
 				{name: "playlistsList", kind: "PlaylistsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences", onUpdateCounts: "updateCounts", onLocalplaylistSongs: "localplaylistSongs", onDbRequest: "dbRequest", onUpdateCounts: "updateCounts"},
 				{name: "tagsList", kind: "TagsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onSavePreferences: "savePreferences", onDbRequest: "dbRequest", onUpdateCounts: "updateCounts"},
 				
-				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onNowplayingUpdated: "nowplayingUpdated", onPreviousView: "previousView", onSavePreferences: "savePreferences", onUpdateCounts: "updateCounts", onDbRequest: "dbRequest"},
+				{name: "songsList", kind: "SongsList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onPlaySong: "playSong", onBannerMessage: "bannerMessage", onNowplayingUpdated: "nowplayingUpdated", onPreviousView: "previousView", onSavePreferences: "savePreferences", onUpdateCounts: "updateCounts", onDbRequest: "dbRequest", onStartingPlayback: "startingPlayback"},
 				
 				{name: "videosList", kind: "VideosList", onViewSelected: "viewSelected", onDataRequest: "dataRequest", onUpdateSpinner: "updateSpinner", onBannerMessage: "bannerMessage", onPreviousView: "previousView", onUpdateCounts: "updateCounts", onDbRequest: "dbRequest"},
 				
@@ -297,7 +305,7 @@ enyo.kind({
 			
 			
 			if(AmpacheXL.prefsCookie.allowMetrix) setTimeout(enyo.bind(this,"submitMetrix"),60000);
-			if(AmpacheXL.prefsCookie.autoLogin) setTimeout(enyo.bind(this,"ampacheConnect"),50);
+			if(AmpacheXL.prefsCookie.autoLogin) setTimeout(enyo.bind(this,"ampacheConnect"),100);
 			
 			//if((AmpacheXL.prefsCookie.lastFM)&&(!AmpacheXL.prefsCookie.lastFMkey)) setTimeout(enyo.bind(this,"lastfmConnect"),200);
 			if(AmpacheXL.prefsCookie.lastFM) setTimeout(enyo.bind(this,"lastfmConnect"),200);
@@ -331,6 +339,8 @@ enyo.kind({
 		}
 		
 		this.savePreferences();
+			
+		this.$.hosts.activate();
 			
 		enyo.setAllowedOrientation(AmpacheXL.prefsCookie.allowedOrientation);	
 		debug = AmpacheXL.prefsCookie.debug;
@@ -436,6 +446,8 @@ enyo.kind({
 	},
 	pluginStartSong: function(path, artist, title, iTrack) {
 		if(debug) this.log("pluginStartSong: "+path+" "+artist+" "+title+" "+iTrack);
+		
+		this.$.startPlayingPopup.close();
 		
 		this.$.playback.pluginStartSong(path, artist, title, iTrack);
 		
@@ -570,7 +582,7 @@ enyo.kind({
 		}
 	},
 	playerTypeSelect: function() {
-		this.doBannerMessage("NOTE: After changing this preferences, you must close and reopen the app for the changes to take effect.  Plugin is still experimental, but can provide better playback for trasncoded files.  Using the HTML5 audio with with media setting provides playback over bluetooth, but may occasionally pause when the TouchPad gets notifications.  The basic HTML5 audio does not support bluetooth playback, but will not pause when the TouchPad plays other sounds.", true); 
+		this.doBannerMessage('NOTE: After changing this preferences, you must close and reopen the app for the changes to take effect.  <hr />Plugin is provided from <a href="http://developer.palm.com/appredirect/?packageid=com.epikwarlord.audiophilehdpro">AudiophileHD</a> and is still experimental, but can provide better playback for transcoded files.  <hr />Using the HTML5 audio with with media setting provides playback over bluetooth, but may occasionally pause when the TouchPad gets notifications.  <hr />The basic HTML5 audio does not support bluetooth playback, but will not pause when the TouchPad plays other sounds.', true); 
 	},
 	saveNewPreferences: function() {
 		if(debug) this.log("saveNewPreferences");
@@ -766,6 +778,8 @@ enyo.kind({
 		if(debug) this.log("playSong");
 		//if(debug) this.log("playSong: "+enyo.json.stringify(inSong));
 		
+		this.startingPlayback("ampachexl", inSong);
+		
 		this.$.playback.playSong(inSong);
 		
 		try {
@@ -783,6 +797,7 @@ enyo.kind({
 		
 			if(AmpacheXL.nowplayingIndex > 0) {
 				AmpacheXL.nextSong = AmpacheXL.nowplaying[AmpacheXL.nowplayingIndex - 1];
+				startingPlayback("amapchexl",AmpacheXL.nextSong);
 				AmpacheXL.pluginObj.Open(AmpacheXL.nextSong.url,0);
 				
 			} else {
@@ -799,6 +814,7 @@ enyo.kind({
 		//this.$.nowplaying.nextTrack();
 		
 		if(AmpacheXL.prefsCookie.playerType == "plugin") {
+			this.startingPlayback("amapchexl",AmpacheXL.nextSong);
 			AmpacheXL.pluginObj.Open(AmpacheXL.nextSong.url,0);
 		} else {
 			AmpacheXL.audioPlayer.next();
@@ -874,29 +890,19 @@ enyo.kind({
 		
 		this.$[inView].dbRequest(inProperty, inParameters);
 	},
+	startingPlayback: function(inSender, inSong) {
+		this.$.startPlayingTitle.setContent(inSong.title);
+		this.$.startPlayingArtist.setContent(inSong.artist);
+		
+		this.$.startPlayingPopup.openAtCenter();
+	},
+	closeStartingPlayback: function() {
+		this.$.startPlayingPopup.close();
+	},
 	
 	backHandler: function(inSender, e) {
 		if(debug) this.log("backHandler");
-		/*
-		switch(this.currentView) {
-			case 'kttTorrentsList':
-				this.$.pane.selectViewByName("kttHostsList");
-			  break;
-			case 'kttTorrentDetails':
-				this.$.pane.selectViewByName("kttTorrentsList");
-			  break;
-		}
-		*/
 		
-		e.preventDefault();
-		
-		if(this.currentMode == "torrents") {
-			this.$.slidingPane.back(e);
-		} else if(this.currentMode == "preferences") {
-			this.$.kttPreferences.gotBack(e);
-		}
-		
-		return true;
 	},
 	resizeHandler: function() {
 		if(debug) this.log("doing resize to "+document.body.clientWidth+"x"+document.body.clientHeight);
