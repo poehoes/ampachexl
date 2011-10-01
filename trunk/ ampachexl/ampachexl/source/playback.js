@@ -32,6 +32,7 @@ enyo.kind({
 		onNextTrack: "",
 		onBannerMessage: "",
 		onUpdatePlaybackStatus: "",
+		onCloseStartingPlayback: "",
 	},
 	
 	movingSlider: false,
@@ -45,6 +46,8 @@ enyo.kind({
 			
 			{name: "lastfmArtService", kind: "WebService", handleAs: "txt", onSuccess: "lastfmArtResponse", onFailure: "lastfmArtFailure"},
 		
+			{name: "startActivity", kind : "PalmService", service : "palm://com.palm.power/com/palm/power", method : "activityStart", onSuccess : "startActivitySuccess", onFailure : "startActivityFailure", subscribe : true },
+		 
 			/*
 			{name: "sound1", kind: "Sound", src: "media/empty.mp3", audioClass: "media"},
 			{name: "sound2", kind: "Sound", src: "media/empty.mp3", audioClass: "media"},
@@ -179,6 +182,8 @@ enyo.kind({
 	pauseClick: function() {
 		if(debug) this.log("pauseClick");
 		
+		AmpacheXL.currentSong.status = "paused";
+		
 		if(AmpacheXL.prefsCookie.playerType == "plugin") {
 			AmpacheXL.pluginObj.Pause(0);
 			this.$.songSlider.show();
@@ -186,6 +191,7 @@ enyo.kind({
 			this.$.play.show();
 			this.$.pause.hide();
 			this.$.next.show();
+			setTimeout(enyo.bind(this, "doUpdatePlaybackStatus", 10));
 			clearInterval(this.pluginPlayingInterval);
 		} else {
 			AmpacheXL.audioPlayer.pause();
@@ -202,6 +208,8 @@ enyo.kind({
 	playClick: function() {
 		if(debug) this.log("playClick");
 		
+		AmpacheXL.currentSong.status = "playing";
+		
 		if(AmpacheXL.prefsCookie.playerType == "plugin") {
 			AmpacheXL.pluginObj.Play(0);
 			this.$.songSlider.show();
@@ -209,6 +217,7 @@ enyo.kind({
 			this.$.play.hide();
 			this.$.pause.show();
 			this.$.next.show();
+			setTimeout(enyo.bind(this, "doUpdatePlaybackStatus", 10));
 			this.pluginPlayingInterval = setInterval(enyo.bind(this, "pluginPlayingRequest"), 1000);
 		} else {
 			AmpacheXL.audioPlayer.play();
@@ -272,6 +281,8 @@ enyo.kind({
 	},
 	playingEvent: function(inSong) {
 		if(debug) this.log("playingEvent: "+enyo.json.stringify(inSong));
+		
+		this.doCloseStartingPlayback();
 		
 		if(inSong) AmpacheXL.currentSong = inSong;
 		
@@ -405,26 +416,8 @@ enyo.kind({
 		
 		//this.doNextTrack();
 		
+		this.lastFMended(inSong);
 		
-		if((AmpacheXL.prefsCookie.lastFM)&&(AmpacheXL.prefsCookie.lastFMkey)) {
-			//lastfm track.scrobble	
-			var url = "http://ws.audioscrobbler.com/2.0/";
-			var secret = "ab3e2bdb8a9c8faced63b61fae1f842c";
-			
-			var params = {};
-			params.api_key = "5b3c5775a14bc5dd0182b8b2965b62ac";
-			params.method = "track.scrobble";
-			params.timestamp = getAmpacheTime();
-			params.track = inSong.title;
-			params.artist = inSong.artist;
-			params.sk = AmpacheXL.prefsCookie.lastFMkey;
-			
-			params.api_sig = MD5_hexhash("api_key"+params.api_key+"artist"+params.artist+"method"+params.method+"sk"+params.sk+"timestamp"+params.timestamp+"track"+params.track+secret);
-			
-			this.$.lastfmScrobbleService.setUrl(url);
-			if(debug) this.log("lastfmScrobbleService url: "+this.$.lastfmScrobbleService.getUrl()+enyo.json.stringify(params));
-			this.$.lastfmScrobbleService.call(params);
-		}
 	},
 	errorEvent: function() {
 		if(debug) this.log("errorEvent");
@@ -464,7 +457,11 @@ enyo.kind({
 	pluginStartSong: function(path, artist, title, iTrack) {
 		if(debug) this.log("pluginStartSong: "+path+" "+artist+" "+title+" "+iTrack);
 		
+		if(AmpacheXL.currentSong.url != AmpacheXL.nextSong.url) this.lastFMended(AmpacheXL.currentSong);
+		
 		AmpacheXL.currentSong = AmpacheXL.nextSong;
+		
+		this.$.songSlider.setBarPosition(100);
 		
 		this.$.songSlider.show();
 		this.$.previous.show();
@@ -497,8 +494,9 @@ enyo.kind({
 		this.$.totalTime.setContent(floatToTime(AmpacheXL.currentSong.time));
 		
 		this.pluginPlayingInterval = setInterval(enyo.bind(this, "pluginPlayingRequest"), 1000);
+		setInterval(enyo.bind(this, "keepPowerAlive"),30000);
 		
-		this.lastFMplaying();
+		setTimeout(enyo.bind(this, "lastFMplaying", 5));
 	},
 	pluginPlayingRequest: function() {
 		//if(debug) this.log("pluginPlayingRequest");
@@ -526,7 +524,41 @@ enyo.kind({
 		}
 		
 	},
+	keepPowerAlive: function() {
+		this.$.startActivity.call({"id": "com.thewbman.ampachexl-1", "duration_ms":900000});
+	},
 	
+    startActivitySuccess: function(inSender, inResponse) {
+        if(debug) this.log("Start activity success, results=" + enyo.json.stringify(inResponse));
+    },          
+    startActivityFailure: function(inSender, inError, inRequest) {
+       this.log(enyo.json.stringify(inError));
+    },
+	
+	lastFMended: function(inSong) {
+		if(debug) this.log("lastFMended");
+		
+		if((AmpacheXL.prefsCookie.lastFM)&&(AmpacheXL.prefsCookie.lastFMkey)) {
+			//lastfm track.scrobble	
+			var url = "http://ws.audioscrobbler.com/2.0/";
+			var secret = "ab3e2bdb8a9c8faced63b61fae1f842c";
+			
+			var params = {};
+			params.api_key = "5b3c5775a14bc5dd0182b8b2965b62ac";
+			params.method = "track.scrobble";
+			params.timestamp = getAmpacheTime();
+			params.track = inSong.title;
+			params.artist = inSong.artist;
+			params.sk = AmpacheXL.prefsCookie.lastFMkey;
+			
+			params.api_sig = MD5_hexhash("api_key"+params.api_key+"artist"+params.artist+"method"+params.method+"sk"+params.sk+"timestamp"+params.timestamp+"track"+params.track+secret);
+			
+			this.$.lastfmScrobbleService.setUrl(url);
+			if(debug) this.log("lastfmScrobbleService url: "+this.$.lastfmScrobbleService.getUrl()+enyo.json.stringify(params));
+			this.$.lastfmScrobbleService.call(params);
+		}
+		
+	},
 	lastFMplaying: function() {
 		if(debug) this.log("lastFMplaying");
 		
