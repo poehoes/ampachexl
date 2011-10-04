@@ -217,7 +217,7 @@ enyo.kind({
 		
 		this.dbSearchProperty = null;
 		
-		if(AmpacheXL.allArtists.length == AmpacheXL.connectResponse.artists) {
+		if(AmpacheXL.allArtists.length >= AmpacheXL.connectResponse.artists) {
 		
 			this.fullResultsList = AmpacheXL.allArtists.concat([]);
 			

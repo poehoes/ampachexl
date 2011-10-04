@@ -272,7 +272,7 @@ enyo.kind({
 		
 		this.dbSearchProperty = null;
 		
-		if(AmpacheXL.allSongs.length == AmpacheXL.connectResponse.songs) {
+		if(AmpacheXL.allSongs.length >= AmpacheXL.connectResponse.songs) {
 		
 			this.fullResultsList = AmpacheXL.allSongs.concat([]);
 			
