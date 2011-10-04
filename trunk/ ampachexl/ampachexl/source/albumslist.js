@@ -261,9 +261,21 @@ enyo.kind({
 		
 		this.dbSearchProperty = null;
 			
-		if(AmpacheXL.allAlbums.length == AmpacheXL.connectResponse.albums) {
+		if(AmpacheXL.allAlbums.length >= AmpacheXL.connectResponse.albums) {
 		
 			this.fullResultsList = AmpacheXL.allAlbums.concat([]);
+			
+			switch(AmpacheXL.prefsCookie.albumsSort) {
+				case "album":
+					this.fullResultsList.sort(sort_by("name", false));
+					break;
+				case "year":
+					this.fullResultsList.sort(double_sort_by("year", "name", false));
+					break;
+				default:
+					this.fullResultsList.sort(sort_by("name", false));
+					break;
+			}
 			
 			this.resetAlbumsSearch();
 			
