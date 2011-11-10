@@ -70,7 +70,10 @@ enyo.kind({
 		
 		{name: "mediaPermissionsService", kind : "PalmService", service : "palm://com.palm.mediapermissions", method : "request", onSuccess : "mediaPermissionsSuccess", onFailure : "mediaPermissionsFailure", subscribe : true },
 		
-		{name: "lockVolumeKeysService", kind: "PalmService", service: "palm://com.palm.audio/media/", method: "lockVolumeKeys", subscribe: true, foregroundApp: true, onSuccess: "lockVolumeKeysResponse", onFailure: "lockVolumeKeysFailure"},
+		{name: "lockVolumeKeysService", kind: "PalmService", service: "palm://com.palm.audio/media", method: "lockVolumeKeys", subscribe: true, foregroundApp: true, onSuccess: "lockVolumeKeysResponse", onFailure: "lockVolumeKeysFailure"},
+		
+		{name: "keyService", kind: "PalmService", service: "palm://com.palm.keys/media", method: "status", subscribe: true, onSuccess: "keyServiceResponse", onFailure: "keyServiceFailure" },
+		{name: "headsetService", kind: "PalmService", service: "palm://com.palm.keys/headset", method: "status", subscribe: true, onSuccess: "headsetServiceResponse", onFailure: "headsetServiceFailure" },
 		
 		{name: "ampacheConnectService", kind: "WebService", handleAs: "txt", onSuccess: "ampacheConnectResponse", onFailure: "ampacheConnectFailure"},
 		{name: "dataRequestService", kind: "WebService", handleAs: "txt", onSuccess: "dataRequestResponse", onFailure: "dataRequestFailure"},
@@ -348,6 +351,9 @@ enyo.kind({
 		this.addClass(AmpacheXL.prefsCookie.theme);
 		
 		//if(window.PalmSystem) this.$.lockVolumeKeysService.call({subscribe: true, foregroundApp: true, parameters: {subscribe: true, foregroundApp: true}});
+		
+		if(window.PalmSystem) this.$.keyService.call({subscribe: true, parameters: {subscribe: true}});
+		if(window.PalmSystem) this.$.headsetService.call({subscribe: true, parameters: {subscribe: true}});
 		
 		//this.activate();
 		
@@ -987,6 +993,136 @@ enyo.kind({
 		if(debug) this.log("lockVolumeKeysFailure");
 	},
 	
+	keyServiceResponse: function(inSender, inResponse) {
+		if(debug) this.log("keyServiceResponse: "+enyo.json.stringify(inResponse));
+		
+		if(inResponse.state == "down"){
+			switch(inResponse.key)
+			{
+				case "play":
+					
+					AmpacheXL.currentSong.status = "playing";
+					
+					if(AmpacheXL.prefsCookie.playerType == "plugin") {
+						AmpacheXL.pluginObj.Play(0);
+						setTimeout(enyo.bind(this, "updatePlaybackStatus", 100));
+					} else {
+						AmpacheXL.audioPlayer.play();
+					}
+					
+					break;
+				case "pause":
+					AmpacheXL.currentSong.status = "paused";
+					
+					if(AmpacheXL.prefsCookie.playerType == "plugin") {
+						AmpacheXL.pluginObj.Pause(0);
+						setTimeout(enyo.bind(this, "updatePlaybackStatus", 100));
+					} else {
+						AmpacheXL.audioPlayer.pause();
+					}
+					
+					break;
+				case "stop":
+					AmpacheXL.currentSong.status = "paused";
+					
+					if(AmpacheXL.prefsCookie.playerType == "plugin") {
+						AmpacheXL.pluginObj.Pause(0);
+						setTimeout(enyo.bind(this, "updatePlaybackStatus", 100));
+					} else {
+						AmpacheXL.audioPlayer.pause();
+					}
+					
+					break;
+				case "next":
+					this.nextTrack();
+					break;
+				case "prev":
+					this.previousTrack();
+					break;
+					
+				case "nextAndPlay":
+					this.nextTrack();
+					break;			
+					
+				case "togglePausePlay":
+					
+					if(AmpacheXL.currentSong.status == "playing"){
+						
+						AmpacheXL.currentSong.status = "paused";
+					
+						if(AmpacheXL.prefsCookie.playerType == "plugin") {
+							AmpacheXL.pluginObj.Pause(0);
+							setTimeout(enyo.bind(this, "updatePlaybackStatus", 100));
+						} else {
+							AmpacheXL.audioPlayer.pause();
+						}
+						
+					} else if(AmpacheXL.currentSong.status == "paused"){
+						
+						AmpacheXL.currentSong.status = "playing";
+						
+						if(AmpacheXL.prefsCookie.playerType == "plugin") {
+							AmpacheXL.pluginObj.Play(0);
+							setTimeout(enyo.bind(this, "updatePlaybackStatus", 100));
+						} else {
+							AmpacheXL.audioPlayer.play();
+						}
+					}
+					
+					break;
+			}
+		}
+	},
+	keyServiceFailure: function(inSender, inResponse) {
+		if(debug) this.log("keyServiceFailure");
+	},
+	
+	headsetServiceResponse: function(inSender, inResponse) {
+		if(debug) this.log("headsetServiceResponse: "+enyo.json.stringify(inResponse));
+		
+		if(inResponse.key === "headset_button" && inResponse.state)
+		{
+			
+			switch (inResponse.state)
+			{
+				case "single_click":
+					
+					if(AmpacheXL.currentSong.status == "playing"){
+						
+						AmpacheXL.currentSong.status = "paused";
+					
+						if(AmpacheXL.prefsCookie.playerType == "plugin") {
+							AmpacheXL.pluginObj.Pause(0);
+							setTimeout(enyo.bind(this, "updatePlaybackStatus", 100));
+						} else {
+							AmpacheXL.audioPlayer.pause();
+						}
+						
+					} else if(AmpacheXL.currentSong.status == "paused"){
+						
+						AmpacheXL.currentSong.status = "playing";
+						
+						if(AmpacheXL.prefsCookie.playerType == "plugin") {
+							AmpacheXL.pluginObj.Play(0);
+							setTimeout(enyo.bind(this, "updatePlaybackStatus", 100));
+						} else {
+							AmpacheXL.audioPlayer.play();
+						}
+					}
+					
+					break;
+				
+				case "double_click":
+					this.nextTrack();
+					break;
+			}
+			
+		}
+	},
+	headsetServiceFailure: function(inSender, inResponse) {
+		if(debug) this.log("headsetServiceFailure");
+	},
+	
 	ampacheConnect: function() {
 		if(debug) this.log("ampacheConnect");
 		
@@ -1447,9 +1583,11 @@ enyo.kind({
 		]}; 
 		
         this.$.mediaPermissionsService.call({ "rights": params});
+		
+		
 	},
 	mediaPermissionsSuccess: function(inSender, inResponse) {
-        this.log("Get Permissions success, results=" + enyo.json.stringify(inResponse));
+        if(debug) this.log("Get Permissions success, results=" + enyo.json.stringify(inResponse));
 		
 		AmpacheXL.prefsCookie.mediaPermissions = inResponse.isAllowed;
 		
