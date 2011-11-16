@@ -352,8 +352,8 @@ enyo.kind({
 		
 		//if(window.PalmSystem) this.$.lockVolumeKeysService.call({subscribe: true, foregroundApp: true, parameters: {subscribe: true, foregroundApp: true}});
 		
-		if(window.PalmSystem) this.$.keyService.call({subscribe: true, parameters: {subscribe: true}});
-		if(window.PalmSystem) this.$.headsetService.call({subscribe: true, parameters: {subscribe: true}});
+		//if(window.PalmSystem) this.$.keyService.call({subscribe: true, parameters: {subscribe: true}});
+		//if(window.PalmSystem) this.$.headsetService.call({subscribe: true, parameters: {subscribe: true}});
 		
 		//this.activate();
 		
